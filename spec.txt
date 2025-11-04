@@ -1,0 +1,56 @@
+next.js로 모바일웹 프로그램을 만든다.
+프로그램은 식당의 메뉴을 주문예약하고 선결제내역을 관리하는 프로그램이다.
+Firebase의 Realtime Database와 Authentication을 이용한다.
+기본 디자인은 MUI를 적용하되 깔끔하게 나타낸다.
+
+* Firebase 서비스를 이용하기 위한 정보
+FIREBASE_AUTH_DOMAIN="my-firebase-9450e.firebaseapp.com"
+FIREBASE_API_KEY="AIzaSyAjcEIdV46fa6Kw3Hdyzf3No_3cXtScRLc"
+FIREBASE_DATABASE_URL="https://my-firebase-9450e-default-rtdb.asia-southeast1.firebasedatabase.app"
+FIREBASE_PROJECT_ID="my-firebase-9450e"
+FIREBASE_STORAGE_BUCKET="my-firebase-9450e.firebasestorage.app"
+FIREBASE_MESSAGING_SENDER_ID="1025301057295"
+FIREBASE_APP_ID="1:1025301057295:web:18d2432b1614cc70e5387a"
+FIREBASE_MEASUREMENT_ID="G-SGD1NQERQJ"
+
+이미지 첨부기능을 위해 Cloudinary이용한다.
+* Cloudinary 서비스를 이용하기 위한 정보
+CLOUDINARY_CLOUD_NAME=da5h7wjxc
+CLOUDINARY_UPLOAD_PRESET=images
+
+Firebase, Cludinary 서비스를 이용하기 위한 정보는 env파일로 관리한다.
+
+초기 페이지는 "포장예약" 페이지 이다.
+초기 페이지가 오픈시 Authentication의 로그인 여부를 체크한다.
+만약 로그인이 되어 있지 않다면 Authentication의 로그인 페이지로 전환된다.
+
+* 로그인 페이지
+eMail, Password를 입력받아 로그인을 하며 회원가입을 할 수 있는 링크도 제공한다.
+로그인 버튼 아래 sendPasswordResetEmail를 이용한 메일 분실에 대한 링크 추가
+로그인을 하면 로그인이 되지 않아 전환된 이전 페이지로 돌아간다.
+
+* 회원가입 페이지
+이름, eMail, Password를 입력을 받으며 Authentication에서 제공하는 createUserWithEmailAndPassword를 이용하여 신규 유저 정보를 등록한다.
+이때 Realtime Database에 추가로 회원정보를 저장한다.
+저장경로
+"user" : { [사용자UID]: {
+    "email":[email],
+    "name":[name]
+    }
+}
+
+Realtime Database에서 restaurant 데이터를 조회하여 출력한다.
+출력 양식
+식당 : name
+전화 : telNo (mdi-phone 아이콘으로 표시하고 tel: 링크를 이용하여 모바일에서 클릭시 바로 전화앱으로 전환될 수 있도록 한다.)
+     
+----------------------------------------
+
+화면 상단에 타이틀은 "포장 예약"으로 표기한다.
+
+Realtime Database에서 restaurant 데이터를 조회하여 출력한다.
+정보위치
+food-resv/restaurant
+출력 양식
+식당 : name
+전화 : telNo (mdi-phone 아이콘으로 표시하고 tel: 링크를 이용하여 모바일에서 클릭시 바로 전화앱으로 전환될 수 있도록 한다.)
