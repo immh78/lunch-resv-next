@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -43,8 +43,9 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push(returnUrl);
-    } catch (err: any) {
-      setError(err.message || '로그인에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || '로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -60,8 +61,9 @@ export default function LoginPage() {
       await resetPassword(email);
       setError('');
       alert('비밀번호 재설정 이메일이 전송되었습니다.');
-    } catch (err: any) {
-      setError(err.message || '비밀번호 재설정 이메일 전송에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || '비밀번호 재설정 이메일 전송에 실패했습니다.');
     }
   };
 

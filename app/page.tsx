@@ -97,7 +97,7 @@ export default function Home() {
     const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
     
     let restaurantsData: { [key: string]: Restaurant } = {};
-    let reservationData: any = {};
+    let reservationData: { [key: string]: { [date: string]: ReservationData } } = {};
 
     const unsubscribeRestaurants = onValue(
       restaurantsRef,
@@ -231,7 +231,7 @@ export default function Home() {
     if (restaurant.reservation && restaurant.reservation.menus) {
       // isReceipt가 false인 메뉴만 필터링
       const unreceivedMenus = restaurant.reservation.menus.filter(
-        (menu) => !restaurant.reservation?.isReceipt
+        () => !restaurant.reservation?.isReceipt
       );
       
       if (unreceivedMenus.length > 0 && restaurant.reservationDate) {
