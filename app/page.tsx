@@ -27,6 +27,11 @@ import {
   Divider,
   Tabs,
   Tab,
+  AppBar,
+  Toolbar,
+  Button,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -40,6 +45,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AddIcon from '@mui/icons-material/Add';
 import EraserIcon from '@mui/icons-material/CleaningServices';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
+import LunchDiningIcon from '@mui/icons-material/LunchDining';
+import RamenDiningIcon from '@mui/icons-material/RamenDining';
+import LocalDiningIcon from '@mui/icons-material/LocalDining';
+import SetMealIcon from '@mui/icons-material/SetMeal';
+import GroupsIcon from '@mui/icons-material/Groups';
+import CoffeeIcon from '@mui/icons-material/Coffee';
+import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -50,10 +63,32 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2',
+      main: '#00695c', // teal-darken-4
     },
   },
 });
+
+// 식당 종류별 아이콘 매핑 함수
+const getRestaurantKindIcon = (kind?: string): React.ReactNode => {
+  switch (kind) {
+    case '한식':
+      return <LunchDiningIcon />;
+    case '중식':
+      return <RamenDiningIcon />;
+    case '양식':
+      return <LocalDiningIcon />;
+    case '일식':
+      return <SetMealIcon />;
+    case '회식':
+      return <GroupsIcon />;
+    case '카페':
+      return <CoffeeIcon />;
+    case '베이커리':
+      return <BakeryDiningIcon />;
+    default:
+      return <RestaurantIcon />;
+  }
+};
 
 interface Restaurant {
   id: string;
@@ -95,6 +130,7 @@ interface EditablePrepaymentItem {
 interface RestaurantWithReservation extends Restaurant {
   reservationDate?: string;
   reservation?: ReservationData;
+  prepaymentTotal?: number;
 }
 
 export default function Home() {
@@ -111,15 +147,18 @@ export default function Home() {
   const [currentTab, setCurrentTab] = useState(0);
   const [prepayments, setPrepayments] = useState<EditablePrepaymentItem[]>([]);
   const [savingPrepayment, setSavingPrepayment] = useState(false);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     if (!user) return;
 
     const restaurantsRef = ref(database, 'food-resv/restaurant');
     const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
+    const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}`);
     
     let restaurantsData: { [key: string]: Restaurant } = {};
     let reservationData: { [key: string]: { [date: string]: ReservationData } } = {};
+    let prepaymentData: { [key: string]: PrepaymentItem[] } = {};
 
     const unsubscribeRestaurants = onValue(
       restaurantsRef,
@@ -158,6 +197,24 @@ export default function Home() {
       }
     );
 
+    const unsubscribePrepayments = onValue(
+      prepaymentRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          prepaymentData = snapshot.val();
+        } else {
+          prepaymentData = {};
+        }
+        combineData();
+      },
+      (err) => {
+        console.error('Error fetching prepayments:', err);
+        // 선결제 데이터가 없어도 계속 진행
+        prepaymentData = {};
+        combineData();
+      }
+    );
+
     const combineData = () => {
       if (!restaurantsData || Object.keys(restaurantsData).length === 0) {
         return;
@@ -181,6 +238,12 @@ export default function Home() {
           }
         }
 
+        // 선결제 총합 계산
+        let prepaymentTotal = 0;
+        if (prepaymentData[restaurantKey]) {
+          prepaymentTotal = prepaymentData[restaurantKey].reduce((sum, item) => sum + (item.amount || 0), 0);
+        }
+
         return {
           id: restaurantKey,
           name: restaurant.name,
@@ -190,6 +253,7 @@ export default function Home() {
           menuUrl: restaurant.menuUrl,
           reservationDate: latestDate,
           reservation: latestReservation,
+          prepaymentTotal,
         };
       });
 
@@ -209,6 +273,7 @@ export default function Home() {
     return () => {
       unsubscribeRestaurants();
       unsubscribeReservations();
+      unsubscribePrepayments();
     };
   }, [user]);
 
@@ -236,6 +301,23 @@ export default function Home() {
     const month = dateStr.substring(4, 6);
     const day = dateStr.substring(6, 8);
     return `${year}.${month}.${day}`;
+  };
+
+  // yyyyMMdd를 한국어 형식으로 변환 (예: 1.15 (월))
+  const formatKoreanDate = (dateStr: string): string => {
+    if (!dateStr || dateStr.length !== 8) return '';
+    
+    const year = parseInt(dateStr.substring(0, 4), 10);
+    const month = parseInt(dateStr.substring(4, 6), 10) - 1; // JS는 0부터 시작
+    const day = parseInt(dateStr.substring(6, 8), 10);
+    
+    const date = new Date(year, month, day);
+    if (isNaN(date.getTime())) return '잘못된 날짜';
+    
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekday = dayNames[date.getDay()];
+    
+    return `${month + 1}.${day} (${weekday})`;
   };
 
   // yyyy.MM.dd를 yyyyMMdd로 변환
@@ -546,20 +628,70 @@ export default function Home() {
     }
   };
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <ProtectedRoute>
-        <Container maxWidth="sm" sx={{ py: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Typography variant="h4" component="h1">
-              포장 예약
-            </Typography>
-            <IconButton>
-              <MoreVertIcon />
-            </IconButton>
-          </Box>
+        <Box sx={{ flexGrow: 1 }}>
+          <AppBar 
+            position="static"
+            sx={{
+              background: 'linear-gradient(to top right, rgba(19,84,122,.8), rgba(128,208,199,.8))',
+              backgroundColor: '#00695c',
+            }}
+          >
+            <Toolbar>
+              <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                {loading ? (
+                  <CircularProgress size={24} sx={{ color: 'white' }} />
+                ) : (
+                  <IconButton 
+                    edge="start" 
+                    color="inherit" 
+                    onClick={() => window.location.reload()}
+                    sx={{ mr: 1 }}
+                  >
+                    <RestaurantIcon />
+                  </IconButton>
+                )}
+              </Box>
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                포장 예약
+              </Typography>
+              <IconButton
+                edge="end"
+                color="inherit"
+                onClick={handleMenuOpen}
+              >
+                <MoreVertIcon />
+              </IconButton>
+              <Menu
+                anchorEl={menuAnchorEl}
+                open={Boolean(menuAnchorEl)}
+                onClose={handleMenuClose}
+              >
+                <MenuItem onClick={handleMenuClose}>
+                  <RestaurantIcon sx={{ mr: 1 }} />
+                  예약 관리
+                </MenuItem>
+                <MenuItem onClick={handleMenuClose}>
+                  <AddIcon sx={{ mr: 1 }} />
+                  식당 추가
+                </MenuItem>
+              </Menu>
+            </Toolbar>
+          </AppBar>
+        </Box>
+        <Container maxWidth="sm" sx={{ py: 2 }}>
 
           {loading ? (
             <Box
@@ -596,43 +728,134 @@ export default function Home() {
                       {restaurants.map((restaurant, index) => {
                         // 예약 메뉴 문자열 생성
                         let menuText = '';
+                        let totalAmount = 0;
                         if (restaurant.reservation && restaurant.reservation.menus) {
                           menuText = restaurant.reservation.menus
                             .map((m) => m.menu)
                             .join(' + ');
+                          totalAmount = restaurant.reservation.menus.reduce((sum, m) => sum + (m.cost || 0), 0);
                         }
+
+                        const isReceipt = restaurant.reservation?.isReceipt ?? false;
+                        const prepaymentTotal = restaurant.prepaymentTotal || 0;
+                        
+                        // isReceipt가 false일 때 색상 결정
+                        let amountColor = 'inherit';
+                        if (!isReceipt) {
+                          if (prepaymentTotal === 0) {
+                            amountColor = 'red';
+                          } else if (prepaymentTotal >= totalAmount) {
+                            amountColor = 'blue';
+                          } else {
+                            amountColor = 'orange';
+                          }
+                        }
+
+                        const remainingAmount = totalAmount - prepaymentTotal;
 
                         return (
                           <TableRow
                             key={restaurant.id}
                             onClick={() => handleRestaurantClick(restaurant)}
                             sx={{
-                              backgroundColor: index % 2 === 0 ? 'background.paper' : 'action.hover',
                               cursor: 'pointer',
+                              backgroundColor: !isReceipt ? 'primary.main' : 'inherit',
+                              color: !isReceipt ? 'primary.contrastText' : 'inherit',
                               '&:hover': {
-                                backgroundColor: 'action.selected',
+                                backgroundColor: !isReceipt ? 'primary.dark' : 'action.hover',
                               },
                             }}
                           >
-                            <TableCell>{restaurant.name}</TableCell>
-                            <TableCell>
-                              {menuText && (
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    color: restaurant.reservation?.isReceipt ? 'text.secondary' : 'text.primary',
-                                  }}
-                                >
-                                  {menuText}
-                                </Typography>
-                              )}
+                            <TableCell
+                              sx={{
+                                backgroundColor: !isReceipt ? 'primary.main' : 'inherit',
+                                color: !isReceipt ? 'primary.contrastText' : 'inherit',
+                              }}
+                            >
+                              <Button
+                                variant="text"
+                                size="small"
+                                sx={{
+                                  textTransform: 'none',
+                                  justifyContent: 'flex-start',
+                                  px: 1,
+                                  color: !isReceipt ? 'primary.contrastText' : 'inherit',
+                                  '&:hover': {
+                                    backgroundColor: !isReceipt ? 'rgba(255, 255, 255, 0.1)' : 'inherit',
+                                  },
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRestaurantClick(restaurant);
+                                }}
+                              >
+                                {restaurant.name}
+                              </Button>
                             </TableCell>
-                            <TableCell>
+                            <TableCell
+                              sx={{
+                                backgroundColor: !isReceipt ? 'primary.main' : 'inherit',
+                                color: !isReceipt ? 'primary.contrastText' : 'inherit',
+                              }}
+                            >
+                              <Box>
+                                {menuText && (
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      color: isReceipt ? 'rgba(0, 0, 0, 0.2)' : 'inherit',
+                                      opacity: isReceipt ? 0.3 : 1,
+                                    }}
+                                  >
+                                    {menuText}
+                                  </Typography>
+                                )}
+                                {!isReceipt && totalAmount > 0 && (
+                                  <>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: amountColor,
+                                        fontWeight: 'bold',
+                                        mt: 0.5,
+                                      }}
+                                    >
+                                      {totalAmount.toLocaleString()}원
+                                    </Typography>
+                                    {remainingAmount !== totalAmount && remainingAmount > 0 && (
+                                      <Typography
+                                        variant="body2"
+                                        sx={{
+                                          color: amountColor,
+                                          fontSize: '0.75rem',
+                                          mt: 0.25,
+                                        }}
+                                      >
+                                        ({remainingAmount.toLocaleString()})
+                                      </Typography>
+                                    )}
+                                  </>
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell
+                              sx={{
+                                backgroundColor: !isReceipt ? 'primary.main' : 'inherit',
+                                color: !isReceipt ? 'primary.contrastText' : 'inherit',
+                              }}
+                            >
                               <Link
                                 href={`tel:${restaurant.telNo}`}
-                                sx={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+                                sx={{ 
+                                  textDecoration: 'none', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'flex-end',
+                                  color: !isReceipt ? 'primary.contrastText' : 'inherit',
+                                }}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <PhoneIcon color="primary" />
+                                <PhoneIcon />
                               </Link>
                             </TableCell>
                           </TableRow>
