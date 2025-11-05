@@ -39,6 +39,10 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AddIcon from '@mui/icons-material/Add';
 import EraserIcon from '@mui/icons-material/CleaningServices';
 import TextField from '@mui/material/TextField';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs, { Dayjs } from 'dayjs';
 
 const theme = createTheme({
   palette: {
@@ -88,6 +92,7 @@ export default function Home() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editableMenus, setEditableMenus] = useState<EditableMenuItem[]>([]);
   const [editableDate, setEditableDate] = useState<string>('');
+  const [editableDateValue, setEditableDateValue] = useState<Dayjs | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -221,6 +226,15 @@ export default function Home() {
     return dateStr.replace(/\./g, '');
   };
 
+  // yyyyMMdd를 Dayjs로 변환
+  const parseDateToDayjs = (dateStr: string): Dayjs | null => {
+    if (!dateStr || dateStr.length !== 8) return null;
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    return dayjs(`${year}-${month}-${day}`);
+  };
+
   const handleRestaurantClick = (restaurant: RestaurantWithReservation) => {
     setSelectedRestaurant(restaurant);
     
@@ -256,6 +270,7 @@ export default function Home() {
     
     setEditableMenus(menus);
     setEditableDate(reservationDate);
+    setEditableDateValue(parseDateToDayjs(parseReservationDate(reservationDate)));
     setDialogOpen(true);
   };
 
@@ -264,6 +279,18 @@ export default function Home() {
     setSelectedRestaurant(null);
     setEditableMenus([]);
     setEditableDate('');
+    setEditableDateValue(null);
+  };
+
+  const handleDateChange = (newValue: Dayjs | null) => {
+    if (newValue) {
+      setEditableDateValue(newValue);
+      const formattedDate = newValue.format('YYYY.MM.DD');
+      setEditableDate(formattedDate);
+    } else {
+      setEditableDateValue(null);
+      setEditableDate('');
+    }
   };
 
   const handleAddRow = () => {
@@ -357,9 +384,10 @@ export default function Home() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <ProtectedRoute>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <ProtectedRoute>
         <Container maxWidth="sm" sx={{ py: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
             <Typography variant="h4" component="h1">
@@ -463,14 +491,20 @@ export default function Home() {
             PaperProps={{
               sx: {
                 borderRadius: 2,
+                m: { xs: 1, sm: 2 },
+                maxHeight: { xs: '90vh', sm: '80vh' },
+                display: 'flex',
+                flexDirection: 'column',
               },
             }}
           >
             {selectedRestaurant && (
               <>
-                <DialogTitle>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="h6">{selectedRestaurant.name}</Typography>
+                <DialogTitle sx={{ pb: { xs: 1, sm: 2 }, pt: { xs: 2, sm: 3 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                    <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, wordBreak: 'break-word' }}>
+                      {selectedRestaurant.name}
+                    </Typography>
                     {(selectedRestaurant.menuImgId || selectedRestaurant.menuUrl) && (
                       <IconButton
                         size="small"
@@ -479,45 +513,69 @@ export default function Home() {
                             window.open(selectedRestaurant.menuUrl, '_blank');
                           }
                         }}
+                        sx={{ flexShrink: 0 }}
                       >
-                        <MenuBookIcon />
+                        <MenuBookIcon fontSize="small" />
                       </IconButton>
                     )}
                   </Box>
                 </DialogTitle>
-                <DialogContent>
-                  <Box sx={{ mb: 2 }}>
-                    <TextField
+                <DialogContent 
+                  sx={{ 
+                    px: { xs: 2, sm: 3 }, 
+                    py: { xs: 1, sm: 2 },
+                    overflow: 'auto',
+                    flex: 1,
+                    minHeight: 0,
+                  }}
+                >
+                  <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+                    <DatePicker
                       label="예약일"
-                      value={editableDate}
-                      onChange={(e) => setEditableDate(e.target.value)}
-                      placeholder="yyyy.MM.dd"
-                      fullWidth
-                      size="small"
-                      sx={{ mb: 2 }}
+                      value={editableDateValue}
+                      onChange={handleDateChange}
+                      format="YYYY.MM.DD"
+                      slotProps={{
+                        textField: {
+                          size: 'small',
+                          fullWidth: true,
+                          sx: {
+                            mb: { xs: 1.5, sm: 2 },
+                            '& .MuiInputBase-input': {
+                              fontSize: { xs: '0.875rem', sm: '1rem' }
+                            },
+                            '& .MuiInputLabel-root': {
+                              fontSize: { xs: '0.875rem', sm: '1rem' }
+                            }
+                          }
+                        }
+                      }}
                     />
-                    <TableContainer>
-                      <Table size="small">
+                    <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
+                      <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } } }}>
                         <TableHead>
                           <TableRow>
-                            <TableCell>메뉴</TableCell>
-                            <TableCell align="right">가격</TableCell>
-                            <TableCell width={50}></TableCell>
+                            <TableCell sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 } }}>메뉴</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 } }}>가격</TableCell>
+                            <TableCell width={40} sx={{ px: { xs: 0.5, sm: 1 } }}></TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
                           {editableMenus.map((menuItem) => (
                             <TableRow key={menuItem.id}>
-                              <TableCell>
+                              <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
                                 <TextField
                                   value={menuItem.menu}
                                   onChange={(e) => handleMenuChange(menuItem.id, 'menu', e.target.value)}
                                   placeholder="메뉴명"
                                   size="small"
                                   fullWidth
+                                  InputProps={{
+                                    sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                                  }}
                                 />
                               </TableCell>
-                              <TableCell align="right">
+                              <TableCell align="right" sx={{ px: { xs: 1, sm: 2 } }}>
                                 <TextField
                                   type="number"
                                   value={menuItem.cost || ''}
@@ -525,14 +583,18 @@ export default function Home() {
                                   placeholder="금액"
                                   size="small"
                                   inputProps={{ min: 0 }}
-                                  sx={{ width: 120 }}
+                                  sx={{ width: { xs: 100, sm: 120 } }}
+                                  InputProps={{
+                                    sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                                  }}
                                 />
                               </TableCell>
-                              <TableCell>
+                              <TableCell sx={{ px: { xs: 0.5, sm: 1 } }}>
                                 <IconButton
                                   size="small"
                                   onClick={() => handleDeleteRow(menuItem.id)}
                                   aria-label="삭제"
+                                  sx={{ p: { xs: 0.5, sm: 1 } }}
                                 >
                                   <EraserIcon fontSize="small" />
                                 </IconButton>
@@ -545,37 +607,51 @@ export default function Home() {
                   </Box>
                 </DialogContent>
                 <Divider />
-                <DialogActions sx={{ justifyContent: 'center', gap: 1, p: 2 }}>
-                  <IconButton color="primary" aria-label="공유">
-                    <ShareIcon />
+                <DialogActions 
+                  sx={{ 
+                    justifyContent: 'center', 
+                    gap: { xs: 0.5, sm: 1 }, 
+                    p: { xs: 1, sm: 2 },
+                    flexWrap: 'wrap',
+                    '& .MuiIconButton-root': {
+                      fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                      p: { xs: 0.75, sm: 1 },
+                    }
+                  }}
+                >
+                  <IconButton color="primary" aria-label="공유" size="small">
+                    <ShareIcon fontSize="small" />
                   </IconButton>
-                  <IconButton color="primary" aria-label="수령">
-                    <ReceiptIcon />
+                  <IconButton color="primary" aria-label="수령" size="small">
+                    <ReceiptIcon fontSize="small" />
                   </IconButton>
                   <IconButton 
                     color="primary" 
                     aria-label="저장" 
                     onClick={handleSave}
                     disabled={saving}
+                    size="small"
                   >
-                    <SaveIcon />
+                    <SaveIcon fontSize="small" />
                   </IconButton>
                   <IconButton 
                     color="primary" 
                     aria-label="추가"
                     onClick={handleAddRow}
+                    size="small"
                   >
-                    <AddIcon />
+                    <AddIcon fontSize="small" />
                   </IconButton>
                   <IconButton 
                     color="error" 
                     aria-label="삭제"
                     onClick={handleDelete}
+                    size="small"
                   >
-                    <DeleteIcon />
+                    <DeleteIcon fontSize="small" />
                   </IconButton>
-                  <IconButton onClick={handleCloseDialog} aria-label="닫기">
-                    <CloseIcon />
+                  <IconButton onClick={handleCloseDialog} aria-label="닫기" size="small">
+                    <CloseIcon fontSize="small" />
                   </IconButton>
                 </DialogActions>
               </>
@@ -584,5 +660,6 @@ export default function Home() {
         </Container>
       </ProtectedRoute>
     </ThemeProvider>
+    </LocalizationProvider>
   );
 }
