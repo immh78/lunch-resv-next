@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ref, onValue, set, remove } from 'firebase/database';
+import { ref, onValue, set, remove, get } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +25,8 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -78,6 +80,18 @@ interface ReservationData {
   menus: MenuItem[];
 }
 
+interface PrepaymentItem {
+  amount: number;
+  date: string; // yyyyMMdd
+}
+
+interface EditablePrepaymentItem {
+  id: string;
+  amount: number;
+  date: string; // yyyyMMdd
+  dateValue: Dayjs | null;
+}
+
 interface RestaurantWithReservation extends Restaurant {
   reservationDate?: string;
   reservation?: ReservationData;
@@ -94,6 +108,9 @@ export default function Home() {
   const [editableDate, setEditableDate] = useState<string>('');
   const [editableDateValue, setEditableDateValue] = useState<Dayjs | null>(null);
   const [saving, setSaving] = useState(false);
+  const [currentTab, setCurrentTab] = useState(0);
+  const [prepayments, setPrepayments] = useState<EditablePrepaymentItem[]>([]);
+  const [savingPrepayment, setSavingPrepayment] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -235,7 +252,7 @@ export default function Home() {
     return dayjs(`${year}-${month}-${day}`);
   };
 
-  const handleRestaurantClick = (restaurant: RestaurantWithReservation) => {
+  const handleRestaurantClick = async (restaurant: RestaurantWithReservation) => {
     setSelectedRestaurant(restaurant);
     
     // 수령여부가 false인 메뉴만 필터링
@@ -271,7 +288,52 @@ export default function Home() {
     setEditableMenus(menus);
     setEditableDate(reservationDate);
     setEditableDateValue(parseDateToDayjs(parseReservationDate(reservationDate)));
+    
+    // 선결제 데이터 로드
+    if (user) {
+      await loadPrepayments(user.uid, restaurant.id);
+    }
+    
+    setCurrentTab(0);
     setDialogOpen(true);
+  };
+  
+  const loadPrepayments = async (userId: string, restaurantId: string) => {
+    try {
+      const prepaymentRef = ref(database, `food-resv/prepayment/${userId}/${restaurantId}`);
+      const snapshot = await get(prepaymentRef);
+      
+      if (snapshot.exists()) {
+        const data: PrepaymentItem[] = snapshot.val();
+        const today = dayjs().format('YYYYMMDD');
+        const prepaymentItems: EditablePrepaymentItem[] = data.map((item, idx) => ({
+          id: `prepayment-${idx}`,
+          amount: item.amount || 0,
+          date: item.date || today,
+          dateValue: parseDateToDayjs(item.date || today),
+        }));
+        setPrepayments(prepaymentItems);
+      } else {
+        // 선결제 데이터가 없으면 기본 행 하나 추가
+        const today = dayjs().format('YYYYMMDD');
+        setPrepayments([{
+          id: `prepayment-${Date.now()}`,
+          amount: 0,
+          date: today,
+          dateValue: dayjs(),
+        }]);
+      }
+    } catch (error) {
+      console.error('Error loading prepayments:', error);
+      // 에러 발생 시 기본 행 하나 추가
+      const today = dayjs().format('YYYYMMDD');
+      setPrepayments([{
+        id: `prepayment-${Date.now()}`,
+        amount: 0,
+        date: today,
+        dateValue: dayjs(),
+      }]);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -280,6 +342,8 @@ export default function Home() {
     setEditableMenus([]);
     setEditableDate('');
     setEditableDateValue(null);
+    setPrepayments([]);
+    setCurrentTab(0);
   };
 
   const handleDateChange = (newValue: Dayjs | null) => {
@@ -379,6 +443,105 @@ export default function Home() {
       handleCloseDialog();
     } catch (error) {
       console.error('Error deleting reservation:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 선결제 관련 핸들러
+  const handleAddPrepaymentRow = () => {
+    const today = dayjs().format('YYYYMMDD');
+    setPrepayments([
+      ...prepayments,
+      {
+        id: `prepayment-${Date.now()}`,
+        amount: 0,
+        date: today,
+        dateValue: dayjs(),
+      },
+    ]);
+  };
+
+  const handleDeletePrepaymentRow = (id: string) => {
+    if (prepayments.length === 1) {
+      // 마지막 행이면 초기화만
+      const today = dayjs().format('YYYYMMDD');
+      setPrepayments([{
+        id: prepayments[0].id,
+        amount: 0,
+        date: today,
+        dateValue: dayjs(),
+      }]);
+    } else {
+      setPrepayments(prepayments.filter((item) => item.id !== id));
+    }
+  };
+
+  const handlePrepaymentChange = (id: string, field: 'amount' | 'date', value: number | Dayjs | null) => {
+    setPrepayments(prepayments.map((item) => {
+      if (item.id === id) {
+        if (field === 'amount') {
+          return { ...item, amount: value as number };
+        } else {
+          const dateValue = value as Dayjs | null;
+          if (dateValue) {
+            return {
+              ...item,
+              date: dateValue.format('YYYYMMDD'),
+              dateValue: dateValue,
+            };
+          }
+          return item;
+        }
+      }
+      return item;
+    }));
+  };
+
+  const handleSavePrepayment = async () => {
+    if (!user || !selectedRestaurant) return;
+    
+    setSavingPrepayment(true);
+    try {
+      const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
+      
+      // 유효한 데이터만 필터링 (금액이 0보다 큰 것만)
+      const validPrepayments = prepayments
+        .filter((item) => item.amount > 0 && item.date)
+        .map((item) => ({
+          amount: item.amount,
+          date: item.date,
+        }));
+      
+      if (validPrepayments.length === 0) {
+        // 빈 배열로 저장하면 삭제 효과
+        await set(ref(database, prepaymentPath), []);
+        alert('저장되었습니다.');
+      } else {
+        await set(ref(database, prepaymentPath), validPrepayments);
+        alert('저장되었습니다.');
+      }
+    } catch (error) {
+      console.error('Error saving prepayment:', error);
+      alert('저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingPrepayment(false);
+    }
+  };
+
+  const handleDeletePrepayment = async () => {
+    if (!user || !selectedRestaurant) return;
+    
+    const confirmDelete = window.confirm('선결제 정보를 삭제하시겠습니까?');
+    if (!confirmDelete) return;
+    
+    try {
+      const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
+      await remove(ref(database, prepaymentPath));
+      alert('삭제되었습니다.');
+      // 선결제 데이터 다시 로드
+      await loadPrepayments(user.uid, selectedRestaurant.id);
+    } catch (error) {
+      console.error('Error deleting prepayment:', error);
       alert('삭제 중 오류가 발생했습니다.');
     }
   };
@@ -520,6 +683,12 @@ export default function Home() {
                     )}
                   </Box>
                 </DialogTitle>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
+                    <Tab label="메뉴" />
+                    <Tab label="선결제" />
+                  </Tabs>
+                </Box>
                 <DialogContent 
                   sx={{ 
                     px: { xs: 2, sm: 3 }, 
@@ -529,82 +698,163 @@ export default function Home() {
                     minHeight: 0,
                   }}
                 >
-                  <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-                    <DatePicker
-                      label="예약일"
-                      value={editableDateValue}
-                      onChange={handleDateChange}
-                      format="YYYY.MM.DD"
-                      slotProps={{
-                        textField: {
-                          size: 'small',
-                          fullWidth: true,
-                          sx: {
-                            mb: { xs: 1.5, sm: 2 },
-                            '& .MuiInputBase-input': {
-                              fontSize: { xs: '0.875rem', sm: '1rem' }
-                            },
-                            '& .MuiInputLabel-root': {
-                              fontSize: { xs: '0.875rem', sm: '1rem' }
+                  {currentTab === 0 && (
+                    <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+                      <DatePicker
+                        label="예약일"
+                        value={editableDateValue}
+                        onChange={handleDateChange}
+                        format="YYYY.MM.DD"
+                        slotProps={{
+                          textField: {
+                            size: 'small',
+                            fullWidth: true,
+                            sx: {
+                              mb: { xs: 1.5, sm: 2 },
+                              '& .MuiInputBase-input': {
+                                fontSize: { xs: '0.875rem', sm: '1rem' }
+                              },
+                              '& .MuiInputLabel-root': {
+                                fontSize: { xs: '0.875rem', sm: '1rem' }
+                              }
                             }
                           }
-                        }
-                      }}
-                    />
-                    <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
-                      <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } } }}>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 } }}>메뉴</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 } }}>가격</TableCell>
-                            <TableCell width={40} sx={{ px: { xs: 0.5, sm: 1 } }}></TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {editableMenus.map((menuItem) => (
-                            <TableRow key={menuItem.id}>
-                              <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
-                                <TextField
-                                  value={menuItem.menu}
-                                  onChange={(e) => handleMenuChange(menuItem.id, 'menu', e.target.value)}
-                                  placeholder="메뉴명"
-                                  size="small"
-                                  fullWidth
-                                  InputProps={{
-                                    sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell align="right" sx={{ px: { xs: 1, sm: 2 } }}>
-                                <TextField
-                                  type="number"
-                                  value={menuItem.cost || ''}
-                                  onChange={(e) => handleMenuChange(menuItem.id, 'cost', parseInt(e.target.value) || 0)}
-                                  placeholder="금액"
-                                  size="small"
-                                  inputProps={{ min: 0 }}
-                                  sx={{ width: { xs: 100, sm: 120 } }}
-                                  InputProps={{
-                                    sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell sx={{ px: { xs: 0.5, sm: 1 } }}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleDeleteRow(menuItem.id)}
-                                  aria-label="삭제"
-                                  sx={{ p: { xs: 0.5, sm: 1 } }}
-                                >
-                                  <EraserIcon fontSize="small" />
-                                </IconButton>
-                              </TableCell>
+                        }}
+                      />
+                      <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
+                        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } } }}>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 } }}>메뉴</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 } }}>가격</TableCell>
+                              <TableCell width={40} sx={{ px: { xs: 0.5, sm: 1 } }}></TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Box>
+                          </TableHead>
+                          <TableBody>
+                            {editableMenus.map((menuItem) => (
+                              <TableRow key={menuItem.id}>
+                                <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
+                                  <TextField
+                                    value={menuItem.menu}
+                                    onChange={(e) => handleMenuChange(menuItem.id, 'menu', e.target.value)}
+                                    placeholder="메뉴명"
+                                    size="small"
+                                    fullWidth
+                                    InputProps={{
+                                      sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell align="right" sx={{ px: { xs: 1, sm: 2 } }}>
+                                  <TextField
+                                    type="number"
+                                    value={menuItem.cost || ''}
+                                    onChange={(e) => handleMenuChange(menuItem.id, 'cost', parseInt(e.target.value) || 0)}
+                                    placeholder="금액"
+                                    size="small"
+                                    inputProps={{ min: 0 }}
+                                    sx={{ width: { xs: 100, sm: 120 } }}
+                                    InputProps={{
+                                      sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell sx={{ px: { xs: 0.5, sm: 1 } }}>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteRow(menuItem.id)}
+                                    aria-label="삭제"
+                                    sx={{ p: { xs: 0.5, sm: 1 } }}
+                                  >
+                                    <EraserIcon fontSize="small" />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  )}
+                  {currentTab === 1 && (
+                    <Box>
+                      <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
+                        <Table 
+                          size="small" 
+                          sx={{ 
+                            '& .MuiTableCell-root': { 
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' }, 
+                              py: { xs: 0.5, sm: 1 },
+                              whiteSpace: 'nowrap',
+                            },
+                            width: '100%',
+                            tableLayout: 'fixed',
+                          }}
+                        >
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 }, width: '45%' }}>날짜</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 }, width: '40%' }}>금액</TableCell>
+                              <TableCell width={60} sx={{ px: { xs: 0.5, sm: 1 } }}></TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {prepayments.map((prepaymentItem) => (
+                              <TableRow key={prepaymentItem.id}>
+                                <TableCell sx={{ px: { xs: 1, sm: 2 }, overflow: 'hidden' }}>
+                                  <DatePicker
+                                    value={prepaymentItem.dateValue}
+                                    onChange={(newValue) => handlePrepaymentChange(prepaymentItem.id, 'date', newValue)}
+                                    format="YYYY.MM.DD"
+                                    slotProps={{
+                                      textField: {
+                                        size: 'small',
+                                        fullWidth: true,
+                                        sx: {
+                                          '& .MuiInputBase-input': {
+                                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                            pr: { xs: 3, sm: 4 },
+                                          },
+                                          '& .MuiInputBase-root': {
+                                            width: '100%',
+                                            minWidth: 0,
+                                          }
+                                        }
+                                      }
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell align="right" sx={{ px: { xs: 1, sm: 2 } }}>
+                                  <TextField
+                                    type="number"
+                                    value={prepaymentItem.amount || ''}
+                                    onChange={(e) => handlePrepaymentChange(prepaymentItem.id, 'amount', parseInt(e.target.value) || 0)}
+                                    placeholder="금액"
+                                    size="small"
+                                    inputProps={{ min: 0 }}
+                                    sx={{ width: '100%', maxWidth: 120 }}
+                                    InputProps={{
+                                      sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell sx={{ px: { xs: 0.5, sm: 1 } }}>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeletePrepaymentRow(prepaymentItem.id)}
+                                    aria-label="삭제"
+                                    sx={{ p: { xs: 0.5, sm: 1 } }}
+                                  >
+                                    <EraserIcon fontSize="small" />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  )}
                 </DialogContent>
                 <Divider />
                 <DialogActions 
@@ -619,37 +869,70 @@ export default function Home() {
                     }
                   }}
                 >
-                  <IconButton color="primary" aria-label="공유" size="small">
-                    <ShareIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton color="primary" aria-label="수령" size="small">
-                    <ReceiptIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    color="primary" 
-                    aria-label="저장" 
-                    onClick={handleSave}
-                    disabled={saving}
-                    size="small"
-                  >
-                    <SaveIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    color="primary" 
-                    aria-label="추가"
-                    onClick={handleAddRow}
-                    size="small"
-                  >
-                    <AddIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    color="error" 
-                    aria-label="삭제"
-                    onClick={handleDelete}
-                    size="small"
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  {currentTab === 0 && (
+                    <>
+                      <IconButton color="primary" aria-label="공유" size="small">
+                        <ShareIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton color="primary" aria-label="수령" size="small">
+                        <ReceiptIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        color="primary" 
+                        aria-label="저장" 
+                        onClick={handleSave}
+                        disabled={saving}
+                        size="small"
+                      >
+                        <SaveIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        color="primary" 
+                        aria-label="추가"
+                        onClick={handleAddRow}
+                        size="small"
+                      >
+                        <AddIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        color="error" 
+                        aria-label="삭제"
+                        onClick={handleDelete}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </>
+                  )}
+                  {currentTab === 1 && (
+                    <>
+                      <IconButton 
+                        color="primary" 
+                        aria-label="저장" 
+                        onClick={handleSavePrepayment}
+                        disabled={savingPrepayment}
+                        size="small"
+                      >
+                        <SaveIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        color="primary" 
+                        aria-label="추가"
+                        onClick={handleAddPrepaymentRow}
+                        size="small"
+                      >
+                        <AddIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        color="error" 
+                        aria-label="삭제"
+                        onClick={handleDeletePrepayment}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </>
+                  )}
                   <IconButton onClick={handleCloseDialog} aria-label="닫기" size="small">
                     <CloseIcon fontSize="small" />
                   </IconButton>
