@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -25,7 +25,7 @@ const theme = createTheme({
   },
 });
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -68,6 +68,71 @@ export default function LoginPage() {
   };
 
   return (
+    <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+      <Typography variant="h4" component="h1" gutterBottom align="center">
+        로그인
+      </Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+        <TextField
+          fullWidth
+          label="이메일"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          margin="normal"
+          autoComplete="email"
+        />
+        <TextField
+          fullWidth
+          label="비밀번호"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          margin="normal"
+          autoComplete="current-password"
+        />
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          sx={{ mt: 3, mb: 2 }}
+          disabled={loading}
+        >
+          로그인
+        </Button>
+        <Box sx={{ textAlign: 'center', mt: 2 }}>
+          <Link
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              handleResetPassword();
+            }}
+            sx={{ fontSize: '0.875rem' }}
+          >
+            비밀번호를 잊으셨나요?
+          </Link>
+        </Box>
+        <Box sx={{ textAlign: 'center', mt: 2 }}>
+          <Link href="/signup" sx={{ fontSize: '0.875rem' }}>
+            회원가입
+          </Link>
+        </Box>
+      </Box>
+    </Paper>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container maxWidth="sm">
@@ -79,66 +144,9 @@ export default function LoginPage() {
             justifyContent: 'center',
           }}
         >
-          <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-            <Typography variant="h4" component="h1" gutterBottom align="center">
-              로그인
-            </Typography>
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
-
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-              <TextField
-                fullWidth
-                label="이메일"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                margin="normal"
-                autoComplete="email"
-              />
-              <TextField
-                fullWidth
-                label="비밀번호"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                margin="normal"
-                autoComplete="current-password"
-              />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-                disabled={loading}
-              >
-                로그인
-              </Button>
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
-                <Link
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleResetPassword();
-                  }}
-                  sx={{ fontSize: '0.875rem' }}
-                >
-                  비밀번호를 잊으셨나요?
-                </Link>
-              </Box>
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
-                <Link href="/signup" sx={{ fontSize: '0.875rem' }}>
-                  회원가입
-                </Link>
-              </Box>
-            </Box>
-          </Paper>
+          <Suspense fallback={<Paper elevation={3} sx={{ p: 4, width: '100%' }}><Typography align="center">로딩 중...</Typography></Paper>}>
+            <LoginForm />
+          </Suspense>
         </Box>
       </Container>
     </ThemeProvider>
