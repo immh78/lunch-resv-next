@@ -405,6 +405,23 @@ export default function Home() {
     return `${month + 1}.${day} (${weekday})`;
   };
 
+  // yyyyMMdd를 공유용 날짜 형식으로 변환 (예: 11.5(수))
+  const formatShareDate = (dateStr: string): string => {
+    if (!dateStr || dateStr.length !== 8) return '';
+    
+    const year = parseInt(dateStr.substring(0, 4), 10);
+    const month = parseInt(dateStr.substring(4, 6), 10) - 1; // JS는 0부터 시작
+    const day = parseInt(dateStr.substring(6, 8), 10);
+    
+    const date = new Date(year, month, day);
+    if (isNaN(date.getTime())) return '';
+    
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekday = dayNames[date.getDay()];
+    
+    return `${month + 1}.${day}(${weekday})`;
+  };
+
   // yyyy.MM.dd를 yyyyMMdd로 변환
   const parseReservationDate = (dateStr: string): string => {
     return dateStr.replace(/\./g, '');
@@ -719,6 +736,77 @@ export default function Home() {
 
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
+  };
+
+  const handleShare = async () => {
+    if (!selectedRestaurant) return;
+
+    try {
+      // 메뉴 문자열 생성
+      let menuText = '';
+      let totalAmount = 0;
+      if (editableMenus && editableMenus.length > 0) {
+        const validMenus = editableMenus.filter((m) => m.menu.trim() !== '' && m.cost > 0);
+        if (validMenus.length > 0) {
+          menuText = validMenus.map((m) => m.menu).join(' + ');
+          totalAmount = validMenus.reduce((sum, m) => sum + (m.cost || 0), 0);
+        }
+      }
+
+      // 선결제 정보 생성
+      let prepaymentText = '';
+      let prepaymentTotal = 0;
+      if (prepayments && prepayments.length > 0) {
+        const validPrepayments = prepayments
+          .filter((p) => p.amount > 0 && p.date)
+          .sort((a, b) => a.date.localeCompare(b.date)); // 날짜 순으로 정렬
+        
+        if (validPrepayments.length > 0) {
+          prepaymentText = validPrepayments
+            .map((p) => `${formatShareDate(p.date)} ${p.amount.toLocaleString()}`)
+            .join('\n');
+          prepaymentTotal = validPrepayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        }
+      }
+
+      // 공유 텍스트 생성
+      let shareText = '━━━━━━━━━\n';
+      
+      if (menuText) {
+        shareText += `■ 메뉴 : ${menuText}\n`;
+      }
+      if (totalAmount > 0) {
+        shareText += `■ 가격 : ${totalAmount.toLocaleString()}\n`;
+      }
+      if (editableDate) {
+        shareText += `■ 예약일 : ${editableDate}\n`;
+      }
+      shareText += '━━━━━━━━━━\n\n';
+
+      if (prepaymentText) {
+        shareText += '□ 선결제\n';
+        shareText += prepaymentText + '\n';
+        shareText += '──────────\n';
+        shareText += `합계 ${prepaymentTotal.toLocaleString()}\n`;
+      }
+
+      // navigator.share 사용
+      if (navigator.share) {
+        await navigator.share({
+          title: `${selectedRestaurant.name} 예약 정보`,
+          text: shareText,
+        });
+      } else {
+        // navigator.share가 지원되지 않는 경우 클립보드에 복사
+        await navigator.clipboard.writeText(shareText);
+        alert('공유 내용이 클립보드에 복사되었습니다.');
+      }
+    } catch (error) {
+      // 사용자가 공유를 취소한 경우 등은 무시
+      if ((error as Error).name !== 'AbortError') {
+        console.error('공유 중 오류:', error);
+      }
+    }
   };
 
   return (
@@ -1273,6 +1361,7 @@ export default function Home() {
                   <IconButton 
                     aria-label="공유" 
                     size="small"
+                    onClick={handleShare}
                     sx={{
                       color: '#666666',
                       '&:hover': {
