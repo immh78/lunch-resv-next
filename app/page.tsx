@@ -34,6 +34,10 @@ import {
   InputAdornment,
   Snackbar,
   Alert,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -60,105 +64,121 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PaletteIcon from '@mui/icons-material/Palette';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 
-const theme = createTheme({
-  typography: {
-    fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    fontSize: 14,
-    fontWeightRegular: 400,
-    fontWeightMedium: 500,
-    fontWeightBold: 600,
-  },
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#000000',
-      contrastText: '#ffffff',
+const createAppTheme = (themeMode: 'white' | 'black') => {
+  const isDark = themeMode === 'black';
+  
+  return createTheme({
+    typography: {
+      fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: 14,
+      fontWeightRegular: 400,
+      fontWeightMedium: 500,
+      fontWeightBold: 600,
     },
-    background: {
-      default: '#ffffff',
-      paper: '#ffffff',
-    },
-    text: {
-      primary: '#0a0a0a',
-      secondary: '#666666',
-    },
-    divider: '#e5e5e5',
-    action: {
-      hover: '#f5f5f5',
-      selected: '#000000',
-    },
-  },
-  shape: {
-    borderRadius: 2,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: 500,
-          borderRadius: 2,
-          padding: '6px 12px',
-        },
+    palette: {
+      mode: isDark ? 'dark' : 'light',
+      primary: {
+        main: isDark ? '#ffffff' : '#000000',
+        contrastText: isDark ? '#000000' : '#ffffff',
+      },
+      background: {
+        default: isDark ? '#000000' : '#ffffff',
+        paper: isDark ? '#1a1a1a' : '#ffffff',
+      },
+      text: {
+        primary: isDark ? '#ffffff' : '#0a0a0a',
+        secondary: isDark ? '#b0b0b0' : '#666666',
+      },
+      divider: isDark ? '#333333' : '#e5e5e5',
+      action: {
+        hover: isDark ? '#1a1a1a' : '#f5f5f5',
+        selected: isDark ? '#ffffff' : '#000000',
       },
     },
-    MuiTableCell: {
-      styleOverrides: {
-        root: {
-          borderColor: '#e5e5e5',
-          fontSize: 14,
-          padding: '12px 16px',
-        },
-        head: {
-          fontWeight: 600,
-          fontSize: 13,
-          color: '#666666',
-          backgroundColor: '#fafafa',
-        },
-      },
+    shape: {
+      borderRadius: 2,
     },
-    MuiTableRow: {
-      styleOverrides: {
-        root: {
-          '&:hover': {
-            backgroundColor: '#fafafa',
-          },
-        },
-      },
-    },
-    MuiDialog: {
-      styleOverrides: {
-        paper: {
-          borderRadius: 12,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textTransform: 'none',
+            fontWeight: 500,
             borderRadius: 2,
+            padding: '6px 12px',
+          },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            borderColor: isDark ? '#333333' : '#e5e5e5',
             fontSize: 14,
+            padding: '12px 16px',
+          },
+          head: {
+            fontWeight: 600,
+            fontSize: 13,
+            color: isDark ? '#b0b0b0' : '#666666',
+            backgroundColor: isDark ? '#1a1a1a' : '#fafafa',
+          },
+        },
+      },
+      MuiTableRow: {
+        styleOverrides: {
+          root: {
+            '&:hover': {
+              backgroundColor: isDark ? '#1a1a1a' : '#fafafa',
+            },
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 12,
+            boxShadow: isDark 
+              ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
+              : '0 8px 32px rgba(0, 0, 0, 0.08)',
+            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+          },
+        },
+      },
+      MuiTextField: {
+        styleOverrides: {
+          root: {
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              fontSize: 14,
+            },
+          },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 2,
+          },
+        },
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isDark ? '#000000' : '#ffffff',
+            color: isDark ? '#ffffff' : '#0a0a0a',
           },
         },
       },
     },
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 2,
-        },
-      },
-    },
-  },
-});
+  });
+};
 
 // Cloudinary 타입 정의
 interface CloudinaryWindow extends Window {
@@ -266,6 +286,9 @@ export default function Home() {
     naviUrl: '',
   });
   const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<'white' | 'black'>('white');
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<'white' | 'black'>('white');
 
   // Cloudinary widget 초기화
   useEffect(() => {
@@ -344,6 +367,52 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantEditDialogOpen, restaurantAddDialogOpen]);
+
+  // 테마 로드
+  useEffect(() => {
+    if (!user) return;
+
+    const themeRef = ref(database, `food-resv/theme/${user.uid}`);
+    const unsubscribeTheme = onValue(
+      themeRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const themeData = snapshot.val();
+          if (themeData.theme === 'white' || themeData.theme === 'black') {
+            setCurrentTheme(themeData.theme);
+            setSelectedTheme(themeData.theme);
+          }
+        }
+      },
+      (err) => {
+        console.error('Error fetching theme:', err);
+      }
+    );
+
+    return () => {
+      unsubscribeTheme();
+    };
+  }, [user]);
+
+  // 테마 저장
+  const saveTheme = async () => {
+    if (!user) return;
+
+    try {
+      const themeRef = ref(database, `food-resv/theme/${user.uid}`);
+      await set(themeRef, { theme: selectedTheme });
+      setCurrentTheme(selectedTheme);
+      setThemeDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving theme:', error);
+      alert('테마 저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleThemeDialogOpen = () => {
+    setSelectedTheme(currentTheme);
+    setThemeDialogOpen(true);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -988,9 +1057,11 @@ export default function Home() {
     }
   };
 
+  const appTheme = createAppTheme(currentTheme);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={appTheme}>
         <CssBaseline />
         <ProtectedRoute>
         <Box sx={{ flexGrow: 1 }}>
@@ -998,24 +1069,24 @@ export default function Home() {
             position="static"
             elevation={0}
             sx={{
-              backgroundColor: '#ffffff',
-              color: '#0a0a0a',
+              backgroundColor: currentTheme === 'black' ? '#000000' : '#ffffff',
+              color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
               borderBottom: 'none',
             }}
           >
             <Toolbar sx={{ minHeight: '56px !important', px: { xs: 2, sm: 3 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mr: 0.25 }}>
                 {loading ? (
-                  <CircularProgress size={20} sx={{ color: '#0a0a0a' }} />
+                  <CircularProgress size={20} sx={{ color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a' }} />
                 ) : (
                   <IconButton 
                     edge="start" 
                     onClick={() => window.location.reload()}
                     sx={{ 
                       mr: 0.25,
-                      color: '#0a0a0a',
+                      color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                       '&:hover': {
-                        backgroundColor: '#f5f5f5',
+                        backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
                       },
                     }}
                   >
@@ -1030,7 +1101,7 @@ export default function Home() {
                   sx={{ 
                     fontWeight: 600,
                     fontSize: 20,
-                    color: '#0a0a0a',
+                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                   }}
                 >
                   포장 예약
@@ -1068,9 +1139,9 @@ export default function Home() {
                 edge="end"
                 onClick={handleMenuOpen}
                 sx={{
-                  color: '#0a0a0a',
+                  color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
                   },
                 }}
               >
@@ -1083,8 +1154,12 @@ export default function Home() {
                 PaperProps={{
                   sx: {
                     borderRadius: 2,
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-                    border: '1px solid #e5e5e5',
+                    boxShadow: currentTheme === 'black' 
+                      ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
+                      : '0 8px 32px rgba(0, 0, 0, 0.08)',
+                    border: `1px solid ${currentTheme === 'black' ? '#333333' : '#e5e5e5'}`,
+                    backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#ffffff',
+                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                     mt: 1,
                     minWidth: 180,
                   },
@@ -1107,13 +1182,31 @@ export default function Home() {
                   sx={{
                     fontSize: 14,
                     py: 1.5,
+                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                     '&:hover': {
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                     },
                   }}
                 >
                   <AddCircleIcon sx={{ mr: 1.5, fontSize: 18 }} />
                   식당 등록
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => {
+                    handleThemeDialogOpen();
+                    handleMenuClose();
+                  }}
+                  sx={{
+                    fontSize: 14,
+                    py: 1.5,
+                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                    '&:hover': {
+                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                    },
+                  }}
+                >
+                  <PaletteIcon sx={{ mr: 1.5, fontSize: 18 }} />
+                  테마
                 </MenuItem>
               </Menu>
             </Toolbar>
@@ -1158,9 +1251,9 @@ export default function Home() {
                         <TableCell 
                           sx={{ 
                             fontWeight: 600,
-                            backgroundColor: 'rgb(246, 246, 246)',
-                            borderTop: '1px solid rgb(220, 220, 220)',
-                            borderBottom: '1px solid rgb(220, 220, 220)',
+                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
+                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
                             borderLeft: 'none',
                             borderRight: 'none',
                             px: 0,
@@ -1172,9 +1265,9 @@ export default function Home() {
                         <TableCell 
                           sx={{ 
                             fontWeight: 600,
-                            backgroundColor: 'rgb(246, 246, 246)',
-                            borderTop: '1px solid rgb(220, 220, 220)',
-                            borderBottom: '1px solid rgb(220, 220, 220)',
+                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
+                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
                             borderLeft: 'none',
                             borderRight: 'none',
                             px: 0,
@@ -1187,9 +1280,9 @@ export default function Home() {
                           sx={{ 
                             fontWeight: 600, 
                             whiteSpace: 'nowrap',
-                            backgroundColor: 'rgb(246, 246, 246)',
-                            borderTop: '1px solid rgb(220, 220, 220)',
-                            borderBottom: '1px solid rgb(220, 220, 220)',
+                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
+                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
                             borderLeft: 'none',
                             borderRight: 'none',
                             px: 0,
@@ -1221,7 +1314,7 @@ export default function Home() {
                           if (prepaymentTotal === 0) {
                             amountColor = 'red';
                           } else if (prepaymentTotal >= totalAmount) {
-                            amountColor = 'blue';
+                            amountColor = currentTheme === 'black' ? '#60a5fa' : 'blue';
                           } else {
                             amountColor = 'orange';
                           }
@@ -1251,10 +1344,10 @@ export default function Home() {
                             }}
                             sx={{
                               cursor: 'pointer',
-                              backgroundColor: '#ffffff',
+                              backgroundColor: currentTheme === 'black' ? '#000000' : '#ffffff',
                               borderBottom: 'none',
                               '&:hover': {
-                                backgroundColor: '#fafafa',
+                                backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#fafafa',
                               },
                             }}
                           >
@@ -1275,8 +1368,10 @@ export default function Home() {
                                   justifyContent: 'flex-start',
                                   px: 1,
                                   fontWeight: !isReceipt ? 600 : 500,
-                                  color: !isReceipt ? '#2563eb' : '#0a0a0a',
-                                  borderColor: !isReceipt ? '#2563eb' : '#e5e5e5',
+                                  color: !isReceipt 
+                                    ? (currentTheme === 'black' ? '#2563eb' : '#2563eb')
+                                    : (currentTheme === 'black' ? '#808080' : '#0a0a0a'),
+                                  borderColor: !isReceipt ? '#2563eb' : (currentTheme === 'black' ? '#333333' : '#e5e5e5'),
                                   '&:hover': {
                                     backgroundColor: !isReceipt ? 'rgba(37, 99, 235, 0.04)' : '#f5f5f5',
                                     borderColor: !isReceipt ? '#2563eb' : '#e5e5e5',
@@ -1435,8 +1530,10 @@ export default function Home() {
                 maxHeight: '80vh',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-                border: '1px solid #e5e5e5',
+                boxShadow: currentTheme === 'black' 
+                  ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
+                  : '0 8px 32px rgba(0, 0, 0, 0.08)',
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
                 width: { xs: 'calc(100% - 8px)', sm: 'auto' },
               },
             }}
@@ -1449,6 +1546,7 @@ export default function Home() {
                     pt: 2,
                     px: { xs: 1.5, sm: 3 },
                     borderBottom: 'none',
+                    color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
@@ -1458,7 +1556,7 @@ export default function Home() {
                         sx={{ 
                           fontSize: 16,
                           fontWeight: 600,
-                          color: '#0a0a0a',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
                           wordBreak: 'break-word' 
                         }}
                       >
@@ -1494,10 +1592,10 @@ export default function Home() {
                         }}
                         sx={{ 
                           p: 0.5,
-                          color: '#666666',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                           '&:hover': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
+                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                           },
                         }}
                       >
@@ -1520,9 +1618,9 @@ export default function Home() {
                           }}
                           sx={{ 
                             flexShrink: 0,
-                            color: '#666666',
+                            color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                             '&:hover': {
-                              backgroundColor: '#f5f5f5',
+                              backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                             },
                           }}
                         >
@@ -1545,15 +1643,15 @@ export default function Home() {
                           severity="info"
                           sx={{
                             fontSize: '0.75rem',
-                            color: '#999999',
-                            backgroundColor: '#f5f5f5',
+                            color: currentTheme === 'black' ? '#1a1a1a' : '#999999',
+                            backgroundColor: currentTheme === 'black' ? '#c0c0c0' : '#f5f5f5',
                             padding: '4px 8px',
                             '& .MuiAlert-icon': {
                               display: 'none',
                             },
                             '& .MuiAlert-message': {
                               fontSize: '0.75rem',
-                              color: '#999999',
+                              color: currentTheme === 'black' ? '#1a1a1a' : '#999999',
                               padding: 0,
                             },
                           }}
@@ -1575,9 +1673,9 @@ export default function Home() {
                         fontWeight: 500,
                         fontSize: 14,
                         minHeight: 48,
-                        color: '#666666',
+                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                         '&.Mui-selected': {
-                          color: '#0a0a0a',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
                         },
                       },
                       '& .MuiTabs-indicator': {
@@ -1931,10 +2029,10 @@ export default function Home() {
                     onClick={handleShare}
                     disabled={selectedRestaurant?.reservation?.isReceipt === true}
                     sx={{
-                      color: '#666666',
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                       '&:hover:not(:disabled)': {
-                        backgroundColor: '#f5f5f5',
-                        color: '#0a0a0a',
+                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                       },
                       '&.Mui-disabled': {
                         opacity: 0.3,
@@ -1949,10 +2047,10 @@ export default function Home() {
                     onClick={handleReceipt}
                     disabled={selectedRestaurant?.reservation?.isReceipt === true}
                     sx={{
-                      color: '#666666',
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                       '&:hover:not(:disabled)': {
-                        backgroundColor: '#f5f5f5',
-                        color: '#0a0a0a',
+                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                       },
                       '&.Mui-disabled': {
                         opacity: 0.3,
@@ -1969,10 +2067,12 @@ export default function Home() {
                         disabled={saving}
                         size="small"
                         sx={{
-                          color: saving ? '#999999' : '#666666',
+                          color: saving 
+                            ? (currentTheme === 'black' ? '#666666' : '#999999')
+                            : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
                           '&:hover:not(:disabled)': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
+                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                           },
                         }}
                       >
@@ -2006,10 +2106,12 @@ export default function Home() {
                         disabled={savingPrepayment}
                         size="small"
                         sx={{
-                          color: savingPrepayment ? '#999999' : '#666666',
+                          color: savingPrepayment 
+                            ? (currentTheme === 'black' ? '#666666' : '#999999')
+                            : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
                           '&:hover:not(:disabled)': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
+                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                           },
                         }}
                       >
@@ -2066,6 +2168,7 @@ export default function Home() {
                 m: { xs: 0.5, sm: 2 },
                 width: { xs: 'calc(100% - 8px)', sm: 'auto' },
                 maxHeight: { xs: '95vh', sm: '80vh' },
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
               },
             }}
           >
@@ -2077,7 +2180,7 @@ export default function Home() {
                 borderBottom: 'none',
                 fontSize: 16,
                 fontWeight: 600,
-                color: '#0a0a0a',
+                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
               }}
             >
               {editableRestaurant?.id || '식당 수정'}
@@ -2217,9 +2320,9 @@ export default function Home() {
               <Button
                 onClick={() => setRestaurantEditDialogOpen(false)}
                 sx={{
-                  color: '#666666',
+                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                   },
                 }}
               >
@@ -2303,6 +2406,7 @@ export default function Home() {
                 m: { xs: 0.5, sm: 2 },
                 width: { xs: 'calc(100% - 8px)', sm: 'auto' },
                 maxHeight: { xs: '95vh', sm: '80vh' },
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
               },
             }}
           >
@@ -2314,7 +2418,7 @@ export default function Home() {
                 borderBottom: 'none',
                 fontSize: 16,
                 fontWeight: 600,
-                color: '#0a0a0a',
+                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
               }}
             >
               식당 등록
@@ -2473,9 +2577,9 @@ export default function Home() {
               <Button
                 onClick={() => setRestaurantAddDialogOpen(false)}
                 sx={{
-                  color: '#666666',
+                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                   },
                 }}
               >
@@ -2690,6 +2794,106 @@ export default function Home() {
                 }}
               >
                 닫기
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* 테마 선택 다이얼로그 */}
+          <Dialog
+            open={themeDialogOpen}
+            onClose={() => setThemeDialogOpen(false)}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                m: { xs: 0.5, sm: 2 },
+                width: { xs: 'calc(100% - 8px)', sm: 'auto' },
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
+              },
+            }}
+          >
+            <DialogTitle 
+              sx={{ 
+                pb: 2, 
+                pt: 2,
+                px: { xs: 1.5, sm: 3 },
+                borderBottom: 'none',
+                fontSize: 16,
+                fontWeight: 600,
+                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+              }}
+            >
+              테마 선택
+            </DialogTitle>
+            <DialogContent 
+              sx={{ 
+                px: { xs: 2, sm: 3 }, 
+                py: 2,
+              }}
+            >
+              <FormControl component="fieldset" fullWidth>
+                <RadioGroup
+                  value={selectedTheme}
+                  onChange={(e) => setSelectedTheme(e.target.value as 'white' | 'black')}
+                >
+                  <FormControlLabel
+                    value="white"
+                    control={<Radio />}
+                    label="화이트"
+                    sx={{
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                      '& .MuiRadio-root': {
+                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                        '&.Mui-checked': {
+                          color: currentTheme === 'black' ? '#ffffff' : '#000000',
+                        },
+                      },
+                    }}
+                  />
+                  <FormControlLabel
+                    value="black"
+                    control={<Radio />}
+                    label="블랙"
+                    sx={{
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                      '& .MuiRadio-root': {
+                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                        '&.Mui-checked': {
+                          color: currentTheme === 'black' ? '#ffffff' : '#000000',
+                        },
+                      },
+                    }}
+                  />
+                </RadioGroup>
+              </FormControl>
+            </DialogContent>
+            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2, pt: 1 }}>
+              <Button
+                onClick={() => setThemeDialogOpen(false)}
+                sx={{
+                  textTransform: 'none',
+                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                  '&:hover': {
+                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                  },
+                }}
+              >
+                닫기
+              </Button>
+              <Button
+                onClick={saveTheme}
+                variant="contained"
+                sx={{
+                  textTransform: 'none',
+                  backgroundColor: currentTheme === 'black' ? '#ffffff' : '#000000',
+                  color: currentTheme === 'black' ? '#000000' : '#ffffff',
+                  '&:hover': {
+                    backgroundColor: currentTheme === 'black' ? '#e0e0e0' : '#333333',
+                  },
+                }}
+              >
+                확인
               </Button>
             </DialogActions>
           </Dialog>
