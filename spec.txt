@@ -227,3 +227,131 @@ isReceipt가 false인 경우 row의 배경은 반전처리 하지 않고 식당 
 
 하단 버튼은 탭 변경에 따라 사라지지 않는다.
 공유와 수령버튼의 기능은 두탭모두 동일한 기능으로 처리할 예정이다.
+
+-----------------------------------------
+* 식당 상세 팝업창
+- 공유 버튼 클릭시
+- navigator.share를 이용하여 전송 포멧 내용을 공유한다.
+- 전송 포멧
+━━━━━━━━━
+■ 메뉴 : {menu (여러행일 경우 +로 붙임)}
+■ 가격 : {금액의 합계}
+■ 예약일 : {예약일}
+━━━━━━━━━━
+
+□ 선결제
+{날짜 11.5(수) 포멧으로 출력} {금액}
+{날짜 11.7(금) 포멧으로 출력} {금액}
+──────────
+합계 {선결제 금액 합계}
+
+
+- 공유 버튼 클릭시
+포멧 가장 위에 있는 "{식당} 예약정보 -"를 제거
+━━━━━━━━━ 부터 내용이 시작됨.
+가격, 금액,합계 뒤에는 "원"을 붙인다.
+예약일 포멧은 "11.7 (금)"으로 나타낸다.
+
+
+* 식당 상세 팝업창
+- 모바일에서 사용할 페이지이다. Edge브라우저 width로 폭이 380이다. 고려하여 디자인 함.
+- 팝업창 좌우 여백을 최소화 하여 보여지는 내용이 잘리지 않도록 한다.
+- 날짜, 메뉴, 금액, 가격의 폰트 크기를 동일하게 한다.
+- 선결제텝에 날짜가 잘려서 보이지 않고 있다. 보일 수 있도록 한다.
+- 행상제 아이콘은 테이블의 가장 우측에 여백없이 위치하도록 한다.
+
+아이콘 변경
+- "닫기"의 아이콘 : MUI ExitToApp
+- 행삭제 아이콘 : MUI Clear (빨간색)
+- 행추가 아이콘 : MUI AddCircle
+
+
+* 식당 상세 팝업창
+- "수령" 버튼 클릭시 isReceipt를 true로 변경. {사용자UDI}, {restaurant key}에 대당하는 prepayment를 모두 삭제처리 한다.
+- 예약일, 날짜의 폰트크기가 메뉴, 가격, 금액보다 크다. 동일하게 변경한다.
+- 테이블에 제브라 배경색을 제거한다.
+- 상단 식당 이름옆에 연필 아이콘을 추가한다.
+- 연필 아이콘 클릭시 restaurant 수정 팝업창이 오픈된다.
+-------------------------------------
+
+* 메인화면
+- reservation이 존재하지 않는 식당은 isReceipt가 ture와 같게 출력
+- 메인메뉴 우측 상단 ... 아이콘을 누른후 식당 등록을 클릭시 [식당등록]으로 팝업창 오픈
+
+* 식당 상세 팝업창
+- 연필아이콘 클릭시 [식당수정]으로 팝업창 오픈
+
+* restaurant 테이블
+"restaurant" : {
+    [restaurant key] : {
+        "kind":[식당종류],
+        "menuImgId":[메뉴 이미지 url],
+        "menuUrl":[메뉴 페이지 url],
+        "name": [식당명],
+        "telNo": [전화번호],
+        "naviUrl": [식당위치(string)]
+    }
+}
+
+* 식당 등록/수정 팝업창
+[식당등록]
+- Title : 식당 등록
+- 입력 속성
+식당 ID : restaurant key
+식당명 : menuImgId
+종류 : kind
+전화번호 : telNo
+메뉴 URL : menuUrl
+메뉴 이미지 ID : menuImgId
+식당위치 : naviUrl
+
+
+[식당수정]
+- Title : restaurant key
+- 수정 속성
+식당명 : menuImgId
+종류 : kind
+전화번호 : telNo
+메뉴 URL : menuUrl
+메뉴 이미지 ID : menuImgId
+식당위치 : naviUrl
+
+--------------------------------
+* 식당 등록/수정 팝업창
+"메뉴 이미지 ID" 입력란 우측에 카메라 아이콘 추가.
+카메라 아이콘 클릭시 vue.js로 구현된 아래 코드를 참고하여 next.js로 구현함.
+
+const cloudName = {NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
+const uploadPreset = {NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+const cld = new Cloudinary({ cloud: { cloudName } });
+
+  widget = window.cloudinary?.createUploadWidget(
+    {
+      cloudName: props.cloudName,
+      uploadPreset: props.uploadPreset,
+      sources: ['local', 'url', 'camera'],
+      multiple: false,
+      folder: 'images',
+      maxFileSize: 5_000_000,
+      cropping: false,
+      clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+      showAdvancedOptions: false,
+      showPoweredBy: false,
+      styles: { palette: { windowBorder: '#ddd' } }
+    },
+    (error, result) => {
+      if (!error && result && result.event === 'success') {
+        const info = result.info
+        lastPublicId.value = info.public_id
+        local.value.menuImgId = lastPublicId.value
+      } else if (result && result.event === 'close') {
+        lastPublicId.value = ''
+      } else if (error) {
+        lastPublicId.value = ''
+      }
+    }
+  )
+
+lastPublicId.value는 menuImgId로 저장하여 이미지 조회시 활용할 수 있도록 한다.
+
+-------------------------------------
