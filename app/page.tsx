@@ -427,6 +427,7 @@ export default function Home() {
           kind: restaurant.kind,
           menuImgId: restaurant.menuImgId,
           menuUrl: restaurant.menuUrl,
+          naviUrl: restaurant.naviUrl,
           reservationDate: latestDate,
           reservation: latestReservation,
           prepaymentTotal,
@@ -937,7 +938,7 @@ export default function Home() {
         shareText += '□ 선결제\n';
         shareText += prepaymentLines.join('\n') + '\n';
         shareText += '──────────\n';
-        shareText += `합계 ${prepaymentTotal.toLocaleString()}원\n`;
+        shareText += `합계 ${prepaymentTotal.toLocaleString()}원`;
       }
 
       // navigator.share 사용
@@ -1197,7 +1198,7 @@ export default function Home() {
                                     component="span"
                                     sx={{
                                       color: amountColor,
-                                      fontWeight: 'bold',
+                                      fontWeight: 400,
                                       mt: 0.5,
                                       display: 'inline-block',
                                     }}
