@@ -1284,6 +1284,9 @@ export default function Home() {
                               </Button>
                             </TableCell>
                             <TableCell
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
                               sx={{
                                 borderLeft: 'none',
                                 borderRight: 'none',
@@ -2549,16 +2552,29 @@ export default function Home() {
                         <TableRow
                           key={`${menuItem.menu}-${menuItem.cost}-${index}`}
                           onClick={() => {
-                            // 선택한 메뉴를 editableMenus에 추가
-                            const newMenu: EditableMenuItem = {
-                              id: `menu-${Date.now()}-${index}`,
-                              menu: menuItem.menu,
-                              cost: menuItem.cost,
-                            };
-                            setEditableMenus(prev => [...prev, newMenu]);
+                            // 첫 행이 비어있으면 첫 행에 반영, 아니면 새 행 추가
+                            setEditableMenus(prev => {
+                              if (prev.length > 0 && prev[0].menu.trim() === '' && prev[0].cost === 0) {
+                                // 첫 행이 비어있으면 첫 행에 반영
+                                return [
+                                  {
+                                    ...prev[0],
+                                    menu: menuItem.menu,
+                                    cost: menuItem.cost,
+                                  },
+                                  ...prev.slice(1),
+                                ];
+                              } else {
+                                // 새 행 추가
+                                const newMenu: EditableMenuItem = {
+                                  id: `menu-${Date.now()}-${index}`,
+                                  menu: menuItem.menu,
+                                  cost: menuItem.cost,
+                                };
+                                return [...prev, newMenu];
+                              }
+                            });
                             setMenuHistoryDialogOpen(false);
-                            setSnackbarMessage('메뉴가 추가되었습니다.');
-                            setSnackbarOpen(true);
                           }}
                           sx={{
                             cursor: 'pointer',
