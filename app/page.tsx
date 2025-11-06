@@ -1704,6 +1704,21 @@ export default function Home() {
                                   >
                                     <HistoryIcon fontSize="small" />
                                   </IconButton>
+                                  <IconButton 
+                                    aria-label="추가"
+                                    onClick={handleAddRow}
+                                    size="small"
+                                    sx={{
+                                      p: 0.5,
+                                      color: '#666666',
+                                      '&:hover': {
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#0a0a0a',
+                                      },
+                                    }}
+                                  >
+                                    <AddCircleIcon fontSize="small" />
+                                  </IconButton>
                                 </Box>
                               </TableCell>
                               <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>가격</TableCell>
@@ -1798,7 +1813,26 @@ export default function Home() {
                         >
                           <TableHead>
                             <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '45%', border: 'none', backgroundColor: 'transparent' }}>날짜</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '45%', border: 'none', backgroundColor: 'transparent' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <span>날짜</span>
+                                  <IconButton 
+                                    aria-label="추가"
+                                    onClick={handleAddPrepaymentRow}
+                                    size="small"
+                                    sx={{
+                                      p: 0.5,
+                                      color: '#666666',
+                                      '&:hover': {
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#0a0a0a',
+                                      },
+                                    }}
+                                  >
+                                    <AddCircleIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </TableCell>
                               <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '40%', border: 'none', backgroundColor: 'transparent' }}>금액</TableCell>
                               <TableCell width={32} sx={{ px: 0, border: 'none', backgroundColor: 'transparent' }}></TableCell>
                             </TableRow>
@@ -1944,20 +1978,6 @@ export default function Home() {
                         <SaveIcon fontSize="small" />
                       </IconButton>
                       <IconButton 
-                        aria-label="추가"
-                        onClick={handleAddRow}
-                        size="small"
-                        sx={{
-                          color: '#666666',
-                          '&:hover': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
-                          },
-                        }}
-                      >
-                        <AddCircleIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
                         aria-label="삭제"
                         onClick={handleDelete}
                         disabled={selectedRestaurant?.reservation?.isReceipt === true}
@@ -1993,20 +2013,6 @@ export default function Home() {
                         }}
                       >
                         <SaveIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        aria-label="추가"
-                        onClick={handleAddPrepaymentRow}
-                        size="small"
-                        sx={{
-                          color: '#666666',
-                          '&:hover': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
-                          },
-                        }}
-                      >
-                        <AddCircleIcon fontSize="small" />
                       </IconButton>
                       <IconButton 
                         aria-label="삭제"
