@@ -1631,9 +1631,9 @@ export default function Home() {
                   </Box>
                 </DialogTitle>
                 {(() => {
-                  // summary 계산
+                  // summary 계산 - 메뉴와 선결제 금액이 변경될 때마다 실시간으로 갱신
                   const totalAmount = editableMenus.reduce((sum, menu) => sum + (menu.cost || 0), 0);
-                  const prepaymentTotal = selectedRestaurant.prepaymentTotal || 0;
+                  const prepaymentTotal = prepayments.reduce((sum, prepayment) => sum + (prepayment.amount || 0), 0);
                   const remainingAmount = totalAmount - prepaymentTotal;
                   
                   if (totalAmount > 0) {
@@ -2142,10 +2142,10 @@ export default function Home() {
                     aria-label="닫기" 
                     size="small"
                     sx={{
-                      color: '#666666',
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                       '&:hover': {
-                        backgroundColor: '#f5f5f5',
-                        color: '#0a0a0a',
+                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                       },
                     }}
                   >
