@@ -60,10 +60,95 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 
 const theme = createTheme({
+  typography: {
+    fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: 14,
+    fontWeightRegular: 400,
+    fontWeightMedium: 500,
+    fontWeightBold: 600,
+  },
   palette: {
     mode: 'light',
     primary: {
-      main: '#00695c', // teal-darken-4
+      main: '#000000',
+      contrastText: '#ffffff',
+    },
+    background: {
+      default: '#ffffff',
+      paper: '#ffffff',
+    },
+    text: {
+      primary: '#0a0a0a',
+      secondary: '#666666',
+    },
+    divider: '#e5e5e5',
+    action: {
+      hover: '#f5f5f5',
+      selected: '#000000',
+    },
+  },
+  shape: {
+    borderRadius: 2,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 500,
+          borderRadius: 2,
+          padding: '6px 12px',
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderColor: '#e5e5e5',
+          fontSize: 14,
+          padding: '12px 16px',
+        },
+        head: {
+          fontWeight: 600,
+          fontSize: 13,
+          color: '#666666',
+          backgroundColor: '#fafafa',
+        },
+      },
+    },
+    MuiTableRow: {
+      styleOverrides: {
+        root: {
+          '&:hover': {
+            backgroundColor: '#fafafa',
+          },
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 12,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 2,
+            fontSize: 14,
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 2,
+        },
+      },
     },
   },
 });
@@ -641,57 +726,105 @@ export default function Home() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <ProtectedRoute>
-        <Box sx={{ flexGrow: 1 }}>
+        <Box sx={{ flexGrow: 1, borderBottom: '1px solid #e5e5e5' }}>
           <AppBar 
             position="static"
+            elevation={0}
             sx={{
-              background: 'linear-gradient(to top right, rgba(19,84,122,.8), rgba(128,208,199,.8))',
-              backgroundColor: '#00695c',
+              backgroundColor: '#ffffff',
+              color: '#0a0a0a',
+              borderBottom: '1px solid #e5e5e5',
             }}
           >
-            <Toolbar>
+            <Toolbar sx={{ minHeight: '56px !important', px: { xs: 2, sm: 3 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                 {loading ? (
-                  <CircularProgress size={24} sx={{ color: 'white' }} />
+                  <CircularProgress size={20} sx={{ color: '#0a0a0a' }} />
                 ) : (
                   <IconButton 
                     edge="start" 
-                    color="inherit" 
                     onClick={() => window.location.reload()}
-                    sx={{ mr: 1 }}
+                    sx={{ 
+                      mr: 1,
+                      color: '#0a0a0a',
+                      '&:hover': {
+                        backgroundColor: '#f5f5f5',
+                      },
+                    }}
                   >
-                    <RestaurantIcon />
+                    <RestaurantIcon fontSize="small" />
                   </IconButton>
                 )}
               </Box>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              <Typography 
+                variant="h6" 
+                component="div" 
+                sx={{ 
+                  flexGrow: 1,
+                  fontWeight: 600,
+                  fontSize: 15,
+                  color: '#0a0a0a',
+                }}
+              >
                 포장 예약
               </Typography>
               <IconButton
                 edge="end"
-                color="inherit"
                 onClick={handleMenuOpen}
+                sx={{
+                  color: '#0a0a0a',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                  },
+                }}
               >
-                <MoreVertIcon />
+                <MoreVertIcon fontSize="small" />
               </IconButton>
               <Menu
                 anchorEl={menuAnchorEl}
                 open={Boolean(menuAnchorEl)}
                 onClose={handleMenuClose}
+                PaperProps={{
+                  sx: {
+                    borderRadius: 2,
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+                    border: '1px solid #e5e5e5',
+                    mt: 1,
+                    minWidth: 180,
+                  },
+                }}
               >
-                <MenuItem onClick={handleMenuClose}>
-                  <RestaurantIcon sx={{ mr: 1 }} />
+                <MenuItem 
+                  onClick={handleMenuClose}
+                  sx={{
+                    fontSize: 14,
+                    py: 1.5,
+                    '&:hover': {
+                      backgroundColor: '#f5f5f5',
+                    },
+                  }}
+                >
+                  <RestaurantIcon sx={{ mr: 1.5, fontSize: 18 }} />
                   예약 관리
                 </MenuItem>
-                <MenuItem onClick={handleMenuClose}>
-                  <AddIcon sx={{ mr: 1 }} />
+                <MenuItem 
+                  onClick={handleMenuClose}
+                  sx={{
+                    fontSize: 14,
+                    py: 1.5,
+                    '&:hover': {
+                      backgroundColor: '#f5f5f5',
+                    },
+                  }}
+                >
+                  <AddIcon sx={{ mr: 1.5, fontSize: 18 }} />
                   식당 추가
                 </MenuItem>
               </Menu>
             </Toolbar>
           </AppBar>
         </Box>
-        <Container maxWidth="sm" sx={{ py: 2 }}>
+        <Container maxWidth="sm" sx={{ py: 3, px: { xs: 2, sm: 3 } }}>
 
           {loading ? (
             <Box
@@ -715,13 +848,20 @@ export default function Home() {
                   등록된 레스토랑이 없습니다.
                 </Typography>
               ) : (
-                <TableContainer component={Paper}>
+                <TableContainer 
+                  component={Paper}
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                  }}
+                >
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>식당</TableCell>
-                        <TableCell>예약메뉴</TableCell>
-                        <TableCell>전화</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>식당</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>예약메뉴</TableCell>
+                        <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>전화</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -759,29 +899,24 @@ export default function Home() {
                             onClick={() => handleRestaurantClick(restaurant)}
                             sx={{
                               cursor: 'pointer',
-                              backgroundColor: !isReceipt ? 'primary.main' : 'inherit',
-                              color: !isReceipt ? 'primary.contrastText' : 'inherit',
+                              borderBottom: '1px solid #e5e5e5',
                               '&:hover': {
-                                backgroundColor: !isReceipt ? 'primary.dark' : 'action.hover',
+                                backgroundColor: '#fafafa',
                               },
                             }}
                           >
-                            <TableCell
-                              sx={{
-                                backgroundColor: !isReceipt ? 'primary.main' : 'inherit',
-                                color: !isReceipt ? 'primary.contrastText' : 'inherit',
-                              }}
-                            >
+                            <TableCell align="left">
                               <Button
                                 variant="text"
                                 size="small"
                                 sx={{
                                   textTransform: 'none',
                                   justifyContent: 'flex-start',
-                                  px: 1,
-                                  color: !isReceipt ? 'primary.contrastText' : 'inherit',
+                                  px: 0,
+                                  fontWeight: !isReceipt ? 600 : 500,
+                                  color: !isReceipt ? '#2563eb' : '#0a0a0a',
                                   '&:hover': {
-                                    backgroundColor: !isReceipt ? 'rgba(255, 255, 255, 0.1)' : 'inherit',
+                                    backgroundColor: 'transparent',
                                   },
                                 }}
                                 onClick={(e) => {
@@ -792,12 +927,7 @@ export default function Home() {
                                 {restaurant.name}
                               </Button>
                             </TableCell>
-                            <TableCell
-                              sx={{
-                                backgroundColor: !isReceipt ? 'primary.main' : 'inherit',
-                                color: !isReceipt ? 'primary.contrastText' : 'inherit',
-                              }}
-                            >
+                            <TableCell>
                               <Box>
                                 {menuText && (
                                   <Typography
@@ -811,39 +941,27 @@ export default function Home() {
                                   </Typography>
                                 )}
                                 {!isReceipt && totalAmount > 0 && (
-                                  <>
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        color: amountColor,
-                                        fontWeight: 'bold',
-                                        mt: 0.5,
-                                      }}
-                                    >
-                                      {totalAmount.toLocaleString()}원
-                                    </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    component="span"
+                                    sx={{
+                                      color: amountColor,
+                                      fontWeight: 'bold',
+                                      mt: 0.5,
+                                      display: 'inline-block',
+                                    }}
+                                  >
+                                    {totalAmount.toLocaleString()}원
                                     {remainingAmount !== totalAmount && remainingAmount > 0 && (
-                                      <Typography
-                                        variant="body2"
-                                        sx={{
-                                          color: amountColor,
-                                          fontSize: '0.75rem',
-                                          mt: 0.25,
-                                        }}
-                                      >
+                                      <span style={{ marginLeft: '4px' }}>
                                         ({remainingAmount.toLocaleString()})
-                                      </Typography>
+                                      </span>
                                     )}
-                                  </>
+                                  </Typography>
                                 )}
                               </Box>
                             </TableCell>
-                            <TableCell
-                              sx={{
-                                backgroundColor: !isReceipt ? 'primary.main' : 'inherit',
-                                color: !isReceipt ? 'primary.contrastText' : 'inherit',
-                              }}
-                            >
+                            <TableCell>
                               <Link
                                 href={`tel:${restaurant.telNo}`}
                                 sx={{ 
@@ -851,11 +969,14 @@ export default function Home() {
                                   display: 'flex', 
                                   alignItems: 'center', 
                                   justifyContent: 'flex-end',
-                                  color: !isReceipt ? 'primary.contrastText' : 'inherit',
+                                  color: '#666666',
+                                  '&:hover': {
+                                    color: '#0a0a0a',
+                                  },
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <PhoneIcon />
+                                <PhoneIcon fontSize="small" />
                               </Link>
                             </TableCell>
                           </TableRow>
@@ -881,14 +1002,31 @@ export default function Home() {
                 maxHeight: { xs: '90vh', sm: '80vh' },
                 display: 'flex',
                 flexDirection: 'column',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+                border: '1px solid #e5e5e5',
               },
             }}
           >
             {selectedRestaurant && (
               <>
-                <DialogTitle sx={{ pb: { xs: 1, sm: 2 }, pt: { xs: 2, sm: 3 } }}>
+                <DialogTitle 
+                  sx={{ 
+                    pb: 2, 
+                    pt: 3,
+                    px: 3,
+                    borderBottom: '1px solid #e5e5e5',
+                  }}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                    <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, wordBreak: 'break-word' }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: '#0a0a0a',
+                        wordBreak: 'break-word' 
+                      }}
+                    >
                       {selectedRestaurant.name}
                     </Typography>
                     {(selectedRestaurant.menuImgId || selectedRestaurant.menuUrl) && (
@@ -899,23 +1037,47 @@ export default function Home() {
                             window.open(selectedRestaurant.menuUrl, '_blank');
                           }
                         }}
-                        sx={{ flexShrink: 0 }}
+                        sx={{ 
+                          flexShrink: 0,
+                          color: '#666666',
+                          '&:hover': {
+                            backgroundColor: '#f5f5f5',
+                          },
+                        }}
                       >
                         <MenuBookIcon fontSize="small" />
                       </IconButton>
                     )}
                   </Box>
                 </DialogTitle>
-                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                  <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
+                <Box sx={{ borderBottom: '1px solid #e5e5e5', px: 2 }}>
+                  <Tabs 
+                    value={currentTab} 
+                    onChange={(e, newValue) => setCurrentTab(newValue)}
+                    sx={{
+                      '& .MuiTab-root': {
+                        textTransform: 'none',
+                        fontWeight: 500,
+                        fontSize: 14,
+                        minHeight: 48,
+                        color: '#666666',
+                        '&.Mui-selected': {
+                          color: '#0a0a0a',
+                        },
+                      },
+                      '& .MuiTabs-indicator': {
+                        backgroundColor: '#0a0a0a',
+                      },
+                    }}
+                  >
                     <Tab label="메뉴" />
                     <Tab label="선결제" />
                   </Tabs>
                 </Box>
                 <DialogContent 
                   sx={{ 
-                    px: { xs: 2, sm: 3 }, 
-                    py: { xs: 1, sm: 2 },
+                    px: 3, 
+                    py: 3,
                     overflow: 'auto',
                     flex: 1,
                     minHeight: 0,
@@ -945,7 +1107,7 @@ export default function Home() {
                         }}
                       />
                       <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
-                        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } } }}>
+                        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '0.875rem', py: { xs: 0.5, sm: 1 } } }}>
                           <TableHead>
                             <TableRow>
                               <TableCell sx={{ fontWeight: 'bold', px: { xs: 1, sm: 2 } }}>메뉴</TableCell>
@@ -964,7 +1126,7 @@ export default function Home() {
                                     size="small"
                                     fullWidth
                                     InputProps={{
-                                      sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                                      sx: { fontSize: '0.875rem' }
                                     }}
                                   />
                                 </TableCell>
@@ -978,7 +1140,7 @@ export default function Home() {
                                     inputProps={{ min: 0 }}
                                     sx={{ width: { xs: 100, sm: 120 } }}
                                     InputProps={{
-                                      sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                                      sx: { fontSize: '0.875rem' }
                                     }}
                                   />
                                 </TableCell>
@@ -987,7 +1149,14 @@ export default function Home() {
                                     size="small"
                                     onClick={() => handleDeleteRow(menuItem.id)}
                                     aria-label="삭제"
-                                    sx={{ p: { xs: 0.5, sm: 1 } }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: '#666666',
+                                      '&:hover': {
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#0a0a0a',
+                                      },
+                                    }}
                                   >
                                     <EraserIcon fontSize="small" />
                                   </IconButton>
@@ -1006,7 +1175,7 @@ export default function Home() {
                           size="small" 
                           sx={{ 
                             '& .MuiTableCell-root': { 
-                              fontSize: { xs: '0.75rem', sm: '0.875rem' }, 
+                              fontSize: '0.875rem', 
                               py: { xs: 0.5, sm: 1 },
                               whiteSpace: 'nowrap',
                             },
@@ -1024,7 +1193,7 @@ export default function Home() {
                           <TableBody>
                             {prepayments.map((prepaymentItem) => (
                               <TableRow key={prepaymentItem.id}>
-                                <TableCell sx={{ px: { xs: 1, sm: 2 }, overflow: 'hidden' }}>
+                                <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
                                   <DatePicker
                                     value={prepaymentItem.dateValue}
                                     onChange={(newValue) => handlePrepaymentChange(prepaymentItem.id, 'date', newValue)}
@@ -1035,12 +1204,17 @@ export default function Home() {
                                         fullWidth: true,
                                         sx: {
                                           '& .MuiInputBase-input': {
-                                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                            pr: { xs: 3, sm: 4 },
+                                            fontSize: '0.875rem',
+                                            pr: 5,
+                                            paddingRight: '40px !important',
                                           },
                                           '& .MuiInputBase-root': {
                                             width: '100%',
                                             minWidth: 0,
+                                          },
+                                          '& .MuiInputAdornment-root': {
+                                            position: 'absolute',
+                                            right: 8,
                                           }
                                         }
                                       }
@@ -1057,7 +1231,7 @@ export default function Home() {
                                     inputProps={{ min: 0 }}
                                     sx={{ width: '100%', maxWidth: 120 }}
                                     InputProps={{
-                                      sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                                      sx: { fontSize: '0.875rem' }
                                     }}
                                   />
                                 </TableCell>
@@ -1066,7 +1240,14 @@ export default function Home() {
                                     size="small"
                                     onClick={() => handleDeletePrepaymentRow(prepaymentItem.id)}
                                     aria-label="삭제"
-                                    sx={{ p: { xs: 0.5, sm: 1 } }}
+                                    sx={{ 
+                                      p: 0.5,
+                                      color: '#666666',
+                                      '&:hover': {
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#0a0a0a',
+                                      },
+                                    }}
                                   >
                                     <EraserIcon fontSize="small" />
                                   </IconButton>
@@ -1079,49 +1260,84 @@ export default function Home() {
                     </Box>
                   )}
                 </DialogContent>
-                <Divider />
+                <Divider sx={{ borderColor: '#e5e5e5' }} />
                 <DialogActions 
                   sx={{ 
                     justifyContent: 'center', 
-                    gap: { xs: 0.5, sm: 1 }, 
-                    p: { xs: 1, sm: 2 },
+                    gap: 1, 
+                    p: 3,
+                    borderTop: '1px solid #e5e5e5',
                     flexWrap: 'wrap',
-                    '& .MuiIconButton-root': {
-                      fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                      p: { xs: 0.75, sm: 1 },
-                    }
                   }}
                 >
+                  <IconButton 
+                    aria-label="공유" 
+                    size="small"
+                    sx={{
+                      color: '#666666',
+                      '&:hover': {
+                        backgroundColor: '#f5f5f5',
+                        color: '#0a0a0a',
+                      },
+                    }}
+                  >
+                    <ShareIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton 
+                    aria-label="수령" 
+                    size="small"
+                    sx={{
+                      color: '#666666',
+                      '&:hover': {
+                        backgroundColor: '#f5f5f5',
+                        color: '#0a0a0a',
+                      },
+                    }}
+                  >
+                    <ReceiptIcon fontSize="small" />
+                  </IconButton>
                   {currentTab === 0 && (
                     <>
-                      <IconButton color="primary" aria-label="공유" size="small">
-                        <ShareIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton color="primary" aria-label="수령" size="small">
-                        <ReceiptIcon fontSize="small" />
-                      </IconButton>
                       <IconButton 
-                        color="primary" 
                         aria-label="저장" 
                         onClick={handleSave}
                         disabled={saving}
                         size="small"
+                        sx={{
+                          color: saving ? '#999999' : '#666666',
+                          '&:hover:not(:disabled)': {
+                            backgroundColor: '#f5f5f5',
+                            color: '#0a0a0a',
+                          },
+                        }}
                       >
                         <SaveIcon fontSize="small" />
                       </IconButton>
                       <IconButton 
-                        color="primary" 
                         aria-label="추가"
                         onClick={handleAddRow}
                         size="small"
+                        sx={{
+                          color: '#666666',
+                          '&:hover': {
+                            backgroundColor: '#f5f5f5',
+                            color: '#0a0a0a',
+                          },
+                        }}
                       >
                         <AddIcon fontSize="small" />
                       </IconButton>
                       <IconButton 
-                        color="error" 
                         aria-label="삭제"
                         onClick={handleDelete}
                         size="small"
+                        sx={{
+                          color: '#dc2626',
+                          '&:hover': {
+                            backgroundColor: '#fef2f2',
+                            color: '#b91c1c',
+                          },
+                        }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -1130,33 +1346,62 @@ export default function Home() {
                   {currentTab === 1 && (
                     <>
                       <IconButton 
-                        color="primary" 
                         aria-label="저장" 
                         onClick={handleSavePrepayment}
                         disabled={savingPrepayment}
                         size="small"
+                        sx={{
+                          color: savingPrepayment ? '#999999' : '#666666',
+                          '&:hover:not(:disabled)': {
+                            backgroundColor: '#f5f5f5',
+                            color: '#0a0a0a',
+                          },
+                        }}
                       >
                         <SaveIcon fontSize="small" />
                       </IconButton>
                       <IconButton 
-                        color="primary" 
                         aria-label="추가"
                         onClick={handleAddPrepaymentRow}
                         size="small"
+                        sx={{
+                          color: '#666666',
+                          '&:hover': {
+                            backgroundColor: '#f5f5f5',
+                            color: '#0a0a0a',
+                          },
+                        }}
                       >
                         <AddIcon fontSize="small" />
                       </IconButton>
                       <IconButton 
-                        color="error" 
                         aria-label="삭제"
                         onClick={handleDeletePrepayment}
                         size="small"
+                        sx={{
+                          color: '#dc2626',
+                          '&:hover': {
+                            backgroundColor: '#fef2f2',
+                            color: '#b91c1c',
+                          },
+                        }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </>
                   )}
-                  <IconButton onClick={handleCloseDialog} aria-label="닫기" size="small">
+                  <IconButton 
+                    onClick={handleCloseDialog} 
+                    aria-label="닫기" 
+                    size="small"
+                    sx={{
+                      color: '#666666',
+                      '&:hover': {
+                        backgroundColor: '#f5f5f5',
+                        color: '#0a0a0a',
+                      },
+                    }}
+                  >
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </DialogActions>
