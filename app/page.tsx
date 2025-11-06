@@ -685,9 +685,6 @@ export default function Home() {
   };
 
   const handleDeleteRow = (id: string) => {
-    const confirmDelete = window.confirm('삭제하시겠습니까?');
-    if (!confirmDelete) return;
-    
     if (editableMenus.length === 1) {
       // 마지막 행이면 메뉴와 금액만 초기화
       setEditableMenus([{
@@ -698,8 +695,6 @@ export default function Home() {
     } else {
       setEditableMenus(editableMenus.filter((menu) => menu.id !== id));
     }
-    setSnackbarMessage('삭제되었습니다.');
-    setSnackbarOpen(true);
   };
 
   const handleMenuChange = (id: string, field: 'menu' | 'cost', value: string | number) => {
@@ -800,9 +795,6 @@ export default function Home() {
   };
 
   const handleDeletePrepaymentRow = (id: string) => {
-    const confirmDelete = window.confirm('삭제하시겠습니까?');
-    if (!confirmDelete) return;
-    
     if (prepayments.length === 1) {
       // 마지막 행이면 초기화만
       const today = dayjs().format('YYYYMMDD');
@@ -815,8 +807,6 @@ export default function Home() {
     } else {
       setPrepayments(prepayments.filter((item) => item.id !== id));
     }
-    setSnackbarMessage('삭제되었습니다.');
-    setSnackbarOpen(true);
   };
 
   const handlePrepaymentChange = (id: string, field: 'amount' | 'date', value: number | Dayjs | null) => {
@@ -1013,7 +1003,7 @@ export default function Home() {
             }}
           >
             <Toolbar sx={{ minHeight: '56px !important', px: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mr: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mr: 0.25 }}>
                 {loading ? (
                   <CircularProgress size={20} sx={{ color: '#0a0a0a' }} />
                 ) : (
@@ -1021,7 +1011,7 @@ export default function Home() {
                     edge="start" 
                     onClick={() => window.location.reload()}
                     sx={{ 
-                      mr: 0.5,
+                      mr: 0.25,
                       color: '#0a0a0a',
                       '&:hover': {
                         backgroundColor: '#f5f5f5',
@@ -1032,13 +1022,13 @@ export default function Home() {
                   </IconButton>
                 )}
               </Box>
-              <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography 
                   variant="h6" 
                   component="div" 
                   sx={{ 
                     fontWeight: 600,
-                    fontSize: 15,
+                    fontSize: 20,
                     color: '#0a0a0a',
                   }}
                 >
@@ -1241,7 +1231,23 @@ export default function Home() {
                         return (
                           <TableRow
                             key={restaurant.id}
-                            onClick={() => handleRestaurantClick(restaurant)}
+                            onClick={(e) => {
+                              // 네비 아이콘이 disabled 상태일 때는 상세 팝업 열지 않음
+                              const target = e.target as HTMLElement;
+                              const clickedButton = target.closest('button');
+                              const isDisabledNavIcon = clickedButton && (
+                                clickedButton.hasAttribute('disabled') ||
+                                clickedButton.classList.contains('Mui-disabled') ||
+                                (!restaurant.naviUrl && clickedButton.querySelector('svg'))
+                              );
+                              
+                              // 네비 아이콘 영역인지 확인 (NavigationIcon이 포함된 버튼)
+                              if (isDisabledNavIcon && !restaurant.naviUrl) {
+                                return; // 아무 동작도 하지 않음
+                              }
+                              
+                              handleRestaurantClick(restaurant);
+                            }}
                             sx={{
                               cursor: 'pointer',
                               backgroundColor: '#ffffff',
@@ -1343,7 +1349,17 @@ export default function Home() {
                                 px: 0,
                               }}
                             >
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                              <Box 
+                                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}
+                                onClick={(e) => {
+                                  // naviUrl이 없을 때 네비 아이콘 영역 클릭 시 이벤트 전파 차단
+                                  const target = e.target as HTMLElement;
+                                  const clickedButton = target.closest('button');
+                                  if (clickedButton && !restaurant.naviUrl) {
+                                    e.stopPropagation();
+                                  }
+                                }}
+                              >
                                 <Link
                                   href={`tel:${restaurant.telNo}`}
                                   sx={{ 
@@ -1359,18 +1375,31 @@ export default function Home() {
                                 >
                                   <PhoneIcon fontSize="small" />
                                 </Link>
-                                {restaurant.naviUrl && (
+                                <Box
+                                  onClick={(e) => {
+                                    if (!restaurant.naviUrl) {
+                                      e.stopPropagation();
+                                    }
+                                  }}
+                                >
                                   <IconButton
                                     size="small"
+                                    disabled={!restaurant.naviUrl}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      window.open(restaurant.naviUrl, '_blank');
+                                      if (restaurant.naviUrl) {
+                                        window.open(restaurant.naviUrl, '_blank');
+                                      }
                                     }}
                                     sx={{
                                       color: '#666666',
+                                      opacity: restaurant.naviUrl ? 1 : 0.3,
                                       '&:hover': {
-                                        backgroundColor: '#f5f5f5',
-                                        color: '#0a0a0a',
+                                        backgroundColor: restaurant.naviUrl ? '#f5f5f5' : 'transparent',
+                                        color: restaurant.naviUrl ? '#0a0a0a' : '#666666',
+                                      },
+                                      '&.Mui-disabled': {
+                                        opacity: 0.3,
                                       },
                                       p: 0.5,
                                       ml: 0,
@@ -1378,7 +1407,7 @@ export default function Home() {
                                   >
                                     <NavigationIcon fontSize="small" />
                                   </IconButton>
-                                )}
+                                </Box>
                               </Box>
                             </TableCell>
                           </TableRow>
