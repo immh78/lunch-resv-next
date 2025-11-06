@@ -285,11 +285,20 @@ export default function Home() {
                 const publicId = result.info.public_id;
                 
                 // 현재 열려있는 다이얼로그에 따라 menuImgId 업데이트
-                if (restaurantEditDialogOpen && editableRestaurant) {
-                  setEditableRestaurant({ ...editableRestaurant, menuImgId: publicId });
-                } else if (restaurantAddDialogOpen) {
-                  setNewRestaurant(prev => ({ ...prev, menuImgId: publicId }));
-                }
+                // 함수형 업데이트를 사용하여 최신 상태를 보장
+                setEditableRestaurant(prev => {
+                  if (prev && restaurantEditDialogOpen) {
+                    return { ...prev, menuImgId: publicId };
+                  }
+                  return prev;
+                });
+                
+                setNewRestaurant(prev => {
+                  if (restaurantAddDialogOpen) {
+                    return { ...prev, menuImgId: publicId };
+                  }
+                  return prev;
+                });
               } else if (result && result.event === 'close') {
                 // 닫기 시 아무것도 하지 않음
               } else if (error) {
@@ -323,7 +332,8 @@ export default function Home() {
         }, 10000);
       }
     }
-  }, [restaurantEditDialogOpen, restaurantAddDialogOpen, editableRestaurant]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantEditDialogOpen, restaurantAddDialogOpen]);
 
   useEffect(() => {
     if (!user) return;
@@ -1286,15 +1296,29 @@ export default function Home() {
                       <IconButton
                         size="small"
                         onClick={() => {
-                          setEditableRestaurant({
-                            id: selectedRestaurant.id,
-                            name: selectedRestaurant.name,
-                            telNo: selectedRestaurant.telNo,
-                            kind: selectedRestaurant.kind,
-                            menuImgId: selectedRestaurant.menuImgId,
-                            menuUrl: selectedRestaurant.menuUrl,
-                            naviUrl: selectedRestaurant.naviUrl,
-                          });
+                          // 최신 restaurants 리스트에서 식당 정보를 가져옴
+                          const latestRestaurant = restaurants.find(r => r.id === selectedRestaurant.id);
+                          if (latestRestaurant) {
+                            setEditableRestaurant({
+                              id: latestRestaurant.id,
+                              name: latestRestaurant.name || '',
+                              telNo: latestRestaurant.telNo || '',
+                              kind: latestRestaurant.kind || '',
+                              menuImgId: latestRestaurant.menuImgId || '',
+                              menuUrl: latestRestaurant.menuUrl || '',
+                              naviUrl: latestRestaurant.naviUrl || '',
+                            });
+                          } else {
+                            setEditableRestaurant({
+                              id: selectedRestaurant.id,
+                              name: selectedRestaurant.name || '',
+                              telNo: selectedRestaurant.telNo || '',
+                              kind: selectedRestaurant.kind || '',
+                              menuImgId: selectedRestaurant.menuImgId || '',
+                              menuUrl: selectedRestaurant.menuUrl || '',
+                              naviUrl: selectedRestaurant.naviUrl || '',
+                            });
+                          }
                           setRestaurantEditDialogOpen(true);
                         }}
                         sx={{ 
@@ -1747,7 +1771,7 @@ export default function Home() {
                   <TextField
                     label="식당명"
                     value={editableRestaurant.name}
-                    onChange={(e) => setEditableRestaurant({ ...editableRestaurant, name: e.target.value })}
+                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, name: e.target.value } : null)}
                     fullWidth
                     size="small"
                     sx={{
@@ -1762,7 +1786,7 @@ export default function Home() {
                   <TextField
                     label="전화번호"
                     value={editableRestaurant.telNo || ''}
-                    onChange={(e) => setEditableRestaurant({ ...editableRestaurant, telNo: e.target.value })}
+                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, telNo: e.target.value } : null)}
                     fullWidth
                     size="small"
                     sx={{
@@ -1777,7 +1801,7 @@ export default function Home() {
                   <TextField
                     label="식당 종류"
                     value={editableRestaurant.kind || ''}
-                    onChange={(e) => setEditableRestaurant({ ...editableRestaurant, kind: e.target.value })}
+                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, kind: e.target.value } : null)}
                     fullWidth
                     size="small"
                     sx={{
@@ -1792,7 +1816,7 @@ export default function Home() {
                   <TextField
                     label="메뉴 URL"
                     value={editableRestaurant.menuUrl || ''}
-                    onChange={(e) => setEditableRestaurant({ ...editableRestaurant, menuUrl: e.target.value })}
+                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, menuUrl: e.target.value } : null)}
                     fullWidth
                     size="small"
                     sx={{
@@ -1807,7 +1831,7 @@ export default function Home() {
                   <TextField
                     label="메뉴 이미지 ID"
                     value={editableRestaurant.menuImgId || ''}
-                    onChange={(e) => setEditableRestaurant({ ...editableRestaurant, menuImgId: e.target.value })}
+                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, menuImgId: e.target.value } : null)}
                     fullWidth
                     size="small"
                     InputProps={{
@@ -1845,7 +1869,7 @@ export default function Home() {
                   <TextField
                     label="식당위치"
                     value={editableRestaurant.naviUrl || ''}
-                    onChange={(e) => setEditableRestaurant({ ...editableRestaurant, naviUrl: e.target.value })}
+                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, naviUrl: e.target.value } : null)}
                     fullWidth
                     size="small"
                     sx={{
@@ -1896,6 +1920,8 @@ export default function Home() {
                     });
                     alert('저장되었습니다.');
                     setRestaurantEditDialogOpen(false);
+                    // 데이터가 업데이트되도록 리스트를 다시 로드하기 위해 선택된 식당 초기화
+                    setSelectedRestaurant(null);
                   } catch (error) {
                     console.error('Error saving restaurant:', error);
                     alert('저장 중 오류가 발생했습니다.');
@@ -1953,7 +1979,7 @@ export default function Home() {
                 <TextField
                   label="식당 ID"
                   value={newRestaurant.id}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, id: e.target.value })}
+                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, id: e.target.value }))}
                   fullWidth
                   size="small"
                   required
@@ -1969,7 +1995,7 @@ export default function Home() {
                 <TextField
                   label="식당명"
                   value={newRestaurant.name}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, name: e.target.value })}
+                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, name: e.target.value }))}
                   fullWidth
                   size="small"
                   required
@@ -1985,7 +2011,7 @@ export default function Home() {
                 <TextField
                   label="종류"
                   value={newRestaurant.kind}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, kind: e.target.value })}
+                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, kind: e.target.value }))}
                   fullWidth
                   size="small"
                   sx={{
@@ -2000,7 +2026,7 @@ export default function Home() {
                 <TextField
                   label="전화번호"
                   value={newRestaurant.telNo}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, telNo: e.target.value })}
+                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, telNo: e.target.value }))}
                   fullWidth
                   size="small"
                   sx={{
@@ -2015,7 +2041,7 @@ export default function Home() {
                 <TextField
                   label="메뉴 URL"
                   value={newRestaurant.menuUrl}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, menuUrl: e.target.value })}
+                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, menuUrl: e.target.value }))}
                   fullWidth
                   size="small"
                   sx={{
@@ -2030,7 +2056,7 @@ export default function Home() {
                 <TextField
                   label="메뉴 이미지 ID"
                   value={newRestaurant.menuImgId}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, menuImgId: e.target.value })}
+                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, menuImgId: e.target.value }))}
                   fullWidth
                   size="small"
                   InputProps={{
@@ -2068,7 +2094,7 @@ export default function Home() {
                 <TextField
                   label="식당위치"
                   value={newRestaurant.naviUrl}
-                  onChange={(e) => setNewRestaurant({ ...newRestaurant, naviUrl: e.target.value })}
+                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, naviUrl: e.target.value }))}
                   fullWidth
                   size="small"
                   sx={{
