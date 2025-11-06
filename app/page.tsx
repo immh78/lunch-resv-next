@@ -18,7 +18,6 @@ import {
   Paper,
   Link,
   CircularProgress,
-  Alert,
   IconButton,
   Dialog,
   DialogTitle,
@@ -33,6 +32,8 @@ import {
   Menu,
   MenuItem,
   InputAdornment,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -246,6 +247,8 @@ export default function Home() {
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [restaurantEditDialogOpen, setRestaurantEditDialogOpen] = useState(false);
   const [restaurantAddDialogOpen, setRestaurantAddDialogOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
   const [editableRestaurant, setEditableRestaurant] = useState<Restaurant | null>(null);
   const [newRestaurant, setNewRestaurant] = useState<Omit<Restaurant, 'id'> & { id: string }>({
     id: '',
@@ -677,6 +680,9 @@ export default function Home() {
   };
 
   const handleDeleteRow = (id: string) => {
+    const confirmDelete = window.confirm('삭제하시겠습니까?');
+    if (!confirmDelete) return;
+    
     if (editableMenus.length === 1) {
       // 마지막 행이면 메뉴와 금액만 초기화
       setEditableMenus([{
@@ -687,6 +693,8 @@ export default function Home() {
     } else {
       setEditableMenus(editableMenus.filter((menu) => menu.id !== id));
     }
+    setSnackbarMessage('삭제되었습니다.');
+    setSnackbarOpen(true);
   };
 
   const handleMenuChange = (id: string, field: 'menu' | 'cost', value: string | number) => {
@@ -728,7 +736,8 @@ export default function Home() {
       };
       
       await set(ref(database, reservationPath), reservationData);
-      alert('저장되었습니다.');
+      setSnackbarMessage('저장되었습니다.');
+      setSnackbarOpen(true);
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving reservation:', error);
@@ -747,7 +756,8 @@ export default function Home() {
     try {
       const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
       await remove(ref(database, reservationPath));
-      alert('삭제되었습니다.');
+      setSnackbarMessage('삭제되었습니다.');
+      setSnackbarOpen(true);
       handleCloseDialog();
     } catch (error) {
       console.error('Error deleting reservation:', error);
@@ -770,6 +780,9 @@ export default function Home() {
   };
 
   const handleDeletePrepaymentRow = (id: string) => {
+    const confirmDelete = window.confirm('삭제하시겠습니까?');
+    if (!confirmDelete) return;
+    
     if (prepayments.length === 1) {
       // 마지막 행이면 초기화만
       const today = dayjs().format('YYYYMMDD');
@@ -782,6 +795,8 @@ export default function Home() {
     } else {
       setPrepayments(prepayments.filter((item) => item.id !== id));
     }
+    setSnackbarMessage('삭제되었습니다.');
+    setSnackbarOpen(true);
   };
 
   const handlePrepaymentChange = (id: string, field: 'amount' | 'date', value: number | Dayjs | null) => {
@@ -823,10 +838,12 @@ export default function Home() {
       if (validPrepayments.length === 0) {
         // 빈 배열로 저장하면 삭제 효과
         await set(ref(database, prepaymentPath), []);
-        alert('저장되었습니다.');
+        setSnackbarMessage('저장되었습니다.');
+        setSnackbarOpen(true);
       } else {
         await set(ref(database, prepaymentPath), validPrepayments);
-        alert('저장되었습니다.');
+        setSnackbarMessage('저장되었습니다.');
+        setSnackbarOpen(true);
       }
     } catch (error) {
       console.error('Error saving prepayment:', error);
@@ -842,10 +859,14 @@ export default function Home() {
     const confirmDelete = window.confirm('선결제 정보를 삭제하시겠습니까?');
     if (!confirmDelete) return;
     
+    setSnackbarMessage('삭제되었습니다.');
+    setSnackbarOpen(true);
+    
     try {
       const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
       await remove(ref(database, prepaymentPath));
-      alert('삭제되었습니다.');
+      setSnackbarMessage('삭제되었습니다.');
+      setSnackbarOpen(true);
       // 선결제 데이터 다시 로드
       await loadPrepayments(user.uid, selectedRestaurant.id);
     } catch (error) {
@@ -884,7 +905,8 @@ export default function Home() {
       const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
       await remove(ref(database, prepaymentPath));
       
-      alert('수령 처리되었습니다.');
+      setSnackbarMessage('수령 처리되었습니다.');
+      setSnackbarOpen(true);
       handleCloseDialog();
     } catch (error) {
       console.error('Error processing receipt:', error);
@@ -1100,7 +1122,7 @@ export default function Home() {
             </Toolbar>
           </AppBar>
         </Box>
-        <Container maxWidth="sm" sx={{ py: 0, px: 0 }}>
+        <Container maxWidth="sm" sx={{ py: 0, px: { xs: 1, sm: 2 } }}>
 
           {loading ? (
             <Box
@@ -1133,7 +1155,7 @@ export default function Home() {
                     border: 'none',
                   }}
                 >
-                  <Table sx={{ borderCollapse: 'separate' }}>
+                  <Table sx={{ borderCollapse: 'separate', tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
                         <TableCell 
@@ -1145,6 +1167,7 @@ export default function Home() {
                             borderLeft: 'none',
                             borderRight: 'none',
                             px: 0,
+                            width: '45%',
                           }}
                         >
                           식당
@@ -1158,6 +1181,7 @@ export default function Home() {
                             borderLeft: 'none',
                             borderRight: 'none',
                             px: 0,
+                            width: '40%',
                           }}
                         >
                           예약메뉴
@@ -1227,6 +1251,7 @@ export default function Home() {
                                 borderLeft: 'none',
                                 borderRight: 'none',
                                 px: 0,
+                                width: '45%',
                               }}
                             >
                               <Button
@@ -1257,6 +1282,7 @@ export default function Home() {
                                 borderLeft: 'none',
                                 borderRight: 'none',
                                 px: 0,
+                                width: '40%',
                               }}
                             >
                               <Box>
@@ -1266,7 +1292,7 @@ export default function Home() {
                                     sx={{
                                       color: isReceipt ? 'rgba(0, 0, 0, 0.2)' : amountColor,
                                       opacity: isReceipt ? 0.3 : 1,
-                                      fontSize: '0.875rem',
+                                      fontSize: '0.75rem',
                                     }}
                                   >
                                     {menuText}
@@ -1278,7 +1304,7 @@ export default function Home() {
                                     sx={{
                                       color: '#999999',
                                       fontWeight: 400,
-                                      fontSize: '0.875rem',
+                                      fontSize: '0.75rem',
                                       mt: 0.5,
                                     }}
                                   >
@@ -1352,7 +1378,8 @@ export default function Home() {
               sx: {
                 borderRadius: 2,
                 m: { xs: 0.5, sm: 2 },
-                maxHeight: { xs: '95vh', sm: '80vh' },
+                height: '80vh',
+                maxHeight: '80vh',
                 display: 'flex',
                 flexDirection: 'column',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
@@ -1368,7 +1395,7 @@ export default function Home() {
                     pb: 2, 
                     pt: 2,
                     px: { xs: 1.5, sm: 3 },
-                    borderBottom: '1px solid #e5e5e5',
+                    borderBottom: 'none',
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
@@ -1452,7 +1479,7 @@ export default function Home() {
                     </Box>
                   </Box>
                 </DialogTitle>
-                <Box sx={{ borderBottom: '1px solid #e5e5e5', px: { xs: 1, sm: 2 } }}>
+                <Box sx={{ borderBottom: 'none', px: { xs: 1, sm: 2 } }}>
                   <Tabs 
                     value={currentTab} 
                     onChange={(e, newValue) => setCurrentTab(newValue)}
@@ -1499,22 +1526,40 @@ export default function Home() {
                             sx: {
                               mb: { xs: 1.5, sm: 2 },
                               '& .MuiInputBase-input': {
-                                fontSize: '0.875rem'
+                                fontSize: '0.8125rem'
                               },
                               '& .MuiInputLabel-root': {
-                                fontSize: '0.875rem'
+                                fontSize: '0.8125rem'
                               }
                             }
                           }
                         }}
                       />
                       <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
-                        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '0.875rem', py: { xs: 0.5, sm: 1 } } }}>
+                        <Table 
+                          size="small" 
+                          sx={{ 
+                            '& .MuiTableCell-root': { 
+                              fontSize: '0.875rem', 
+                              py: { xs: 0.5, sm: 1 },
+                              border: 'none',
+                              backgroundColor: 'transparent',
+                            },
+                            '& .MuiTableHead-root .MuiTableCell-root': {
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                            },
+                            '& .MuiTableBody-root .MuiTableRow-root': {
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                            },
+                          }}
+                        >
                           <TableHead>
                             <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 } }}>메뉴</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 } }}>가격</TableCell>
-                              <TableCell width={32} sx={{ px: 0 }}></TableCell>
+                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>메뉴</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>가격</TableCell>
+                              <TableCell width={32} sx={{ px: 0, border: 'none', backgroundColor: 'transparent' }}></TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -1525,9 +1570,10 @@ export default function Home() {
                                   '&:nth-of-type(even)': {
                                     backgroundColor: 'transparent',
                                   },
+                                  border: 'none',
                                 }}
                               >
-                                <TableCell sx={{ px: { xs: 0.5, sm: 1 } }}>
+                                <TableCell sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
                                   <TextField
                                     value={menuItem.menu}
                                     onChange={(e) => handleMenuChange(menuItem.id, 'menu', e.target.value)}
@@ -1539,7 +1585,7 @@ export default function Home() {
                                     }}
                                   />
                                 </TableCell>
-                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 } }}>
+                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
                                   <TextField
                                     type="number"
                                     value={menuItem.cost || ''}
@@ -1553,7 +1599,7 @@ export default function Home() {
                                     }}
                                   />
                                 </TableCell>
-                                <TableCell sx={{ px: 0, width: 32 }}>
+                                <TableCell sx={{ px: 0, width: 32, border: 'none', backgroundColor: 'transparent' }}>
                                   <IconButton
                                     size="small"
                                     onClick={() => handleDeleteRow(menuItem.id)}
@@ -1587,6 +1633,16 @@ export default function Home() {
                               fontSize: '0.875rem', 
                               py: { xs: 0.5, sm: 1 },
                               whiteSpace: 'nowrap',
+                              border: 'none',
+                              backgroundColor: 'transparent',
+                            },
+                            '& .MuiTableHead-root .MuiTableCell-root': {
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                            },
+                            '& .MuiTableBody-root .MuiTableRow-root': {
+                              backgroundColor: 'transparent',
+                              border: 'none',
                             },
                             width: '100%',
                             tableLayout: 'fixed',
@@ -1594,9 +1650,9 @@ export default function Home() {
                         >
                           <TableHead>
                             <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '45%' }}>날짜</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '40%' }}>금액</TableCell>
-                              <TableCell width={32} sx={{ px: 0 }}></TableCell>
+                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '45%', border: 'none', backgroundColor: 'transparent' }}>날짜</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '40%', border: 'none', backgroundColor: 'transparent' }}>금액</TableCell>
+                              <TableCell width={32} sx={{ px: 0, border: 'none', backgroundColor: 'transparent' }}></TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -1607,9 +1663,10 @@ export default function Home() {
                                   '&:nth-of-type(even)': {
                                     backgroundColor: 'transparent',
                                   },
+                                  border: 'none',
                                 }}
                               >
-                                <TableCell sx={{ px: { xs: 0.5, sm: 1 }, overflow: 'visible' }}>
+                                <TableCell sx={{ px: { xs: 0.5, sm: 1 }, overflow: 'visible', border: 'none', backgroundColor: 'transparent' }}>
                                   <DatePicker
                                     value={prepaymentItem.dateValue}
                                     onChange={(newValue) => handlePrepaymentChange(prepaymentItem.id, 'date', newValue)}
@@ -1620,7 +1677,7 @@ export default function Home() {
                                         fullWidth: true,
                                         sx: {
                                           '& .MuiInputBase-input': {
-                                            fontSize: '0.875rem',
+                                            fontSize: '0.8125rem',
                                             paddingRight: '48px !important',
                                             minWidth: 0,
                                           },
@@ -1630,7 +1687,7 @@ export default function Home() {
                                           },
                                           '& .MuiInputAdornment-root': {
                                             position: 'absolute',
-                                            right: 4,
+                                            right: 8,
                                             pointerEvents: 'none',
                                           }
                                         }
@@ -1638,7 +1695,7 @@ export default function Home() {
                                     }}
                                   />
                                 </TableCell>
-                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 } }}>
+                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
                                   <TextField
                                     type="number"
                                     value={prepaymentItem.amount || ''}
@@ -1652,7 +1709,7 @@ export default function Home() {
                                     }}
                                   />
                                 </TableCell>
-                                <TableCell sx={{ px: 0, width: 32 }}>
+                                <TableCell sx={{ px: 0, width: 32, border: 'none', backgroundColor: 'transparent' }}>
                                   <IconButton
                                     size="small"
                                     onClick={() => handleDeletePrepaymentRow(prepaymentItem.id)}
@@ -1677,13 +1734,12 @@ export default function Home() {
                     </Box>
                   )}
                 </DialogContent>
-                <Divider sx={{ borderColor: '#e5e5e5' }} />
                 <DialogActions 
                   sx={{ 
                     justifyContent: 'center', 
                     gap: 1, 
                     p: { xs: 1.5, sm: 3 },
-                    borderTop: '1px solid #e5e5e5',
+                    borderTop: 'none',
                     flexWrap: 'wrap',
                   }}
                 >
@@ -1848,7 +1904,7 @@ export default function Home() {
                 pb: 2, 
                 pt: 2,
                 px: { xs: 1.5, sm: 3 },
-                borderBottom: '1px solid #e5e5e5',
+                borderBottom: 'none',
                 fontSize: 16,
                 fontWeight: 600,
                 color: '#0a0a0a',
@@ -1858,12 +1914,12 @@ export default function Home() {
             </DialogTitle>
             <DialogContent 
               sx={{ 
-                px: { xs: 1, sm: 3 }, 
+                px: { xs: 2, sm: 4 }, 
                 py: 2,
               }}
             >
               {editableRestaurant && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
                   <TextField
                     label="식당명"
                     value={editableRestaurant.name}
@@ -1980,13 +2036,12 @@ export default function Home() {
                 </Box>
               )}
             </DialogContent>
-            <Divider sx={{ borderColor: '#e5e5e5' }} />
             <DialogActions 
               sx={{ 
                 justifyContent: 'flex-end', 
                 gap: 1, 
                 p: { xs: 1.5, sm: 3 },
-                borderTop: '1px solid #e5e5e5',
+                borderTop: 'none',
               }}
             >
               <Button
@@ -2019,7 +2074,8 @@ export default function Home() {
                     setEditableRestaurant(null);
                     // 다이얼로그가 완전히 닫힌 후 alert 표시 및 식당 상세 팝업창 다시 열기
                     setTimeout(() => {
-                      alert('저장되었습니다.');
+                      setSnackbarMessage('저장되었습니다.');
+                      setSnackbarOpen(true);
                       // 저장 후 최신 데이터로 selectedRestaurant 업데이트하여 식당 상세 팝업창 유지
                       // Firebase에서 데이터가 업데이트되기를 기다린 후 최신 데이터 가져오기
                       const restaurantRef = ref(database, `food-resv/restaurant/${savedRestaurantId}`);
@@ -2085,7 +2141,7 @@ export default function Home() {
                 pb: 2, 
                 pt: 2,
                 px: { xs: 1.5, sm: 3 },
-                borderBottom: '1px solid #e5e5e5',
+                borderBottom: 'none',
                 fontSize: 16,
                 fontWeight: 600,
                 color: '#0a0a0a',
@@ -2095,7 +2151,7 @@ export default function Home() {
             </DialogTitle>
             <DialogContent 
               sx={{ 
-                px: { xs: 1, sm: 3 }, 
+                px: { xs: 2, sm: 4 }, 
                 py: 2,
               }}
             >
@@ -2103,7 +2159,11 @@ export default function Home() {
                 <TextField
                   label="식당 ID"
                   value={newRestaurant.id}
-                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, id: e.target.value }))}
+                  onChange={(e) => {
+                    // 영어대문자와 숫자만 허용
+                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    setNewRestaurant(prev => ({ ...prev, id: value }));
+                  }}
                   fullWidth
                   size="small"
                   required
@@ -2232,13 +2292,12 @@ export default function Home() {
                 />
               </Box>
             </DialogContent>
-            <Divider sx={{ borderColor: '#e5e5e5' }} />
             <DialogActions 
               sx={{ 
                 justifyContent: 'flex-end', 
                 gap: 1, 
                 p: { xs: 1.5, sm: 3 },
-                borderTop: '1px solid #e5e5e5',
+                borderTop: 'none',
               }}
             >
               <Button
@@ -2266,7 +2325,8 @@ export default function Home() {
                     const snapshot = await get(restaurantRef);
                     
                     if (snapshot.exists()) {
-                      alert('이미 존재하는 식당 ID입니다.');
+                      setSnackbarMessage('이미 존재하는 식당 ID입니다.');
+                      setSnackbarOpen(true);
                       return;
                     }
                     
@@ -2288,9 +2348,10 @@ export default function Home() {
                       menuUrl: '',
                       naviUrl: '',
                     });
-                    // 다이얼로그가 완전히 닫힌 후 alert 표시
+                    // 다이얼로그가 완전히 닫힌 후 Snackbar 표시
                     setTimeout(() => {
-                      alert('저장되었습니다.');
+                      setSnackbarMessage('저장되었습니다.');
+                      setSnackbarOpen(true);
                     }, 100);
                   } catch (error) {
                     console.error('Error saving restaurant:', error);
@@ -2310,6 +2371,22 @@ export default function Home() {
               </Button>
             </DialogActions>
           </Dialog>
+          
+          {/* Snackbar */}
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={1000}
+            onClose={() => setSnackbarOpen(false)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            <Alert 
+              onClose={() => setSnackbarOpen(false)} 
+              severity="success" 
+              sx={{ width: '100%' }}
+            >
+              {snackbarMessage}
+            </Alert>
+          </Snackbar>
         </Container>
       </ProtectedRoute>
     </ThemeProvider>
