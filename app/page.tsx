@@ -47,6 +47,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ClearIcon from '@mui/icons-material/Clear';
 import EditIcon from '@mui/icons-material/Edit';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
@@ -58,7 +59,7 @@ import SetMealIcon from '@mui/icons-material/SetMeal';
 import GroupsIcon from '@mui/icons-material/Groups';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
-import HistoryIcon from '@mui/icons-material/History';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -1702,7 +1703,7 @@ export default function Home() {
                                       },
                                     }}
                                   >
-                                    <HistoryIcon fontSize="small" />
+                                    <AccessTimeIcon fontSize="small" />
                                   </IconButton>
                                   <IconButton 
                                     aria-label="추가"
@@ -1717,7 +1718,7 @@ export default function Home() {
                                       },
                                     }}
                                   >
-                                    <AddCircleIcon fontSize="small" />
+                                    <AddCircleOutlineIcon fontSize="small" />
                                   </IconButton>
                                 </Box>
                               </TableCell>
@@ -1829,7 +1830,7 @@ export default function Home() {
                                       },
                                     }}
                                   >
-                                    <AddCircleIcon fontSize="small" />
+                                    <AddCircleOutlineIcon fontSize="small" />
                                   </IconButton>
                                 </Box>
                               </TableCell>

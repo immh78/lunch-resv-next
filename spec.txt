@@ -579,3 +579,8 @@ isReceipt가 false가 아닌경우 하단 버튼에서 공유, 수령, 삭제 �
 하단의 "추가"버튼을 제거하고 각 텝 테이블 타이틀에 추가한다.
 [메뉴 탭] 테이블 타이틀에 메뉴, 히스토리 아이콘 오른쪽에 위치
 [선결제 탭] 테이블 타이틀에 날짜 오른쪽에 위치
+
+
+* 식당 상세 팝업창
+history icon을 AccessTime mui icon으로 변경
+각탭 테이블 타이틀의 추가 버튼을 AddCircleOutline mui icon으로 변경
