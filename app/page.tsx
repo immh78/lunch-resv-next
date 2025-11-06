@@ -1894,11 +1894,15 @@ export default function Home() {
                     aria-label="공유" 
                     size="small"
                     onClick={handleShare}
+                    disabled={selectedRestaurant?.reservation?.isReceipt === true}
                     sx={{
                       color: '#666666',
-                      '&:hover': {
+                      '&:hover:not(:disabled)': {
                         backgroundColor: '#f5f5f5',
                         color: '#0a0a0a',
+                      },
+                      '&.Mui-disabled': {
+                        opacity: 0.3,
                       },
                     }}
                   >
@@ -1908,11 +1912,15 @@ export default function Home() {
                     aria-label="수령" 
                     size="small"
                     onClick={handleReceipt}
+                    disabled={selectedRestaurant?.reservation?.isReceipt === true}
                     sx={{
                       color: '#666666',
-                      '&:hover': {
+                      '&:hover:not(:disabled)': {
                         backgroundColor: '#f5f5f5',
                         color: '#0a0a0a',
+                      },
+                      '&.Mui-disabled': {
+                        opacity: 0.3,
                       },
                     }}
                   >
@@ -1952,12 +1960,16 @@ export default function Home() {
                       <IconButton 
                         aria-label="삭제"
                         onClick={handleDelete}
+                        disabled={selectedRestaurant?.reservation?.isReceipt === true}
                         size="small"
                         sx={{
                           color: '#dc2626',
-                          '&:hover': {
+                          '&:hover:not(:disabled)': {
                             backgroundColor: '#fef2f2',
                             color: '#b91c1c',
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.3,
                           },
                         }}
                       >
@@ -1999,12 +2011,16 @@ export default function Home() {
                       <IconButton 
                         aria-label="삭제"
                         onClick={handleDeletePrepayment}
+                        disabled={selectedRestaurant?.reservation?.isReceipt === true}
                         size="small"
                         sx={{
                           color: '#dc2626',
-                          '&:hover': {
+                          '&:hover:not(:disabled)': {
                             backgroundColor: '#fef2f2',
                             color: '#b91c1c',
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.3,
                           },
                         }}
                       >
