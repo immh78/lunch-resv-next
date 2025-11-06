@@ -58,6 +58,7 @@ import SetMealIcon from '@mui/icons-material/SetMeal';
 import GroupsIcon from '@mui/icons-material/Groups';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
+import HistoryIcon from '@mui/icons-material/History';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -251,6 +252,8 @@ export default function Home() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
   const [deleteType, setDeleteType] = useState<'reservation' | 'prepayment' | null>(null);
+  const [menuHistoryDialogOpen, setMenuHistoryDialogOpen] = useState(false);
+  const [menuHistoryList, setMenuHistoryList] = useState<{ menu: string; cost: number }[]>([]);
   const [editableRestaurant, setEditableRestaurant] = useState<Restaurant | null>(null);
   const [newRestaurant, setNewRestaurant] = useState<Omit<Restaurant, 'id'> & { id: string }>({
     id: '',
@@ -1574,7 +1577,70 @@ export default function Home() {
                         >
                           <TableHead>
                             <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>메뉴</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <span>메뉴</span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={async () => {
+                                      if (!user || !selectedRestaurant) return;
+                                      
+                                      try {
+                                        // 해당 식당의 모든 예약 데이터 조회
+                                        const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
+                                        const reservationRef = ref(database, reservationPath);
+                                        const snapshot = await get(reservationRef);
+                                        
+                                        const menuSet = new Set<string>();
+                                        
+                                        if (snapshot.exists()) {
+                                          const reservations = snapshot.val();
+                                          // 모든 날짜의 예약 데이터 순회
+                                          Object.keys(reservations).forEach((date) => {
+                                            const reservation: ReservationData = reservations[date];
+                                            if (reservation && reservation.menus) {
+                                              reservation.menus.forEach((menuItem: MenuItem) => {
+                                                // 메뉴명과 가격을 조합한 키로 중복 체크
+                                                const key = `${menuItem.menu}|${menuItem.cost}`;
+                                                menuSet.add(key);
+                                              });
+                                            }
+                                          });
+                                        }
+                                        
+                                        // 중복 없는 메뉴 리스트 생성
+                                        const uniqueMenus: { menu: string; cost: number }[] = [];
+                                        menuSet.forEach((key) => {
+                                          const [menu, costStr] = key.split('|');
+                                          uniqueMenus.push({
+                                            menu,
+                                            cost: parseInt(costStr, 10),
+                                          });
+                                        });
+                                        
+                                        // 메뉴명으로 정렬
+                                        uniqueMenus.sort((a, b) => a.menu.localeCompare(b.menu));
+                                        
+                                        setMenuHistoryList(uniqueMenus);
+                                        setMenuHistoryDialogOpen(true);
+                                      } catch (error) {
+                                        console.error('Error fetching menu history:', error);
+                                        alert('메뉴 이력을 불러오는 중 오류가 발생했습니다.');
+                                      }
+                                    }}
+                                    sx={{
+                                      p: 0.5,
+                                      color: '#666666',
+                                      '&:hover': {
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#0a0a0a',
+                                      },
+                                    }}
+                                  >
+                                    <HistoryIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </TableCell>
                               <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>가격</TableCell>
                               <TableCell width={32} sx={{ px: 0, border: 'none', backgroundColor: 'transparent' }}></TableCell>
                             </TableRow>
@@ -2445,6 +2511,88 @@ export default function Home() {
             </DialogActions>
           </Dialog>
           
+          {/* 메뉴 이력 선택 Dialog */}
+          <Dialog
+            open={menuHistoryDialogOpen}
+            onClose={() => setMenuHistoryDialogOpen(false)}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                m: { xs: 0.5, sm: 2 },
+                maxHeight: { xs: '80vh', sm: '70vh' },
+              },
+            }}
+          >
+            <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 1 }}>
+              메뉴 선택
+            </DialogTitle>
+            <DialogContent sx={{ p: 0 }}>
+              <TableContainer sx={{ maxHeight: { xs: '60vh', sm: '50vh' }, overflow: 'auto' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>메뉴</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>가격</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {menuHistoryList.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={2} align="center" sx={{ py: 3, color: '#999999' }}>
+                          등록된 메뉴가 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      menuHistoryList.map((menuItem, index) => (
+                        <TableRow
+                          key={`${menuItem.menu}-${menuItem.cost}-${index}`}
+                          onClick={() => {
+                            // 선택한 메뉴를 editableMenus에 추가
+                            const newMenu: EditableMenuItem = {
+                              id: `menu-${Date.now()}-${index}`,
+                              menu: menuItem.menu,
+                              cost: menuItem.cost,
+                            };
+                            setEditableMenus(prev => [...prev, newMenu]);
+                            setMenuHistoryDialogOpen(false);
+                            setSnackbarMessage('메뉴가 추가되었습니다.');
+                            setSnackbarOpen(true);
+                          }}
+                          sx={{
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: '#f5f5f5',
+                            },
+                          }}
+                        >
+                          <TableCell sx={{ fontSize: '0.875rem' }}>{menuItem.menu}</TableCell>
+                          <TableCell align="right" sx={{ fontSize: '0.875rem' }}>
+                            {menuItem.cost.toLocaleString()}원
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button
+                onClick={() => setMenuHistoryDialogOpen(false)}
+                sx={{
+                  color: '#666666',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                  },
+                }}
+              >
+                닫기
+              </Button>
+            </DialogActions>
+          </Dialog>
+
           {/* Snackbar */}
           <Snackbar
             open={snackbarOpen}
