@@ -999,14 +999,14 @@ export default function Home() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <ProtectedRoute>
-        <Box sx={{ flexGrow: 1, borderBottom: '1px solid #e5e5e5' }}>
+        <Box sx={{ flexGrow: 1 }}>
           <AppBar 
             position="static"
             elevation={0}
             sx={{
               backgroundColor: '#ffffff',
               color: '#0a0a0a',
-              borderBottom: '0.5px solid #e5e5e5',
+              borderBottom: 'none',
             }}
           >
             <Toolbar sx={{ minHeight: '56px !important', px: { xs: 2, sm: 3 } }}>
@@ -1042,16 +1042,18 @@ export default function Home() {
                   포장 예약
                 </Typography>
                 {(() => {
-                  // isReceipt가 false인 금액 합계 계산
-                  const totalUnreceivedAmount = restaurants.reduce((sum, restaurant) => {
+                  // 잔여금액 합계 계산 (totalAmount - prepaymentTotal)
+                  const totalRemainingAmount = restaurants.reduce((sum, restaurant) => {
                     if (restaurant.reservation && !restaurant.reservation.isReceipt && restaurant.reservation.menus) {
                       const restaurantTotal = restaurant.reservation.menus.reduce((menuSum, menu) => menuSum + (menu.cost || 0), 0);
-                      return sum + restaurantTotal;
+                      const prepaymentTotal = restaurant.prepaymentTotal || 0;
+                      const remainingAmount = restaurantTotal - prepaymentTotal;
+                      return sum + remainingAmount;
                     }
                     return sum;
                   }, 0);
                   
-                  if (totalUnreceivedAmount > 0) {
+                  if (totalRemainingAmount > 0) {
                     return (
                       <Typography
                         variant="body2"
@@ -1061,7 +1063,7 @@ export default function Home() {
                           fontWeight: 400,
                         }}
                       >
-                        {totalUnreceivedAmount.toLocaleString()}원
+                        {totalRemainingAmount.toLocaleString()}원
                       </Typography>
                     );
                   }
