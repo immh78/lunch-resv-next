@@ -947,7 +947,7 @@ export default function Home() {
       }
 
       // 공유 텍스트 생성
-      let shareText = '━━━━━━━━━\n';
+      let shareText = '━━━━━━━━━━\n';
       
       if (menuText) {
         shareText += `■ 메뉴 : ${menuText}\n`;
