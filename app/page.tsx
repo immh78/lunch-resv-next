@@ -1299,18 +1299,32 @@ export default function Home() {
                                     {menuText}
                                   </Typography>
                                 )}
-                                {!isReceipt && remainingAmount > 0 && remainingAmount !== totalAmount && (
-                                  <Typography
-                                    variant="body2"
-                                    sx={{
-                                      color: '#999999',
-                                      fontWeight: 400,
-                                      fontSize: '0.75rem',
-                                      mt: 0.5,
-                                    }}
-                                  >
-                                    ({remainingAmount.toLocaleString()})
-                                  </Typography>
+                                {!isReceipt && (
+                                  prepaymentTotal === 0 ? (
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: '#999999',
+                                        fontWeight: 400,
+                                        fontSize: '0.75rem',
+                                        mt: 0.5,
+                                      }}
+                                    >
+                                      ({totalAmount.toLocaleString()})
+                                    </Typography>
+                                  ) : remainingAmount > 0 && remainingAmount !== totalAmount && (
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: '#999999',
+                                        fontWeight: 400,
+                                        fontSize: '0.75rem',
+                                        mt: 0.5,
+                                      }}
+                                    >
+                                      ({remainingAmount.toLocaleString()})
+                                    </Typography>
+                                  )
                                 )}
                               </Box>
                             </TableCell>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PWA Icon Generator from SVG</title>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <p>Restaurant 아이콘을 192x192와 512x512 크기로 생성합니다.</p>
+    
+    <div>
+        <canvas id="canvas192" width="192" height="192" style="border: 1px solid #ccc; margin: 10px; display: block;"></canvas>
+        <button onclick="downloadIcon(192)">Download icon-192.png</button>
+    </div>
+    
+    <div>
+        <canvas id="canvas512" width="512" height="512" style="border: 1px solid #ccc; margin: 10px; display: block;"></canvas>
+        <button onclick="downloadIcon(512)">Download icon-512.png</button>
+    </div>
+
+    <script>
+        // Material Icons Restaurant SVG 경로
+        const svgPath = "M280-80v-366q-51-14-85.5-56T160-600v-280h80v280h40v-280h80v280h40v-280h80v280q0 56-34.5 98T360-446v366h-80Zm400 0v-320H560v-280q0-83 58.5-141.5T760-880v800h-80Z";
+        
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // 배경 (흰색)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+            
+            // 아이콘 색상 (검은색)
+            ctx.fillStyle = '#000000';
+            
+            // SVG 경로를 Canvas로 변환
+            const svg = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="${size}" height="${size}">
+                    <path d="${svgPath}" fill="#000000"/>
+                </svg>
+            `;
+            
+            const img = new Image();
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, size, size);
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // 페이지 로드 시 아이콘 그리기
+        window.onload = function() {
+            setTimeout(() => {
+                drawIcon(document.getElementById('canvas192'), 192);
+                drawIcon(document.getElementById('canvas512'), 512);
+            }, 100);
+        };
+    </script>
+</body>
+</html>
+
