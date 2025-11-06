@@ -315,3 +315,43 @@ isReceipt가 false인 경우 row의 배경은 반전처리 하지 않고 식당 
 메뉴 URL : menuUrl
 메뉴 이미지 ID : menuImgId
 식당위치 : naviUrl
+
+--------------------------------
+* 식당 등록/수정 팝업창
+"메뉴 이미지 ID" 입력란 우측에 카메라 아이콘 추가.
+카메라 아이콘 클릭시 vue.js로 구현된 아래 코드를 참고하여 next.js로 구현함.
+
+const cloudName = {NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
+const uploadPreset = {NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+const cld = new Cloudinary({ cloud: { cloudName } });
+
+  widget = window.cloudinary?.createUploadWidget(
+    {
+      cloudName: props.cloudName,
+      uploadPreset: props.uploadPreset,
+      sources: ['local', 'url', 'camera'],
+      multiple: false,
+      folder: 'images',
+      maxFileSize: 5_000_000,
+      cropping: false,
+      clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+      showAdvancedOptions: false,
+      showPoweredBy: false,
+      styles: { palette: { windowBorder: '#ddd' } }
+    },
+    (error, result) => {
+      if (!error && result && result.event === 'success') {
+        const info = result.info
+        lastPublicId.value = info.public_id
+        local.value.menuImgId = lastPublicId.value
+      } else if (result && result.event === 'close') {
+        lastPublicId.value = ''
+      } else if (error) {
+        lastPublicId.value = ''
+      }
+    }
+  )
+
+lastPublicId.value는 menuImgId로 저장하여 이미지 조회시 활용할 수 있도록 한다.
+
+-------------------------------------

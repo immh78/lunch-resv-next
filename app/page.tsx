@@ -32,6 +32,7 @@ import {
   Button,
   Menu,
   MenuItem,
+  InputAdornment,
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -46,6 +47,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ClearIcon from '@mui/icons-material/Clear';
 import EditIcon from '@mui/icons-material/Edit';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import LunchDiningIcon from '@mui/icons-material/LunchDining';
 import RamenDiningIcon from '@mui/icons-material/RamenDining';
@@ -247,6 +249,72 @@ export default function Home() {
     menuUrl: '',
     naviUrl: '',
   });
+  const [uploadWidget, setUploadWidget] = useState<any>(null);
+
+  // Cloudinary widget 초기화
+  useEffect(() => {
+    const initCloudinaryWidget = () => {
+      if (typeof window !== 'undefined' && (window as any).cloudinary) {
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
+        
+        const widget = (window as any).cloudinary.createUploadWidget(
+          {
+            cloudName,
+            uploadPreset,
+            sources: ['local', 'url', 'camera'],
+            multiple: false,
+            folder: 'images',
+            maxFileSize: 5_000_000,
+            cropping: false,
+            clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+            showAdvancedOptions: false,
+            showPoweredBy: false,
+            styles: { palette: { windowBorder: '#ddd' } }
+          },
+          (error: any, result: any) => {
+            if (!error && result && result.event === 'success') {
+              const info = result.info;
+              const publicId = info.public_id;
+              
+              // 현재 열려있는 다이얼로그에 따라 menuImgId 업데이트
+              if (restaurantEditDialogOpen && editableRestaurant) {
+                setEditableRestaurant({ ...editableRestaurant, menuImgId: publicId });
+              } else if (restaurantAddDialogOpen) {
+                setNewRestaurant(prev => ({ ...prev, menuImgId: publicId }));
+              }
+            } else if (result && result.event === 'close') {
+              // 닫기 시 아무것도 하지 않음
+            } else if (error) {
+              console.error('Cloudinary upload error:', error);
+            }
+          }
+        );
+        
+        setUploadWidget(widget);
+      }
+    };
+
+    // Cloudinary 스크립트가 로드되었는지 확인
+    if (typeof window !== 'undefined') {
+      if ((window as any).cloudinary) {
+        initCloudinaryWidget();
+      } else {
+        // 스크립트 로드를 기다림
+        const checkCloudinary = setInterval(() => {
+          if ((window as any).cloudinary) {
+            initCloudinaryWidget();
+            clearInterval(checkCloudinary);
+          }
+        }, 100);
+
+        // 10초 후 타임아웃
+        setTimeout(() => {
+          clearInterval(checkCloudinary);
+        }, 10000);
+      }
+    }
+  }, [restaurantEditDialogOpen, restaurantAddDialogOpen, editableRestaurant]);
 
   useEffect(() => {
     if (!user) return;
@@ -1732,6 +1800,29 @@ export default function Home() {
                     onChange={(e) => setEditableRestaurant({ ...editableRestaurant, menuImgId: e.target.value })}
                     fullWidth
                     size="small"
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              if (uploadWidget) {
+                                uploadWidget.open();
+                              }
+                            }}
+                            sx={{
+                              color: '#666666',
+                              '&:hover': {
+                                backgroundColor: '#f5f5f5',
+                                color: '#0a0a0a',
+                              },
+                            }}
+                          >
+                            <CameraAltIcon fontSize="small" />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
                     sx={{
                       '& .MuiInputBase-input': {
                         fontSize: '0.875rem',
@@ -1932,6 +2023,29 @@ export default function Home() {
                   onChange={(e) => setNewRestaurant({ ...newRestaurant, menuImgId: e.target.value })}
                   fullWidth
                   size="small"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            if (uploadWidget) {
+                              uploadWidget.open();
+                            }
+                          }}
+                          sx={{
+                            color: '#666666',
+                            '&:hover': {
+                              backgroundColor: '#f5f5f5',
+                              color: '#0a0a0a',
+                            },
+                          }}
+                        >
+                          <CameraAltIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                   sx={{
                     '& .MuiInputBase-input': {
                       fontSize: '0.875rem',
