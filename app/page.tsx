@@ -744,14 +744,22 @@ export default function Home() {
   };
 
   const handleAddRow = () => {
+    const newId = `menu-${Date.now()}`;
     setEditableMenus([
       ...editableMenus,
       {
-        id: `menu-${Date.now()}`,
+        id: newId,
         menu: '',
         cost: 0,
       },
     ]);
+    // 새로 추가된 행의 메뉴명 TextField에 포커스
+    setTimeout(() => {
+      const input = document.querySelector(`input[data-menu-id="${newId}"]`) as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 0);
   };
 
   const handleDeleteRow = (id: string) => {
@@ -853,15 +861,23 @@ export default function Home() {
   // 선결제 관련 핸들러
   const handleAddPrepaymentRow = () => {
     const today = dayjs().format('YYYYMMDD');
+    const newId = `prepayment-${Date.now()}`;
     setPrepayments([
       ...prepayments,
       {
-        id: `prepayment-${Date.now()}`,
+        id: newId,
         amount: 0,
         date: today,
         dateValue: dayjs(),
       },
     ]);
+    // 새로 추가된 행의 금액 TextField에 포커스
+    setTimeout(() => {
+      const input = document.querySelector(`input[data-prepayment-id="${newId}"]`) as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 0);
   };
 
   const handleDeletePrepaymentRow = (id: string) => {
@@ -1740,13 +1756,30 @@ export default function Home() {
                           }}
                         >
                           <TableHead>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
+                            <TableRow
+                              sx={{
+                                '&:hover': {
+                                  backgroundColor: 'transparent !important',
+                                },
+                              }}
+                            >
+                              <TableCell 
+                                sx={{ 
+                                  fontWeight: 'bold', 
+                                  px: { xs: 0.5, sm: 1 }, 
+                                  border: 'none', 
+                                  backgroundColor: 'transparent',
+                                  '&:hover': {
+                                    backgroundColor: 'transparent !important',
+                                  },
+                                }}
+                              >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                   <span>메뉴</span>
                                   <IconButton
                                     size="small"
-                                    onClick={async () => {
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
                                       if (!user || !selectedRestaurant) return;
                                       
                                       try {
@@ -1794,10 +1827,13 @@ export default function Home() {
                                     }}
                                     sx={{
                                       p: 0.5,
-                                      color: '#666666',
+                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                                       '&:hover': {
-                                        backgroundColor: '#f5f5f5',
-                                        color: '#0a0a0a',
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                                      },
+                                      '&:active': {
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                                       },
                                     }}
                                   >
@@ -1805,14 +1841,20 @@ export default function Home() {
                                   </IconButton>
                                   <IconButton 
                                     aria-label="추가"
-                                    onClick={handleAddRow}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddRow();
+                                    }}
                                     size="small"
                                     sx={{
                                       p: 0.5,
-                                      color: '#666666',
+                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                                       '&:hover': {
-                                        backgroundColor: '#f5f5f5',
-                                        color: '#0a0a0a',
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                                      },
+                                      '&:active': {
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                                       },
                                     }}
                                   >
@@ -1842,6 +1884,9 @@ export default function Home() {
                                     placeholder="메뉴명"
                                     size="small"
                                     fullWidth
+                                    inputProps={{
+                                      'data-menu-id': menuItem.id,
+                                    }}
                                     InputProps={{
                                       sx: { fontSize: '0.875rem' }
                                     }}
@@ -1911,20 +1956,43 @@ export default function Home() {
                           }}
                         >
                           <TableHead>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '45%', border: 'none', backgroundColor: 'transparent' }}>
+                            <TableRow
+                              sx={{
+                                '&:hover': {
+                                  backgroundColor: 'transparent !important',
+                                },
+                              }}
+                            >
+                              <TableCell 
+                                sx={{ 
+                                  fontWeight: 'bold', 
+                                  px: { xs: 0.5, sm: 1 }, 
+                                  width: '45%', 
+                                  border: 'none', 
+                                  backgroundColor: 'transparent',
+                                  '&:hover': {
+                                    backgroundColor: 'transparent !important',
+                                  },
+                                }}
+                              >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                   <span>날짜</span>
                                   <IconButton 
                                     aria-label="추가"
-                                    onClick={handleAddPrepaymentRow}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddPrepaymentRow();
+                                    }}
                                     size="small"
                                     sx={{
                                       p: 0.5,
-                                      color: '#666666',
+                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                                       '&:hover': {
-                                        backgroundColor: '#f5f5f5',
-                                        color: '#0a0a0a',
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                                      },
+                                      '&:active': {
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                                       },
                                     }}
                                   >
@@ -1982,7 +2050,10 @@ export default function Home() {
                                     onChange={(e) => handlePrepaymentChange(prepaymentItem.id, 'amount', parseInt(e.target.value) || 0)}
                                     placeholder="금액"
                                     size="small"
-                                    inputProps={{ min: 0 }}
+                                    inputProps={{ 
+                                      min: 0,
+                                      'data-prepayment-id': prepaymentItem.id,
+                                    }}
                                     sx={{ width: '100%', maxWidth: 120 }}
                                     InputProps={{
                                       sx: { fontSize: '0.875rem' }
@@ -2714,10 +2785,18 @@ export default function Home() {
                 borderRadius: 2,
                 m: { xs: 0.5, sm: 2 },
                 maxHeight: { xs: '80vh', sm: '70vh' },
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
               },
             }}
           >
-            <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 1 }}>
+            <DialogTitle 
+              sx={{ 
+                fontSize: 16, 
+                fontWeight: 600, 
+                pb: 1,
+                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+              }}
+            >
               메뉴 선택
             </DialogTitle>
             <DialogContent sx={{ p: 0 }}>
@@ -2725,14 +2804,40 @@ export default function Home() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>메뉴</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>가격</TableCell>
+                      <TableCell 
+                        sx={{ 
+                          fontWeight: 'bold', 
+                          fontSize: '0.875rem',
+                          backgroundColor: currentTheme === 'black' ? '#2a2a2a' : 'rgb(246, 246, 246)',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                        }}
+                      >
+                        메뉴
+                      </TableCell>
+                      <TableCell 
+                        align="right" 
+                        sx={{ 
+                          fontWeight: 'bold', 
+                          fontSize: '0.875rem',
+                          backgroundColor: currentTheme === 'black' ? '#2a2a2a' : 'rgb(246, 246, 246)',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                        }}
+                      >
+                        가격
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {menuHistoryList.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={2} align="center" sx={{ py: 3, color: '#999999' }}>
+                        <TableCell 
+                          colSpan={2} 
+                          align="center" 
+                          sx={{ 
+                            py: 3, 
+                            color: currentTheme === 'black' ? '#808080' : '#999999',
+                          }}
+                        >
                           등록된 메뉴가 없습니다.
                         </TableCell>
                       </TableRow>
@@ -2768,12 +2873,25 @@ export default function Home() {
                           sx={{
                             cursor: 'pointer',
                             '&:hover': {
-                              backgroundColor: '#f5f5f5',
+                              backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
                             },
                           }}
                         >
-                          <TableCell sx={{ fontSize: '0.875rem' }}>{menuItem.menu}</TableCell>
-                          <TableCell align="right" sx={{ fontSize: '0.875rem' }}>
+                          <TableCell 
+                            sx={{ 
+                              fontSize: '0.875rem',
+                              color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                            }}
+                          >
+                            {menuItem.menu}
+                          </TableCell>
+                          <TableCell 
+                            align="right" 
+                            sx={{ 
+                              fontSize: '0.875rem',
+                              color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                            }}
+                          >
                             {menuItem.cost.toLocaleString()}원
                           </TableCell>
                         </TableRow>
@@ -2787,9 +2905,9 @@ export default function Home() {
               <Button
                 onClick={() => setMenuHistoryDialogOpen(false)}
                 sx={{
-                  color: '#666666',
+                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                   },
                 }}
               >
