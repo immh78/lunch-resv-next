@@ -37,6 +37,7 @@ import {
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import PhoneIcon from '@mui/icons-material/Phone';
+import NavigationIcon from '@mui/icons-material/Navigation';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ShareIcon from '@mui/icons-material/Share';
 import ReceiptIcon from '@mui/icons-material/Receipt';
@@ -982,11 +983,11 @@ export default function Home() {
             sx={{
               backgroundColor: '#ffffff',
               color: '#0a0a0a',
-              borderBottom: '1px solid #e5e5e5',
+              borderBottom: '0.5px solid #e5e5e5',
             }}
           >
             <Toolbar sx={{ minHeight: '56px !important', px: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mr: 0.5 }}>
                 {loading ? (
                   <CircularProgress size={20} sx={{ color: '#0a0a0a' }} />
                 ) : (
@@ -994,7 +995,7 @@ export default function Home() {
                     edge="start" 
                     onClick={() => window.location.reload()}
                     sx={{ 
-                      mr: 1,
+                      mr: 0.5,
                       color: '#0a0a0a',
                       '&:hover': {
                         backgroundColor: '#f5f5f5',
@@ -1005,18 +1006,45 @@ export default function Home() {
                   </IconButton>
                 )}
               </Box>
-              <Typography 
-                variant="h6" 
-                component="div" 
-                sx={{ 
-                  flexGrow: 1,
-                  fontWeight: 600,
-                  fontSize: 15,
-                  color: '#0a0a0a',
-                }}
-              >
-                포장 예약
-              </Typography>
+              <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography 
+                  variant="h6" 
+                  component="div" 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: 15,
+                    color: '#0a0a0a',
+                  }}
+                >
+                  포장 예약
+                </Typography>
+                {(() => {
+                  // isReceipt가 false인 금액 합계 계산
+                  const totalUnreceivedAmount = restaurants.reduce((sum, restaurant) => {
+                    if (restaurant.reservation && !restaurant.reservation.isReceipt && restaurant.reservation.menus) {
+                      const restaurantTotal = restaurant.reservation.menus.reduce((menuSum, menu) => menuSum + (menu.cost || 0), 0);
+                      return sum + restaurantTotal;
+                    }
+                    return sum;
+                  }, 0);
+                  
+                  if (totalUnreceivedAmount > 0) {
+                    return (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#999999',
+                          fontSize: 14,
+                          fontWeight: 400,
+                        }}
+                      >
+                        {totalUnreceivedAmount.toLocaleString()}원
+                      </Typography>
+                    );
+                  }
+                  return null;
+                })()}
+              </Box>
               <IconButton
                 edge="end"
                 onClick={handleMenuOpen}
@@ -1043,19 +1071,6 @@ export default function Home() {
                   },
                 }}
               >
-                <MenuItem 
-                  onClick={handleMenuClose}
-                  sx={{
-                    fontSize: 14,
-                    py: 1.5,
-                    '&:hover': {
-                      backgroundColor: '#f5f5f5',
-                    },
-                  }}
-                >
-                  <RestaurantIcon sx={{ mr: 1.5, fontSize: 18 }} />
-                  예약 관리
-                </MenuItem>
                 <MenuItem 
                   onClick={() => {
                     setNewRestaurant({
@@ -1085,7 +1100,7 @@ export default function Home() {
             </Toolbar>
           </AppBar>
         </Box>
-        <Container maxWidth="sm" sx={{ py: 3, px: { xs: 2, sm: 3 } }}>
+        <Container maxWidth="sm" sx={{ py: 0, px: 0 }}>
 
           {loading ? (
             <Box
@@ -1103,7 +1118,7 @@ export default function Home() {
               {error}
             </Alert>
           ) : (
-            <Box sx={{ mt: 3 }}>
+            <Box sx={{ mt: 0 }}>
               {restaurants.length === 0 ? (
                 <Typography variant="body1" align="center" sx={{ mt: 4 }}>
                   등록된 레스토랑이 없습니다.
@@ -1113,16 +1128,54 @@ export default function Home() {
                   component={Paper}
                   elevation={0}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: 0,
                     overflow: 'hidden',
+                    border: 'none',
                   }}
                 >
-                  <Table>
+                  <Table sx={{ borderCollapse: 'separate' }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>식당</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>예약메뉴</TableCell>
-                        <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>전화</TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600,
+                            backgroundColor: 'rgb(246, 246, 246)',
+                            borderTop: '1px solid rgb(220, 220, 220)',
+                            borderBottom: '1px solid rgb(220, 220, 220)',
+                            borderLeft: 'none',
+                            borderRight: 'none',
+                            px: 0,
+                          }}
+                        >
+                          식당
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600,
+                            backgroundColor: 'rgb(246, 246, 246)',
+                            borderTop: '1px solid rgb(220, 220, 220)',
+                            borderBottom: '1px solid rgb(220, 220, 220)',
+                            borderLeft: 'none',
+                            borderRight: 'none',
+                            px: 0,
+                          }}
+                        >
+                          예약메뉴
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600, 
+                            whiteSpace: 'nowrap',
+                            backgroundColor: 'rgb(246, 246, 246)',
+                            borderTop: '1px solid rgb(220, 220, 220)',
+                            borderBottom: '1px solid rgb(220, 220, 220)',
+                            borderLeft: 'none',
+                            borderRight: 'none',
+                            px: 0,
+                          }}
+                        >
+                          전화/네비
+                        </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1161,24 +1214,34 @@ export default function Home() {
                             onClick={() => handleRestaurantClick(restaurant)}
                             sx={{
                               cursor: 'pointer',
-                              borderBottom: '1px solid #e5e5e5',
+                              backgroundColor: '#ffffff',
+                              borderBottom: 'none',
                               '&:hover': {
                                 backgroundColor: '#fafafa',
                               },
                             }}
                           >
-                            <TableCell align="left">
+                            <TableCell 
+                              align="left"
+                              sx={{
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                px: 0,
+                              }}
+                            >
                               <Button
-                                variant="text"
+                                variant="outlined"
                                 size="small"
                                 sx={{
                                   textTransform: 'none',
                                   justifyContent: 'flex-start',
-                                  px: 0,
+                                  px: 1,
                                   fontWeight: !isReceipt ? 600 : 500,
                                   color: !isReceipt ? '#2563eb' : '#0a0a0a',
+                                  borderColor: !isReceipt ? '#2563eb' : '#e5e5e5',
                                   '&:hover': {
-                                    backgroundColor: 'transparent',
+                                    backgroundColor: !isReceipt ? 'rgba(37, 99, 235, 0.04)' : '#f5f5f5',
+                                    borderColor: !isReceipt ? '#2563eb' : '#e5e5e5',
                                   },
                                 }}
                                 onClick={(e) => {
@@ -1189,57 +1252,85 @@ export default function Home() {
                                 {restaurant.name}
                               </Button>
                             </TableCell>
-                            <TableCell>
+                            <TableCell
+                              sx={{
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                px: 0,
+                              }}
+                            >
                               <Box>
                                 {menuText && (
                                   <Typography
                                     variant="body2"
                                     sx={{
-                                      color: isReceipt ? 'rgba(0, 0, 0, 0.2)' : 'inherit',
+                                      color: isReceipt ? 'rgba(0, 0, 0, 0.2)' : amountColor,
                                       opacity: isReceipt ? 0.3 : 1,
+                                      fontSize: '0.875rem',
                                     }}
                                   >
                                     {menuText}
                                   </Typography>
                                 )}
-                                {!isReceipt && totalAmount > 0 && (
+                                {!isReceipt && remainingAmount > 0 && remainingAmount !== totalAmount && (
                                   <Typography
                                     variant="body2"
-                                    component="span"
                                     sx={{
-                                      color: amountColor,
+                                      color: '#999999',
                                       fontWeight: 400,
+                                      fontSize: '0.875rem',
                                       mt: 0.5,
-                                      display: 'inline-block',
                                     }}
                                   >
-                                    {totalAmount.toLocaleString()}원
-                                    {remainingAmount !== totalAmount && remainingAmount > 0 && (
-                                      <span style={{ marginLeft: '4px' }}>
-                                        ({remainingAmount.toLocaleString()})
-                                      </span>
-                                    )}
+                                    ({remainingAmount.toLocaleString()})
                                   </Typography>
                                 )}
                               </Box>
                             </TableCell>
-                            <TableCell>
-                              <Link
-                                href={`tel:${restaurant.telNo}`}
-                                sx={{ 
-                                  textDecoration: 'none', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'flex-end',
-                                  color: '#666666',
-                                  '&:hover': {
-                                    color: '#0a0a0a',
-                                  },
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <PhoneIcon fontSize="small" />
-                              </Link>
+                            <TableCell
+                              sx={{
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                px: 0,
+                              }}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                                <Link
+                                  href={`tel:${restaurant.telNo}`}
+                                  sx={{ 
+                                    textDecoration: 'none', 
+                                    display: 'flex', 
+                                    alignItems: 'center',
+                                    color: '#666666',
+                                    '&:hover': {
+                                      color: '#0a0a0a',
+                                    },
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <PhoneIcon fontSize="small" />
+                                </Link>
+                                {restaurant.naviUrl && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(restaurant.naviUrl, '_blank');
+                                    }}
+                                    sx={{
+                                      color: '#666666',
+                                      '&:hover': {
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#0a0a0a',
+                                      },
+                                      p: 0.5,
+                                      ml: 0,
+                                    }}
+                                  >
+                                    <NavigationIcon fontSize="small" />
+                                  </IconButton>
+                                )}
+                              </Box>
                             </TableCell>
                           </TableRow>
                         );
@@ -1338,8 +1429,13 @@ export default function Home() {
                         <IconButton
                           size="small"
                           onClick={() => {
-                            if (selectedRestaurant.menuUrl) {
-                              window.open(selectedRestaurant.menuUrl, '_blank');
+                            // menuImgId를 우선 적용
+                            if (selectedRestaurant.menuImgId) {
+                              const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+                              const url = `https://res.cloudinary.com/${cloudName}/image/upload/${selectedRestaurant.menuImgId}`;
+                              window.open(url, '_blank', 'noopener');
+                            } else if (selectedRestaurant.menuUrl) {
+                              window.open(selectedRestaurant.menuUrl, '_blank', 'noopener');
                             }
                           }}
                           sx={{ 
@@ -1910,6 +2006,7 @@ export default function Home() {
                   
                   try {
                     const restaurantPath = `food-resv/restaurant/${editableRestaurant.id}`;
+                    const savedRestaurantId = editableRestaurant.id;
                     await set(ref(database, restaurantPath), {
                       name: editableRestaurant.name,
                       telNo: editableRestaurant.telNo || '',
@@ -1918,10 +2015,37 @@ export default function Home() {
                       menuUrl: editableRestaurant.menuUrl || '',
                       naviUrl: editableRestaurant.naviUrl || '',
                     });
-                    alert('저장되었습니다.');
                     setRestaurantEditDialogOpen(false);
-                    // 데이터가 업데이트되도록 리스트를 다시 로드하기 위해 선택된 식당 초기화
-                    setSelectedRestaurant(null);
+                    setEditableRestaurant(null);
+                    // 다이얼로그가 완전히 닫힌 후 alert 표시 및 식당 상세 팝업창 다시 열기
+                    setTimeout(() => {
+                      alert('저장되었습니다.');
+                      // 저장 후 최신 데이터로 selectedRestaurant 업데이트하여 식당 상세 팝업창 유지
+                      // Firebase에서 데이터가 업데이트되기를 기다린 후 최신 데이터 가져오기
+                      const restaurantRef = ref(database, `food-resv/restaurant/${savedRestaurantId}`);
+                      get(restaurantRef).then((snapshot) => {
+                        if (snapshot.exists()) {
+                          const restaurantData = snapshot.val();
+                          // 최신 restaurants 리스트에서 찾기
+                          const updatedRestaurant = restaurants.find(r => r.id === savedRestaurantId);
+                          if (updatedRestaurant) {
+                            // 기존 예약 정보는 유지하고 restaurant 데이터만 업데이트
+                            setSelectedRestaurant({
+                              ...updatedRestaurant,
+                              name: restaurantData.name || updatedRestaurant.name,
+                              telNo: restaurantData.telNo || updatedRestaurant.telNo,
+                              kind: restaurantData.kind || updatedRestaurant.kind,
+                              menuImgId: restaurantData.menuImgId || updatedRestaurant.menuImgId,
+                              menuUrl: restaurantData.menuUrl || updatedRestaurant.menuUrl,
+                              naviUrl: restaurantData.naviUrl || updatedRestaurant.naviUrl,
+                            });
+                            setDialogOpen(true);
+                          }
+                        }
+                      }).catch((error) => {
+                        console.error('Error fetching updated restaurant:', error);
+                      });
+                    }, 200);
                   } catch (error) {
                     console.error('Error saving restaurant:', error);
                     alert('저장 중 오류가 발생했습니다.');
@@ -2154,7 +2278,6 @@ export default function Home() {
                       menuUrl: newRestaurant.menuUrl || '',
                       naviUrl: newRestaurant.naviUrl || '',
                     });
-                    alert('저장되었습니다.');
                     setRestaurantAddDialogOpen(false);
                     setNewRestaurant({
                       id: '',
@@ -2165,6 +2288,10 @@ export default function Home() {
                       menuUrl: '',
                       naviUrl: '',
                     });
+                    // 다이얼로그가 완전히 닫힌 후 alert 표시
+                    setTimeout(() => {
+                      alert('저장되었습니다.');
+                    }, 100);
                   } catch (error) {
                     console.error('Error saving restaurant:', error);
                     alert('저장 중 오류가 발생했습니다.');
