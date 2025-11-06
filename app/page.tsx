@@ -249,6 +249,8 @@ export default function Home() {
   const [restaurantAddDialogOpen, setRestaurantAddDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<'reservation' | 'prepayment' | null>(null);
   const [editableRestaurant, setEditableRestaurant] = useState<Restaurant | null>(null);
   const [newRestaurant, setNewRestaurant] = useState<Omit<Restaurant, 'id'> & { id: string }>({
     id: '',
@@ -747,21 +749,36 @@ export default function Home() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!user || !selectedRestaurant) return;
-    
-    const confirmDelete = window.confirm('예약 정보를 삭제하시겠습니까?');
-    if (!confirmDelete) return;
+    setDeleteType('reservation');
+    setDeleteConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!user || !selectedRestaurant || !deleteType) return;
     
     try {
-      const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
-      await remove(ref(database, reservationPath));
-      setSnackbarMessage('삭제되었습니다.');
-      setSnackbarOpen(true);
-      handleCloseDialog();
+      if (deleteType === 'reservation') {
+        const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
+        await remove(ref(database, reservationPath));
+        setSnackbarMessage('삭제되었습니다.');
+        setSnackbarOpen(true);
+        handleCloseDialog();
+      } else if (deleteType === 'prepayment') {
+        const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
+        await remove(ref(database, prepaymentPath));
+        setSnackbarMessage('삭제되었습니다.');
+        setSnackbarOpen(true);
+        // 선결제 데이터 다시 로드
+        await loadPrepayments(user.uid, selectedRestaurant.id);
+      }
     } catch (error) {
-      console.error('Error deleting reservation:', error);
+      console.error('Error deleting:', error);
       alert('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeleteConfirmDialogOpen(false);
+      setDeleteType(null);
     }
   };
 
@@ -853,26 +870,10 @@ export default function Home() {
     }
   };
 
-  const handleDeletePrepayment = async () => {
+  const handleDeletePrepayment = () => {
     if (!user || !selectedRestaurant) return;
-    
-    const confirmDelete = window.confirm('선결제 정보를 삭제하시겠습니까?');
-    if (!confirmDelete) return;
-    
-    setSnackbarMessage('삭제되었습니다.');
-    setSnackbarOpen(true);
-    
-    try {
-      const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
-      await remove(ref(database, prepaymentPath));
-      setSnackbarMessage('삭제되었습니다.');
-      setSnackbarOpen(true);
-      // 선결제 데이터 다시 로드
-      await loadPrepayments(user.uid, selectedRestaurant.id);
-    } catch (error) {
-      console.error('Error deleting prepayment:', error);
-      alert('삭제 중 오류가 발생했습니다.');
-    }
+    setDeleteType('prepayment');
+    setDeleteConfirmDialogOpen(true);
   };
 
   const handleReceipt = async () => {
@@ -1688,7 +1689,6 @@ export default function Home() {
                                           '& .MuiInputAdornment-root': {
                                             position: 'absolute',
                                             right: 8,
-                                            pointerEvents: 'none',
                                           }
                                         }
                                       }
@@ -2368,6 +2368,63 @@ export default function Home() {
                 }}
               >
                 저장
+              </Button>
+            </DialogActions>
+          </Dialog>
+          
+          {/* 삭제 확인 Dialog */}
+          <Dialog
+            open={deleteConfirmDialogOpen}
+            onClose={() => {
+              setDeleteConfirmDialogOpen(false);
+              setDeleteType(null);
+            }}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                p: 2,
+              },
+            }}
+          >
+            <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 1 }}>
+              삭제 확인
+            </DialogTitle>
+            <DialogContent>
+              <Typography sx={{ fontSize: '0.875rem' }}>
+                {deleteType === 'reservation' 
+                  ? '예약 정보를 삭제하시겠습니까?' 
+                  : '선결제 정보를 삭제하시겠습니까?'}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ gap: 1, px: 2, pb: 2 }}>
+              <Button
+                onClick={() => {
+                  setDeleteConfirmDialogOpen(false);
+                  setDeleteType(null);
+                }}
+                sx={{
+                  color: '#666666',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                  },
+                }}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                variant="contained"
+                sx={{
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  '&:hover': {
+                    backgroundColor: '#b91c1c',
+                  },
+                }}
+              >
+                삭제
               </Button>
             </DialogActions>
           </Dialog>
