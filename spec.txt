@@ -541,3 +541,13 @@ pwa에 적용될 아이콘을 restaurant-icon.svg로 설정
 
 * 식당 상세 팝업창
 - history아이콘으로 메뉴를 추가시 알림을 하지 않는다.
+
+
+* 식당 상세 팝업창
+타이틀 바로 아래에 summary 표시
+summary 예: 가격 53,000원 - 선결제 43,000원 = 10,000원
+
+summary를 MUI Alert comonant로 처리. 폰트를 작게 한다. 색깔은 회색으로 한다.
+
+* 식당 상세 팝업창
+summary에 배경색 추가

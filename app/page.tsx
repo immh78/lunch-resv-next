@@ -1502,6 +1502,39 @@ export default function Home() {
                     </Box>
                   </Box>
                 </DialogTitle>
+                {(() => {
+                  // summary 계산
+                  const totalAmount = editableMenus.reduce((sum, menu) => sum + (menu.cost || 0), 0);
+                  const prepaymentTotal = selectedRestaurant.prepaymentTotal || 0;
+                  const remainingAmount = totalAmount - prepaymentTotal;
+                  
+                  if (totalAmount > 0) {
+                    return (
+                      <Box sx={{ px: { xs: 1.5, sm: 3 }, pb: 1, pt: 0 }}>
+                        <Alert
+                          severity="info"
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: '#999999',
+                            backgroundColor: '#f5f5f5',
+                            padding: '4px 8px',
+                            '& .MuiAlert-icon': {
+                              display: 'none',
+                            },
+                            '& .MuiAlert-message': {
+                              fontSize: '0.75rem',
+                              color: '#999999',
+                              padding: 0,
+                            },
+                          }}
+                        >
+                          가격 {totalAmount.toLocaleString()}원 - 선결제 {prepaymentTotal.toLocaleString()}원 = {remainingAmount.toLocaleString()}원
+                        </Alert>
+                      </Box>
+                    );
+                  }
+                  return null;
+                })()}
                 <Box sx={{ borderBottom: 'none', px: { xs: 1, sm: 2 } }}>
                   <Tabs 
                     value={currentTab} 
