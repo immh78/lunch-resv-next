@@ -156,27 +156,33 @@ const theme = createTheme({
   },
 });
 
-// 식당 종류별 아이콘 매핑 함수
-const getRestaurantKindIcon = (kind?: string): React.ReactNode => {
-  switch (kind) {
-    case '한식':
-      return <LunchDiningIcon />;
-    case '중식':
-      return <RamenDiningIcon />;
-    case '양식':
-      return <LocalDiningIcon />;
-    case '일식':
-      return <SetMealIcon />;
-    case '회식':
-      return <GroupsIcon />;
-    case '카페':
-      return <CoffeeIcon />;
-    case '베이커리':
-      return <BakeryDiningIcon />;
-    default:
-      return <RestaurantIcon />;
-  }
-};
+// Cloudinary 타입 정의
+interface CloudinaryWindow extends Window {
+  cloudinary?: {
+    createUploadWidget: (
+      options: {
+        cloudName: string;
+        uploadPreset: string;
+        sources: string[];
+        multiple: boolean;
+        folder: string;
+        maxFileSize: number;
+        cropping: boolean;
+        clientAllowedFormats: string[];
+        showAdvancedOptions: boolean;
+        showPoweredBy: boolean;
+        styles: { palette: { windowBorder: string } };
+      },
+      callback: (error: Error | null, result: { event?: string; info?: { public_id: string } }) => void
+    ) => {
+      open: () => void;
+    };
+  };
+}
+
+interface CloudinaryUploadWidget {
+  open: () => void;
+}
 
 interface Restaurant {
   id: string;
@@ -249,60 +255,63 @@ export default function Home() {
     menuUrl: '',
     naviUrl: '',
   });
-  const [uploadWidget, setUploadWidget] = useState<any>(null);
+  const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
 
   // Cloudinary widget 초기화
   useEffect(() => {
     const initCloudinaryWidget = () => {
-      if (typeof window !== 'undefined' && (window as any).cloudinary) {
-        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
-        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
-        
-        const widget = (window as any).cloudinary.createUploadWidget(
-          {
-            cloudName,
-            uploadPreset,
-            sources: ['local', 'url', 'camera'],
-            multiple: false,
-            folder: 'images',
-            maxFileSize: 5_000_000,
-            cropping: false,
-            clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-            showAdvancedOptions: false,
-            showPoweredBy: false,
-            styles: { palette: { windowBorder: '#ddd' } }
-          },
-          (error: any, result: any) => {
-            if (!error && result && result.event === 'success') {
-              const info = result.info;
-              const publicId = info.public_id;
-              
-              // 현재 열려있는 다이얼로그에 따라 menuImgId 업데이트
-              if (restaurantEditDialogOpen && editableRestaurant) {
-                setEditableRestaurant({ ...editableRestaurant, menuImgId: publicId });
-              } else if (restaurantAddDialogOpen) {
-                setNewRestaurant(prev => ({ ...prev, menuImgId: publicId }));
+      if (typeof window !== 'undefined') {
+        const cloudinaryWindow = window as unknown as CloudinaryWindow;
+        if (cloudinaryWindow.cloudinary) {
+          const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+          const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
+          
+          const widget = cloudinaryWindow.cloudinary.createUploadWidget(
+            {
+              cloudName,
+              uploadPreset,
+              sources: ['local', 'url', 'camera'],
+              multiple: false,
+              folder: 'images',
+              maxFileSize: 5_000_000,
+              cropping: false,
+              clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+              showAdvancedOptions: false,
+              showPoweredBy: false,
+              styles: { palette: { windowBorder: '#ddd' } }
+            },
+            (error: Error | null, result: { event?: string; info?: { public_id: string } }) => {
+              if (!error && result && result.event === 'success' && result.info) {
+                const publicId = result.info.public_id;
+                
+                // 현재 열려있는 다이얼로그에 따라 menuImgId 업데이트
+                if (restaurantEditDialogOpen && editableRestaurant) {
+                  setEditableRestaurant({ ...editableRestaurant, menuImgId: publicId });
+                } else if (restaurantAddDialogOpen) {
+                  setNewRestaurant(prev => ({ ...prev, menuImgId: publicId }));
+                }
+              } else if (result && result.event === 'close') {
+                // 닫기 시 아무것도 하지 않음
+              } else if (error) {
+                console.error('Cloudinary upload error:', error);
               }
-            } else if (result && result.event === 'close') {
-              // 닫기 시 아무것도 하지 않음
-            } else if (error) {
-              console.error('Cloudinary upload error:', error);
             }
-          }
-        );
-        
-        setUploadWidget(widget);
+          );
+          
+          setUploadWidget(widget);
+        }
       }
     };
 
     // Cloudinary 스크립트가 로드되었는지 확인
     if (typeof window !== 'undefined') {
-      if ((window as any).cloudinary) {
+      const cloudinaryWindow = window as unknown as CloudinaryWindow;
+      if (cloudinaryWindow.cloudinary) {
         initCloudinaryWidget();
       } else {
         // 스크립트 로드를 기다림
         const checkCloudinary = setInterval(() => {
-          if ((window as any).cloudinary) {
+          if (cloudinaryWindow.cloudinary) {
             initCloudinaryWidget();
             clearInterval(checkCloudinary);
           }
@@ -470,22 +479,22 @@ export default function Home() {
     return `${year}.${month}.${day}`;
   };
 
-  // yyyyMMdd를 한국어 형식으로 변환 (예: 1.15 (월))
-  const formatKoreanDate = (dateStr: string): string => {
-    if (!dateStr || dateStr.length !== 8) return '';
-    
-    const year = parseInt(dateStr.substring(0, 4), 10);
-    const month = parseInt(dateStr.substring(4, 6), 10) - 1; // JS는 0부터 시작
-    const day = parseInt(dateStr.substring(6, 8), 10);
-    
-    const date = new Date(year, month, day);
-    if (isNaN(date.getTime())) return '잘못된 날짜';
-    
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    const weekday = dayNames[date.getDay()];
-    
-    return `${month + 1}.${day} (${weekday})`;
-  };
+  // yyyyMMdd를 한국어 형식으로 변환 (예: 1.15 (월)) - 현재 사용되지 않음
+  // const formatKoreanDate = (dateStr: string): string => {
+  //   if (!dateStr || dateStr.length !== 8) return '';
+  //   
+  //   const year = parseInt(dateStr.substring(0, 4), 10);
+  //   const month = parseInt(dateStr.substring(4, 6), 10) - 1; // JS는 0부터 시작
+  //   const day = parseInt(dateStr.substring(6, 8), 10);
+  //   
+  //   const date = new Date(year, month, day);
+  //   if (isNaN(date.getTime())) return '잘못된 날짜';
+  //   
+  //   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  //   const weekday = dayNames[date.getDay()];
+  //   
+  //   return `${month + 1}.${day} (${weekday})`;
+  // };
 
   // yyyyMMdd를 공유용 날짜 형식으로 변환 (예: 11.5(수))
   const formatShareDate = (dateStr: string): string => {
