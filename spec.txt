@@ -273,4 +273,45 @@ isReceipt가 false인 경우 row의 배경은 반전처리 하지 않고 식당 
 - 상단 식당 이름옆에 연필 아이콘을 추가한다.
 - 연필 아이콘 클릭시 restaurant 수정 팝업창이 오픈된다.
 -------------------------------------
+
 * 메인화면
+- reservation이 존재하지 않는 식당은 isReceipt가 ture와 같게 출력
+- 메인메뉴 우측 상단 ... 아이콘을 누른후 식당 등록을 클릭시 [식당등록]으로 팝업창 오픈
+
+* 식당 상세 팝업창
+- 연필아이콘 클릭시 [식당수정]으로 팝업창 오픈
+
+* restaurant 테이블
+"restaurant" : {
+    [restaurant key] : {
+        "kind":[식당종류],
+        "menuImgId":[메뉴 이미지 url],
+        "menuUrl":[메뉴 페이지 url],
+        "name": [식당명],
+        "telNo": [전화번호],
+        "naviUrl": [식당위치(string)]
+    }
+}
+
+* 식당 등록/수정 팝업창
+[식당등록]
+- Title : 식당 등록
+- 입력 속성
+식당 ID : restaurant key
+식당명 : menuImgId
+종류 : kind
+전화번호 : telNo
+메뉴 URL : menuUrl
+메뉴 이미지 ID : menuImgId
+식당위치 : naviUrl
+
+
+[식당수정]
+- Title : restaurant key
+- 수정 속성
+식당명 : menuImgId
+종류 : kind
+전화번호 : telNo
+메뉴 URL : menuUrl
+메뉴 이미지 ID : menuImgId
+식당위치 : naviUrl

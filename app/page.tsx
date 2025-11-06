@@ -183,6 +183,7 @@ interface Restaurant {
   kind?: string;
   menuImgId?: string;
   menuUrl?: string;
+  naviUrl?: string;
 }
 
 interface MenuItem {
@@ -235,7 +236,17 @@ export default function Home() {
   const [savingPrepayment, setSavingPrepayment] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [restaurantEditDialogOpen, setRestaurantEditDialogOpen] = useState(false);
+  const [restaurantAddDialogOpen, setRestaurantAddDialogOpen] = useState(false);
   const [editableRestaurant, setEditableRestaurant] = useState<Restaurant | null>(null);
+  const [newRestaurant, setNewRestaurant] = useState<Omit<Restaurant, 'id'> & { id: string }>({
+    id: '',
+    name: '',
+    telNo: '',
+    kind: '',
+    menuImgId: '',
+    menuUrl: '',
+    naviUrl: '',
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -958,7 +969,19 @@ export default function Home() {
                   예약 관리
                 </MenuItem>
                 <MenuItem 
-                  onClick={handleMenuClose}
+                  onClick={() => {
+                    setNewRestaurant({
+                      id: '',
+                      name: '',
+                      telNo: '',
+                      kind: '',
+                      menuImgId: '',
+                      menuUrl: '',
+                      naviUrl: '',
+                    });
+                    setRestaurantAddDialogOpen(true);
+                    handleMenuClose();
+                  }}
                   sx={{
                     fontSize: 14,
                     py: 1.5,
@@ -968,7 +991,7 @@ export default function Home() {
                   }}
                 >
                   <AddCircleIcon sx={{ mr: 1.5, fontSize: 18 }} />
-                  식당 추가
+                  식당 등록
                 </MenuItem>
               </Menu>
             </Toolbar>
@@ -1026,7 +1049,8 @@ export default function Home() {
                           totalAmount = restaurant.reservation.menus.reduce((sum, m) => sum + (m.cost || 0), 0);
                         }
 
-                        const isReceipt = restaurant.reservation?.isReceipt ?? false;
+                        // reservation이 존재하지 않으면 isReceipt를 true로 처리
+                        const isReceipt = restaurant.reservation ? (restaurant.reservation.isReceipt ?? false) : true;
                         const prepaymentTotal = restaurant.prepaymentTotal || 0;
                         
                         // isReceipt가 false일 때 색상 결정
@@ -1191,6 +1215,7 @@ export default function Home() {
                             kind: selectedRestaurant.kind,
                             menuImgId: selectedRestaurant.menuImgId,
                             menuUrl: selectedRestaurant.menuUrl,
+                            naviUrl: selectedRestaurant.naviUrl,
                           });
                           setRestaurantEditDialogOpen(true);
                         }}
@@ -1631,7 +1656,7 @@ export default function Home() {
                 color: '#0a0a0a',
               }}
             >
-              식당 정보 수정
+              {editableRestaurant?.id || '식당 수정'}
             </DialogTitle>
             <DialogContent 
               sx={{ 
@@ -1701,6 +1726,36 @@ export default function Home() {
                       },
                     }}
                   />
+                  <TextField
+                    label="메뉴 이미지 ID"
+                    value={editableRestaurant.menuImgId || ''}
+                    onChange={(e) => setEditableRestaurant({ ...editableRestaurant, menuImgId: e.target.value })}
+                    fullWidth
+                    size="small"
+                    sx={{
+                      '& .MuiInputBase-input': {
+                        fontSize: '0.875rem',
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: '0.875rem',
+                      },
+                    }}
+                  />
+                  <TextField
+                    label="식당위치"
+                    value={editableRestaurant.naviUrl || ''}
+                    onChange={(e) => setEditableRestaurant({ ...editableRestaurant, naviUrl: e.target.value })}
+                    fullWidth
+                    size="small"
+                    sx={{
+                      '& .MuiInputBase-input': {
+                        fontSize: '0.875rem',
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: '0.875rem',
+                      },
+                    }}
+                  />
                 </Box>
               )}
             </DialogContent>
@@ -1736,9 +1791,230 @@ export default function Home() {
                       kind: editableRestaurant.kind || '',
                       menuImgId: editableRestaurant.menuImgId || '',
                       menuUrl: editableRestaurant.menuUrl || '',
+                      naviUrl: editableRestaurant.naviUrl || '',
                     });
                     alert('저장되었습니다.');
                     setRestaurantEditDialogOpen(false);
+                  } catch (error) {
+                    console.error('Error saving restaurant:', error);
+                    alert('저장 중 오류가 발생했습니다.');
+                  }
+                }}
+                variant="contained"
+                sx={{
+                  backgroundColor: '#000000',
+                  color: '#ffffff',
+                  '&:hover': {
+                    backgroundColor: '#333333',
+                  },
+                }}
+              >
+                저장
+              </Button>
+            </DialogActions>
+          </Dialog>
+          
+          {/* 식당 등록 팝업 */}
+          <Dialog
+            open={restaurantAddDialogOpen}
+            onClose={() => setRestaurantAddDialogOpen(false)}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                m: { xs: 0.5, sm: 2 },
+                width: { xs: 'calc(100% - 8px)', sm: 'auto' },
+                maxHeight: { xs: '95vh', sm: '80vh' },
+              },
+            }}
+          >
+            <DialogTitle 
+              sx={{ 
+                pb: 2, 
+                pt: 2,
+                px: { xs: 1.5, sm: 3 },
+                borderBottom: '1px solid #e5e5e5',
+                fontSize: 16,
+                fontWeight: 600,
+                color: '#0a0a0a',
+              }}
+            >
+              식당 등록
+            </DialogTitle>
+            <DialogContent 
+              sx={{ 
+                px: { xs: 1, sm: 3 }, 
+                py: 2,
+              }}
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="식당 ID"
+                  value={newRestaurant.id}
+                  onChange={(e) => setNewRestaurant({ ...newRestaurant, id: e.target.value })}
+                  fullWidth
+                  size="small"
+                  required
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+                <TextField
+                  label="식당명"
+                  value={newRestaurant.name}
+                  onChange={(e) => setNewRestaurant({ ...newRestaurant, name: e.target.value })}
+                  fullWidth
+                  size="small"
+                  required
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+                <TextField
+                  label="종류"
+                  value={newRestaurant.kind}
+                  onChange={(e) => setNewRestaurant({ ...newRestaurant, kind: e.target.value })}
+                  fullWidth
+                  size="small"
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+                <TextField
+                  label="전화번호"
+                  value={newRestaurant.telNo}
+                  onChange={(e) => setNewRestaurant({ ...newRestaurant, telNo: e.target.value })}
+                  fullWidth
+                  size="small"
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+                <TextField
+                  label="메뉴 URL"
+                  value={newRestaurant.menuUrl}
+                  onChange={(e) => setNewRestaurant({ ...newRestaurant, menuUrl: e.target.value })}
+                  fullWidth
+                  size="small"
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+                <TextField
+                  label="메뉴 이미지 ID"
+                  value={newRestaurant.menuImgId}
+                  onChange={(e) => setNewRestaurant({ ...newRestaurant, menuImgId: e.target.value })}
+                  fullWidth
+                  size="small"
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+                <TextField
+                  label="식당위치"
+                  value={newRestaurant.naviUrl}
+                  onChange={(e) => setNewRestaurant({ ...newRestaurant, naviUrl: e.target.value })}
+                  fullWidth
+                  size="small"
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+              </Box>
+            </DialogContent>
+            <Divider sx={{ borderColor: '#e5e5e5' }} />
+            <DialogActions 
+              sx={{ 
+                justifyContent: 'flex-end', 
+                gap: 1, 
+                p: { xs: 1.5, sm: 3 },
+                borderTop: '1px solid #e5e5e5',
+              }}
+            >
+              <Button
+                onClick={() => setRestaurantAddDialogOpen(false)}
+                sx={{
+                  color: '#666666',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                  },
+                }}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!newRestaurant.id || !newRestaurant.name) {
+                    alert('식당 ID와 식당명을 입력해주세요.');
+                    return;
+                  }
+                  
+                  try {
+                    const restaurantPath = `food-resv/restaurant/${newRestaurant.id}`;
+                    // 기존 식당이 있는지 확인
+                    const restaurantRef = ref(database, restaurantPath);
+                    const snapshot = await get(restaurantRef);
+                    
+                    if (snapshot.exists()) {
+                      alert('이미 존재하는 식당 ID입니다.');
+                      return;
+                    }
+                    
+                    await set(ref(database, restaurantPath), {
+                      name: newRestaurant.name,
+                      telNo: newRestaurant.telNo || '',
+                      kind: newRestaurant.kind || '',
+                      menuImgId: newRestaurant.menuImgId || '',
+                      menuUrl: newRestaurant.menuUrl || '',
+                      naviUrl: newRestaurant.naviUrl || '',
+                    });
+                    alert('저장되었습니다.');
+                    setRestaurantAddDialogOpen(false);
+                    setNewRestaurant({
+                      id: '',
+                      name: '',
+                      telNo: '',
+                      kind: '',
+                      menuImgId: '',
+                      menuUrl: '',
+                      naviUrl: '',
+                    });
                   } catch (error) {
                     console.error('Error saving restaurant:', error);
                     alert('저장 중 오류가 발생했습니다.');
