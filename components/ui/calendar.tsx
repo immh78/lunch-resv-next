@@ -5,14 +5,32 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
+type SingleModeProps = {
+  mode?: "single";
+  selected?: Date;
+  onSelect?: (date: Date | undefined) => void;
+};
+
 export type CalendarProps = Omit<
   React.ComponentProps<typeof DayPicker>,
-  "classNames" | "components"
->;
+  "mode" | "selected" | "onSelect" | "classNames" | "components"
+> &
+  SingleModeProps;
 
-const Calendar = ({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) => {
+const Calendar = ({
+  className,
+  classNames,
+  showOutsideDays = true,
+  mode = "single",
+  selected,
+  onSelect,
+  ...props
+}: CalendarProps) => {
   return (
     <DayPicker
+      mode={mode}
+      selected={selected}
+      onSelect={onSelect}
       showOutsideDays={showOutsideDays}
       className={cn("p-2", className)}
       classNames={{

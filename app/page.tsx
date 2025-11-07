@@ -1354,7 +1354,7 @@ export default function Home() {
     );
   };
 
-  const handlePrepaymentDateChange = (id: string, date: Date | null) => {
+  const handlePrepaymentDateChange = (id: string, date: Date | undefined) => {
     if (!date || Number.isNaN(date.getTime())) return;
     setPrepaymentRows((prev) =>
       prev.map((row) =>
@@ -1395,7 +1395,7 @@ export default function Home() {
     });
   };
 
-  const handleReservationDateChange = (date: Date | null) => {
+  const handleReservationDateChange = (date: Date | undefined) => {
     if (!date || Number.isNaN(date.getTime())) return;
     setReservationDate(dateToDisplay(date));
   };
