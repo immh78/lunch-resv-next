@@ -1851,10 +1851,10 @@ export default function Home() {
               >
                 <UtensilsCrossed className="h-5 w-5" />
               </Button>
-              <div className="flex flex-col">
+              <div className="flex items-center gap-2">
                 <span className="text-base font-semibold leading-tight">포장 예약</span>
                 {outstandingAmount > 0 && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     {formatCurrency(outstandingAmount)}원
                   </span>
                 )}
