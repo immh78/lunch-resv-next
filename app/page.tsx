@@ -218,7 +218,6 @@ interface Restaurant {
   menuImgId?: string;
   menuUrl?: string;
   naviUrl?: string;
-  hide?: boolean;
 }
 
 interface MenuItem {
@@ -291,6 +290,7 @@ export default function Home() {
   const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
   const [currentTheme, setCurrentTheme] = useState<'white' | 'black'>('white');
   const [showHiddenRestaurants, setShowHiddenRestaurants] = useState(false);
+  const [hiddenRestaurantIds, setHiddenRestaurantIds] = useState<string[]>([]);
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<'white' | 'black'>('white');
 
@@ -424,10 +424,12 @@ export default function Home() {
     const restaurantsRef = ref(database, 'food-resv/restaurant');
     const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
     const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}`);
+    const hideRestaurantRef = ref(database, `food-resv/hideRestaurant/${user.uid}`);
     
     let restaurantsData: { [key: string]: Restaurant } = {};
     let reservationData: { [key: string]: { [date: string]: ReservationData } } = {};
     let prepaymentData: { [key: string]: PrepaymentItem[] } = {};
+    let hideRestaurantData: string[] = [];
 
     const unsubscribeRestaurants = onValue(
       restaurantsRef,
@@ -484,6 +486,27 @@ export default function Home() {
       }
     );
 
+    const unsubscribeHideRestaurants = onValue(
+      hideRestaurantRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          hideRestaurantData = snapshot.val() || [];
+          setHiddenRestaurantIds(hideRestaurantData);
+        } else {
+          hideRestaurantData = [];
+          setHiddenRestaurantIds([]);
+        }
+        combineData();
+      },
+      (err) => {
+        console.error('Error fetching hideRestaurants:', err);
+        // hideRestaurant 데이터가 없어도 계속 진행
+        hideRestaurantData = [];
+        setHiddenRestaurantIds([]);
+        combineData();
+      }
+    );
+
     const combineData = () => {
       if (!restaurantsData || Object.keys(restaurantsData).length === 0) {
         return;
@@ -521,7 +544,6 @@ export default function Home() {
           menuImgId: restaurant.menuImgId,
           menuUrl: restaurant.menuUrl,
           naviUrl: restaurant.naviUrl,
-          hide: restaurant.hide,
           reservationDate: latestDate,
           reservation: latestReservation,
           prepaymentTotal,
@@ -545,6 +567,7 @@ export default function Home() {
       unsubscribeRestaurants();
       unsubscribeReservations();
       unsubscribePrepayments();
+      unsubscribeHideRestaurants();
     };
   }, [user]);
 
@@ -1319,12 +1342,12 @@ export default function Home() {
                           if (showHiddenRestaurants) {
                             return true; // 모든 식당 표시
                           }
-                          return !restaurant.hide; // hide가 없거나 false인 식당만 표시
+                          return !hiddenRestaurantIds.includes(restaurant.id); // hideRestaurant에 없는 식당만 표시
                         })
                         .sort((a, b) => {
-                          // hide가 false인 식당이 먼저, hide가 true인 식당이 나중에
-                          const aHide = a.hide || false;
-                          const bHide = b.hide || false;
+                          // hideRestaurant에 없는 식당이 먼저, 있는 식당이 나중에
+                          const aHide = hiddenRestaurantIds.includes(a.id);
+                          const bHide = hiddenRestaurantIds.includes(b.id);
                           if (aHide === bHide) return 0;
                           return aHide ? 1 : -1;
                         })
@@ -1548,7 +1571,7 @@ export default function Home() {
                           </TableRow>
                         );
                       })}
-                      {!showHiddenRestaurants && restaurants.some(r => r.hide) && (
+                      {!showHiddenRestaurants && restaurants.some(r => hiddenRestaurantIds.includes(r.id)) && (
                         <TableRow>
                           <TableCell colSpan={3} align="center" sx={{ border: 'none', py: 1 }}>
                             <IconButton
@@ -1632,7 +1655,6 @@ export default function Home() {
                               menuImgId: latestRestaurant.menuImgId || '',
                               menuUrl: latestRestaurant.menuUrl || '',
                               naviUrl: latestRestaurant.naviUrl || '',
-                              hide: latestRestaurant.hide || false,
                             });
                           } else {
                             setEditableRestaurant({
@@ -1643,7 +1665,6 @@ export default function Home() {
                               menuImgId: selectedRestaurant.menuImgId || '',
                               menuUrl: selectedRestaurant.menuUrl || '',
                               naviUrl: selectedRestaurant.naviUrl || '',
-                              hide: selectedRestaurant.hide || false,
                             });
                           }
                           setRestaurantEditDialogOpen(true);
@@ -2479,16 +2500,25 @@ export default function Home() {
               )}
             </DialogContent>
             <Box sx={{ position: 'relative' }}>
-              {editableRestaurant && (
+              {editableRestaurant && user && (
                 <IconButton
                   onClick={async () => {
-                    if (!editableRestaurant) return;
+                    if (!editableRestaurant || !user) return;
                     
                     try {
-                      const restaurantPath = `food-resv/restaurant/${editableRestaurant.id}`;
-                      const newHideValue = !editableRestaurant.hide;
-                      await set(ref(database, `${restaurantPath}/hide`), newHideValue);
-                      setEditableRestaurant(prev => prev ? { ...prev, hide: newHideValue } : null);
+                      const hideRestaurantPath = `food-resv/hideRestaurant/${user.uid}`;
+                      const isCurrentlyHidden = hiddenRestaurantIds.includes(editableRestaurant.id);
+                      
+                      let updatedIds: string[];
+                      if (isCurrentlyHidden) {
+                        // hideRestaurant에서 제거
+                        updatedIds = hiddenRestaurantIds.filter(id => id !== editableRestaurant.id);
+                      } else {
+                        // hideRestaurant에 추가
+                        updatedIds = [...hiddenRestaurantIds, editableRestaurant.id];
+                      }
+                      
+                      await set(ref(database, hideRestaurantPath), updatedIds);
                     } catch (error) {
                       console.error('Error toggling hide:', error);
                       alert('상태 변경 중 오류가 발생했습니다.');
@@ -2498,7 +2528,7 @@ export default function Home() {
                     position: 'absolute',
                     left: { xs: 16, sm: 24 },
                     bottom: 16,
-                    color: editableRestaurant.hide ? '#f44336' : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
+                    color: hiddenRestaurantIds.includes(editableRestaurant.id) ? '#f44336' : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
                     '&:hover': {
                       backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                     },
@@ -2540,7 +2570,6 @@ export default function Home() {
                       menuImgId: editableRestaurant.menuImgId || '',
                       menuUrl: editableRestaurant.menuUrl || '',
                       naviUrl: editableRestaurant.naviUrl || '',
-                      hide: editableRestaurant.hide || false,
                     });
                     setRestaurantEditDialogOpen(false);
                     setEditableRestaurant(null);
@@ -2566,7 +2595,6 @@ export default function Home() {
                               menuImgId: restaurantData.menuImgId || updatedRestaurant.menuImgId,
                               menuUrl: restaurantData.menuUrl || updatedRestaurant.menuUrl,
                               naviUrl: restaurantData.naviUrl || updatedRestaurant.naviUrl,
-                              hide: restaurantData.hide || false,
                             });
                             setDialogOpen(true);
                           }
