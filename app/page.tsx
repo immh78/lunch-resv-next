@@ -254,6 +254,7 @@ type RestaurantListProps = {
   onSelect: (restaurant: RestaurantWithReservation) => void;
   loading: boolean;
   error: string;
+  currentTheme: ThemeMode;
 };
 
 function RestaurantList({
@@ -264,6 +265,7 @@ function RestaurantList({
   onSelect,
   loading,
   error,
+  currentTheme,
 }: RestaurantListProps) {
   if (loading) {
     return (
@@ -368,7 +370,10 @@ function RestaurantList({
                   <a
                     href={`tel:${restaurant.telNo}`}
                     onClick={(event) => event.stopPropagation()}
-                    className="rounded-full p-1 text-muted-foreground transition hover:text-foreground"
+                    className={cn(
+                      'rounded-full p-1 transition',
+                      currentTheme === 'white' ? 'text-black hover:text-black/80' : 'text-muted-foreground hover:text-foreground'
+                    )}
                   >
                     <Phone className="h-4 w-4" />
                   </a>
@@ -378,7 +383,7 @@ function RestaurantList({
                     disabled={!restaurant.naviUrl}
                     className={cn(
                       'h-8 w-8',
-                      !restaurant.naviUrl && 'pointer-events-none opacity-30'
+                      !restaurant.naviUrl && 'pointer-events-none'
                     )}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -388,7 +393,13 @@ function RestaurantList({
                       }
                     }}
                   >
-                    <Navigation className="h-4 w-4" />
+                    <Navigation
+                      className={cn(
+                        'h-4 w-4',
+                        !restaurant.naviUrl && currentTheme === 'white' && 'text-gray-400',
+                        !restaurant.naviUrl && currentTheme === 'black' && 'text-gray-600'
+                      )}
+                    />
                   </Button>
                 </div>
               </TableCell>
@@ -1900,6 +1911,7 @@ export default function Home() {
             onSelect={handleRestaurantClick}
             loading={loading}
             error={error}
+            currentTheme={currentTheme}
           />
         </main>
 
