@@ -499,7 +499,7 @@ function RestaurantDetailDialog({
 }: RestaurantDetailDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex h-[80vh] max-h-[80vh] w-full max-w-xl flex-col p-0">
+      <DialogContent className="mx-auto flex h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] flex-col items-start justify-center px-1 pt-[5vh] [&>div]:max-w-full [&>div]:w-full [&>div]:rounded-sm">
         {restaurant && (
           <>
             <DialogHeader className="space-y-0 border-b border-border/50 px-5 py-4">
@@ -516,8 +516,6 @@ function RestaurantDetailDialog({
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
-                </div>
-                <div className="flex items-center gap-2">
                   {(restaurant.menuImgId || restaurant.menuUrl) && (
                     <Button
                       variant="ghost"
@@ -710,7 +708,7 @@ function RestaurantDetailDialog({
                   size="icon"
                   onClick={onShare}
                   disabled={isReceipt}
-                  className="h-9 w-9"
+                  className={cn('h-9 w-9', isReceipt && 'text-gray-400')}
                 >
                   <Share2 className="h-4 w-4" />
                 </Button>
@@ -719,7 +717,7 @@ function RestaurantDetailDialog({
                   size="icon"
                   onClick={onReceipt}
                   disabled={isReceipt}
-                  className="h-9 w-9"
+                  className={cn('h-9 w-9', isReceipt && 'text-gray-400')}
                 >
                   <Receipt className="h-4 w-4" />
                 </Button>
@@ -730,7 +728,7 @@ function RestaurantDetailDialog({
                       size="icon"
                       onClick={onSaveMenus}
                       disabled={savingMenus}
-                      className="h-9 w-9"
+                      className={cn('h-9 w-9', savingMenus && 'text-gray-400')}
                     >
                       <Save className="h-4 w-4" />
                     </Button>
@@ -739,7 +737,7 @@ function RestaurantDetailDialog({
                       size="icon"
                       onClick={onDeleteMenus}
                       disabled={isReceipt}
-                      className="h-9 w-9 text-destructive"
+                      className={cn('h-9 w-9 text-destructive', isReceipt && 'text-gray-400')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -751,7 +749,7 @@ function RestaurantDetailDialog({
                       size="icon"
                       onClick={onSavePrepayments}
                       disabled={savingPrepayments}
-                      className="h-9 w-9"
+                      className={cn('h-9 w-9', savingPrepayments && 'text-gray-400')}
                     >
                       <Save className="h-4 w-4" />
                     </Button>
@@ -760,15 +758,12 @@ function RestaurantDetailDialog({
                       size="icon"
                       onClick={onDeletePrepayments}
                       disabled={isReceipt}
-                      className="h-9 w-9 text-destructive"
+                      className={cn('h-9 w-9 text-destructive', isReceipt && 'text-gray-400')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </>
                 )}
-                <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9">
-                  <X className="h-4 w-4" />
-                </Button>
               </div>
             </DialogFooter>
           </>
