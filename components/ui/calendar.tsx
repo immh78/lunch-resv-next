@@ -60,7 +60,6 @@ const Calendar = ({
         day_disabled: "opacity-40 pointer-events-none",
         day_range_middle: "aria-selected:bg-muted aria-selected:text-muted-foreground",
         day_hidden: "invisible",
-        ...classNames,
       }}
       components={{
         IconLeft: () => <ChevronLeft className="h-4 w-4" />,
