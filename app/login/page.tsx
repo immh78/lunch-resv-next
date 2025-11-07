@@ -1,29 +1,23 @@
 'use client';
 
 import { useState, Suspense } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
+
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Container,
-  TextField,
-  Button,
-  Typography,
-  Link,
-  Box,
-  Alert,
-  Paper,
-} from '@mui/material';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-  },
-});
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -42,6 +36,7 @@ function LoginForm() {
 
     try {
       await login(email, password);
+      toast.success('로그인에 성공했어요.');
       router.push(returnUrl);
     } catch (err) {
       const error = err as Error;
@@ -60,7 +55,7 @@ function LoginForm() {
     try {
       await resetPassword(email);
       setError('');
-      alert('비밀번호 재설정 이메일이 전송되었습니다.');
+      toast.success('비밀번호 재설정 이메일을 전송했습니다.');
     } catch (err) {
       const error = err as Error;
       setError(error.message || '비밀번호 재설정 이메일 전송에 실패했습니다.');
@@ -68,88 +63,92 @@ function LoginForm() {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-      <Typography variant="h4" component="h1" gutterBottom align="center">
-        로그인
-      </Typography>
+    <Card className="w-full border-border/80 bg-card/95 backdrop-blur-sm">
+      <CardHeader className="items-center text-center">
+        <CardTitle className="text-2xl font-semibold">로그인</CardTitle>
+        <CardDescription>포장 예약 서비스를 이용하려면 로그인하세요.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="email">이메일</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+          </div>
 
-      <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-        <TextField
-          fullWidth
-          label="이메일"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="email"
-        />
-        <TextField
-          fullWidth
-          label="비밀번호"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="current-password"
-        />
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          sx={{ mt: 3, mb: 2 }}
-          disabled={loading}
-        >
-          로그인
-        </Button>
-        <Box sx={{ textAlign: 'center', mt: 2 }}>
-          <Link
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              handleResetPassword();
-            }}
-            sx={{ fontSize: '0.875rem' }}
+          <div className="space-y-2">
+            <Label htmlFor="password">비밀번호</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Spinner size="sm" />
+                로그인 중
+              </span>
+            ) : (
+              '로그인'
+            )}
+          </Button>
+        </form>
+
+        <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+          <button
+            type="button"
+            className="text-primary underline-offset-4 transition hover:underline"
+            onClick={handleResetPassword}
           >
             비밀번호를 잊으셨나요?
-          </Link>
-        </Box>
-        <Box sx={{ textAlign: 'center', mt: 2 }}>
-          <Link href="/signup" sx={{ fontSize: '0.875rem' }}>
+          </button>
+          <Link
+            href="/signup"
+            className="text-primary underline-offset-4 transition hover:underline"
+          >
             회원가입
           </Link>
-        </Box>
-      </Box>
-    </Paper>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function LoginPage() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Container maxWidth="sm">
-        <Box
-          sx={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <div className="w-full max-w-sm">
+        <Suspense
+          fallback={
+            <Card className="w-full">
+              <CardContent className="flex h-48 items-center justify-center">
+                <Spinner size="lg" />
+              </CardContent>
+            </Card>
+          }
         >
-          <Suspense fallback={<Paper elevation={3} sx={{ p: 4, width: '100%' }}><Typography align="center">로딩 중...</Typography></Paper>}>
-            <LoginForm />
-          </Suspense>
-        </Box>
-      </Container>
-    </ThemeProvider>
+          <LoginForm />
+        </Suspense>
+      </div>
+    </div>
   );
 }
-

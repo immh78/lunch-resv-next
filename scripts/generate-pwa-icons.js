@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // PWA 아이콘 생성 스크립트
 // Node.js 환경에서 실행: node scripts/generate-pwa-icons.js
 
