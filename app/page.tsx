@@ -57,6 +57,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import LunchDiningIcon from '@mui/icons-material/LunchDining';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import RamenDiningIcon from '@mui/icons-material/RamenDining';
 import LocalDiningIcon from '@mui/icons-material/LocalDining';
 import SetMealIcon from '@mui/icons-material/SetMeal';
@@ -216,6 +218,7 @@ interface Restaurant {
   menuImgId?: string;
   menuUrl?: string;
   naviUrl?: string;
+  hide?: boolean;
 }
 
 interface MenuItem {
@@ -287,6 +290,7 @@ export default function Home() {
   });
   const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
   const [currentTheme, setCurrentTheme] = useState<'white' | 'black'>('white');
+  const [showHiddenRestaurants, setShowHiddenRestaurants] = useState(false);
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<'white' | 'black'>('white');
 
@@ -517,6 +521,7 @@ export default function Home() {
           menuImgId: restaurant.menuImgId,
           menuUrl: restaurant.menuUrl,
           naviUrl: restaurant.naviUrl,
+          hide: restaurant.hide,
           reservationDate: latestDate,
           reservation: latestReservation,
           prepaymentTotal,
@@ -1309,7 +1314,21 @@ export default function Home() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {restaurants.map((restaurant, index) => {
+                      {restaurants
+                        .filter(restaurant => {
+                          if (showHiddenRestaurants) {
+                            return true; // 모든 식당 표시
+                          }
+                          return !restaurant.hide; // hide가 없거나 false인 식당만 표시
+                        })
+                        .sort((a, b) => {
+                          // hide가 false인 식당이 먼저, hide가 true인 식당이 나중에
+                          const aHide = a.hide || false;
+                          const bHide = b.hide || false;
+                          if (aHide === bHide) return 0;
+                          return aHide ? 1 : -1;
+                        })
+                        .map((restaurant, index) => {
                         // 예약 메뉴 문자열 생성
                         let menuText = '';
                         let totalAmount = 0;
@@ -1529,6 +1548,23 @@ export default function Home() {
                           </TableRow>
                         );
                       })}
+                      {!showHiddenRestaurants && restaurants.some(r => r.hide) && (
+                        <TableRow>
+                          <TableCell colSpan={3} align="center" sx={{ border: 'none', py: 1 }}>
+                            <IconButton
+                              onClick={() => setShowHiddenRestaurants(true)}
+                              sx={{
+                                color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                                '&:hover': {
+                                  backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
+                                },
+                              }}
+                            >
+                              <MoreHorizIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -1596,6 +1632,7 @@ export default function Home() {
                               menuImgId: latestRestaurant.menuImgId || '',
                               menuUrl: latestRestaurant.menuUrl || '',
                               naviUrl: latestRestaurant.naviUrl || '',
+                              hide: latestRestaurant.hide || false,
                             });
                           } else {
                             setEditableRestaurant({
@@ -1606,6 +1643,7 @@ export default function Home() {
                               menuImgId: selectedRestaurant.menuImgId || '',
                               menuUrl: selectedRestaurant.menuUrl || '',
                               naviUrl: selectedRestaurant.naviUrl || '',
+                              hide: selectedRestaurant.hide || false,
                             });
                           }
                           setRestaurantEditDialogOpen(true);
@@ -2440,25 +2478,54 @@ export default function Home() {
                 </Box>
               )}
             </DialogContent>
-            <DialogActions 
-              sx={{ 
-                justifyContent: 'flex-end', 
-                gap: 1, 
-                p: { xs: 1.5, sm: 3 },
-                borderTop: 'none',
-              }}
-            >
-              <Button
-                onClick={() => setRestaurantEditDialogOpen(false)}
-                sx={{
-                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                  '&:hover': {
-                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                  },
+            <Box sx={{ position: 'relative' }}>
+              {editableRestaurant && (
+                <IconButton
+                  onClick={async () => {
+                    if (!editableRestaurant) return;
+                    
+                    try {
+                      const restaurantPath = `food-resv/restaurant/${editableRestaurant.id}`;
+                      const newHideValue = !editableRestaurant.hide;
+                      await set(ref(database, `${restaurantPath}/hide`), newHideValue);
+                      setEditableRestaurant(prev => prev ? { ...prev, hide: newHideValue } : null);
+                    } catch (error) {
+                      console.error('Error toggling hide:', error);
+                      alert('상태 변경 중 오류가 발생했습니다.');
+                    }
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    left: { xs: 16, sm: 24 },
+                    bottom: 16,
+                    color: editableRestaurant.hide ? '#f44336' : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
+                    '&:hover': {
+                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                    },
+                  }}
+                >
+                  <VisibilityOffIcon fontSize="small" />
+                </IconButton>
+              )}
+              <DialogActions 
+                sx={{ 
+                  justifyContent: 'flex-end', 
+                  gap: 1, 
+                  p: { xs: 1.5, sm: 3 },
+                  borderTop: 'none',
                 }}
               >
-                취소
-              </Button>
+                <Button
+                  onClick={() => setRestaurantEditDialogOpen(false)}
+                  sx={{
+                    color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                    '&:hover': {
+                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                    },
+                  }}
+                >
+                  닫기
+                </Button>
               <Button
                 onClick={async () => {
                   if (!editableRestaurant) return;
@@ -2473,6 +2540,7 @@ export default function Home() {
                       menuImgId: editableRestaurant.menuImgId || '',
                       menuUrl: editableRestaurant.menuUrl || '',
                       naviUrl: editableRestaurant.naviUrl || '',
+                      hide: editableRestaurant.hide || false,
                     });
                     setRestaurantEditDialogOpen(false);
                     setEditableRestaurant(null);
@@ -2498,6 +2566,7 @@ export default function Home() {
                               menuImgId: restaurantData.menuImgId || updatedRestaurant.menuImgId,
                               menuUrl: restaurantData.menuUrl || updatedRestaurant.menuUrl,
                               naviUrl: restaurantData.naviUrl || updatedRestaurant.naviUrl,
+                              hide: restaurantData.hide || false,
                             });
                             setDialogOpen(true);
                           }
@@ -2523,6 +2592,7 @@ export default function Home() {
                 저장
               </Button>
             </DialogActions>
+            </Box>
           </Dialog>
           
           {/* 식당 등록 팝업 */}
@@ -2714,7 +2784,7 @@ export default function Home() {
                   },
                 }}
               >
-                취소
+                닫기
               </Button>
               <Button
                 onClick={async () => {
