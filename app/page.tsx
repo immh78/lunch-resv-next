@@ -18,7 +18,6 @@ import {
   Paper,
   Link,
   CircularProgress,
-  Alert,
   IconButton,
   Dialog,
   DialogTitle,
@@ -33,10 +32,17 @@ import {
   Menu,
   MenuItem,
   InputAdornment,
+  Snackbar,
+  Alert,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import PhoneIcon from '@mui/icons-material/Phone';
+import NavigationIcon from '@mui/icons-material/Navigation';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ShareIcon from '@mui/icons-material/Share';
 import ReceiptIcon from '@mui/icons-material/Receipt';
@@ -45,6 +51,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ClearIcon from '@mui/icons-material/Clear';
 import EditIcon from '@mui/icons-material/Edit';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
@@ -56,105 +63,122 @@ import SetMealIcon from '@mui/icons-material/SetMeal';
 import GroupsIcon from '@mui/icons-material/Groups';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PaletteIcon from '@mui/icons-material/Palette';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 
-const theme = createTheme({
-  typography: {
-    fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    fontSize: 14,
-    fontWeightRegular: 400,
-    fontWeightMedium: 500,
-    fontWeightBold: 600,
-  },
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#000000',
-      contrastText: '#ffffff',
+const createAppTheme = (themeMode: 'white' | 'black') => {
+  const isDark = themeMode === 'black';
+  
+  return createTheme({
+    typography: {
+      fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: 14,
+      fontWeightRegular: 400,
+      fontWeightMedium: 500,
+      fontWeightBold: 600,
     },
-    background: {
-      default: '#ffffff',
-      paper: '#ffffff',
-    },
-    text: {
-      primary: '#0a0a0a',
-      secondary: '#666666',
-    },
-    divider: '#e5e5e5',
-    action: {
-      hover: '#f5f5f5',
-      selected: '#000000',
-    },
-  },
-  shape: {
-    borderRadius: 2,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: 500,
-          borderRadius: 2,
-          padding: '6px 12px',
-        },
+    palette: {
+      mode: isDark ? 'dark' : 'light',
+      primary: {
+        main: isDark ? '#ffffff' : '#000000',
+        contrastText: isDark ? '#000000' : '#ffffff',
+      },
+      background: {
+        default: isDark ? '#000000' : '#ffffff',
+        paper: isDark ? '#1a1a1a' : '#ffffff',
+      },
+      text: {
+        primary: isDark ? '#ffffff' : '#0a0a0a',
+        secondary: isDark ? '#b0b0b0' : '#666666',
+      },
+      divider: isDark ? '#333333' : '#e5e5e5',
+      action: {
+        hover: isDark ? '#1a1a1a' : '#f5f5f5',
+        selected: isDark ? '#ffffff' : '#000000',
       },
     },
-    MuiTableCell: {
-      styleOverrides: {
-        root: {
-          borderColor: '#e5e5e5',
-          fontSize: 14,
-          padding: '12px 16px',
-        },
-        head: {
-          fontWeight: 600,
-          fontSize: 13,
-          color: '#666666',
-          backgroundColor: '#fafafa',
-        },
-      },
+    shape: {
+      borderRadius: 2,
     },
-    MuiTableRow: {
-      styleOverrides: {
-        root: {
-          '&:hover': {
-            backgroundColor: '#fafafa',
-          },
-        },
-      },
-    },
-    MuiDialog: {
-      styleOverrides: {
-        paper: {
-          borderRadius: 12,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textTransform: 'none',
+            fontWeight: 500,
             borderRadius: 2,
+            padding: '6px 12px',
+          },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            borderColor: isDark ? '#333333' : '#e5e5e5',
             fontSize: 14,
+            padding: '12px 16px',
+          },
+          head: {
+            fontWeight: 600,
+            fontSize: 13,
+            color: isDark ? '#b0b0b0' : '#666666',
+            backgroundColor: isDark ? '#1a1a1a' : '#fafafa',
+          },
+        },
+      },
+      MuiTableRow: {
+        styleOverrides: {
+          root: {
+            '&:hover': {
+              backgroundColor: isDark ? '#1a1a1a' : '#fafafa',
+            },
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 12,
+            boxShadow: isDark 
+              ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
+              : '0 8px 32px rgba(0, 0, 0, 0.08)',
+            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+          },
+        },
+      },
+      MuiTextField: {
+        styleOverrides: {
+          root: {
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              fontSize: 14,
+            },
+          },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 2,
+          },
+        },
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isDark ? '#000000' : '#ffffff',
+            color: isDark ? '#ffffff' : '#0a0a0a',
           },
         },
       },
     },
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 2,
-        },
-      },
-    },
-  },
-});
+  });
+};
 
 // Cloudinary 타입 정의
 interface CloudinaryWindow extends Window {
@@ -245,6 +269,12 @@ export default function Home() {
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [restaurantEditDialogOpen, setRestaurantEditDialogOpen] = useState(false);
   const [restaurantAddDialogOpen, setRestaurantAddDialogOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<'reservation' | 'prepayment' | null>(null);
+  const [menuHistoryDialogOpen, setMenuHistoryDialogOpen] = useState(false);
+  const [menuHistoryList, setMenuHistoryList] = useState<{ menu: string; cost: number }[]>([]);
   const [editableRestaurant, setEditableRestaurant] = useState<Restaurant | null>(null);
   const [newRestaurant, setNewRestaurant] = useState<Omit<Restaurant, 'id'> & { id: string }>({
     id: '',
@@ -256,6 +286,9 @@ export default function Home() {
     naviUrl: '',
   });
   const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<'white' | 'black'>('white');
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<'white' | 'black'>('white');
 
   // Cloudinary widget 초기화
   useEffect(() => {
@@ -334,6 +367,52 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantEditDialogOpen, restaurantAddDialogOpen]);
+
+  // 테마 로드
+  useEffect(() => {
+    if (!user) return;
+
+    const themeRef = ref(database, `food-resv/theme/${user.uid}`);
+    const unsubscribeTheme = onValue(
+      themeRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const themeData = snapshot.val();
+          if (themeData.theme === 'white' || themeData.theme === 'black') {
+            setCurrentTheme(themeData.theme);
+            setSelectedTheme(themeData.theme);
+          }
+        }
+      },
+      (err) => {
+        console.error('Error fetching theme:', err);
+      }
+    );
+
+    return () => {
+      unsubscribeTheme();
+    };
+  }, [user]);
+
+  // 테마 저장
+  const saveTheme = async () => {
+    if (!user) return;
+
+    try {
+      const themeRef = ref(database, `food-resv/theme/${user.uid}`);
+      await set(themeRef, { theme: selectedTheme });
+      setCurrentTheme(selectedTheme);
+      setThemeDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving theme:', error);
+      alert('테마 저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleThemeDialogOpen = () => {
+    setSelectedTheme(currentTheme);
+    setThemeDialogOpen(true);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -665,14 +744,22 @@ export default function Home() {
   };
 
   const handleAddRow = () => {
+    const newId = `menu-${Date.now()}`;
     setEditableMenus([
       ...editableMenus,
       {
-        id: `menu-${Date.now()}`,
+        id: newId,
         menu: '',
         cost: 0,
       },
     ]);
+    // 새로 추가된 행의 메뉴명 TextField에 포커스
+    setTimeout(() => {
+      const input = document.querySelector(`input[data-menu-id="${newId}"]`) as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 0);
   };
 
   const handleDeleteRow = (id: string) => {
@@ -727,7 +814,8 @@ export default function Home() {
       };
       
       await set(ref(database, reservationPath), reservationData);
-      alert('저장되었습니다.');
+      setSnackbarMessage('저장되었습니다.');
+      setSnackbarOpen(true);
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving reservation:', error);
@@ -737,35 +825,59 @@ export default function Home() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!user || !selectedRestaurant) return;
-    
-    const confirmDelete = window.confirm('예약 정보를 삭제하시겠습니까?');
-    if (!confirmDelete) return;
+    setDeleteType('reservation');
+    setDeleteConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!user || !selectedRestaurant || !deleteType) return;
     
     try {
-      const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
-      await remove(ref(database, reservationPath));
-      alert('삭제되었습니다.');
-      handleCloseDialog();
+      if (deleteType === 'reservation') {
+        const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
+        await remove(ref(database, reservationPath));
+        setSnackbarMessage('삭제되었습니다.');
+        setSnackbarOpen(true);
+        handleCloseDialog();
+      } else if (deleteType === 'prepayment') {
+        const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
+        await remove(ref(database, prepaymentPath));
+        setSnackbarMessage('삭제되었습니다.');
+        setSnackbarOpen(true);
+        // 선결제 데이터 다시 로드
+        await loadPrepayments(user.uid, selectedRestaurant.id);
+      }
     } catch (error) {
-      console.error('Error deleting reservation:', error);
+      console.error('Error deleting:', error);
       alert('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeleteConfirmDialogOpen(false);
+      setDeleteType(null);
     }
   };
 
   // 선결제 관련 핸들러
   const handleAddPrepaymentRow = () => {
     const today = dayjs().format('YYYYMMDD');
+    const newId = `prepayment-${Date.now()}`;
     setPrepayments([
       ...prepayments,
       {
-        id: `prepayment-${Date.now()}`,
+        id: newId,
         amount: 0,
         date: today,
         dateValue: dayjs(),
       },
     ]);
+    // 새로 추가된 행의 금액 TextField에 포커스
+    setTimeout(() => {
+      const input = document.querySelector(`input[data-prepayment-id="${newId}"]`) as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 0);
   };
 
   const handleDeletePrepaymentRow = (id: string) => {
@@ -822,10 +934,12 @@ export default function Home() {
       if (validPrepayments.length === 0) {
         // 빈 배열로 저장하면 삭제 효과
         await set(ref(database, prepaymentPath), []);
-        alert('저장되었습니다.');
+        setSnackbarMessage('저장되었습니다.');
+        setSnackbarOpen(true);
       } else {
         await set(ref(database, prepaymentPath), validPrepayments);
-        alert('저장되었습니다.');
+        setSnackbarMessage('저장되었습니다.');
+        setSnackbarOpen(true);
       }
     } catch (error) {
       console.error('Error saving prepayment:', error);
@@ -835,22 +949,10 @@ export default function Home() {
     }
   };
 
-  const handleDeletePrepayment = async () => {
+  const handleDeletePrepayment = () => {
     if (!user || !selectedRestaurant) return;
-    
-    const confirmDelete = window.confirm('선결제 정보를 삭제하시겠습니까?');
-    if (!confirmDelete) return;
-    
-    try {
-      const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
-      await remove(ref(database, prepaymentPath));
-      alert('삭제되었습니다.');
-      // 선결제 데이터 다시 로드
-      await loadPrepayments(user.uid, selectedRestaurant.id);
-    } catch (error) {
-      console.error('Error deleting prepayment:', error);
-      alert('삭제 중 오류가 발생했습니다.');
-    }
+    setDeleteType('prepayment');
+    setDeleteConfirmDialogOpen(true);
   };
 
   const handleReceipt = async () => {
@@ -883,7 +985,8 @@ export default function Home() {
       const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
       await remove(ref(database, prepaymentPath));
       
-      alert('수령 처리되었습니다.');
+      setSnackbarMessage('수령 처리되었습니다.');
+      setSnackbarOpen(true);
       handleCloseDialog();
     } catch (error) {
       console.error('Error processing receipt:', error);
@@ -930,7 +1033,7 @@ export default function Home() {
       }
 
       // 공유 텍스트 생성
-      let shareText = '━━━━━━━━━\n';
+      let shareText = '━━━━━━━━━━\n';
       
       if (menuText) {
         shareText += `■ 메뉴 : ${menuText}\n`;
@@ -970,34 +1073,36 @@ export default function Home() {
     }
   };
 
+  const appTheme = createAppTheme(currentTheme);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={appTheme}>
         <CssBaseline />
         <ProtectedRoute>
-        <Box sx={{ flexGrow: 1, borderBottom: '1px solid #e5e5e5' }}>
+        <Box sx={{ flexGrow: 1 }}>
           <AppBar 
             position="static"
             elevation={0}
             sx={{
-              backgroundColor: '#ffffff',
-              color: '#0a0a0a',
-              borderBottom: '1px solid #e5e5e5',
+              backgroundColor: currentTheme === 'black' ? '#000000' : '#ffffff',
+              color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+              borderBottom: 'none',
             }}
           >
             <Toolbar sx={{ minHeight: '56px !important', px: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mr: 0.25 }}>
                 {loading ? (
-                  <CircularProgress size={20} sx={{ color: '#0a0a0a' }} />
+                  <CircularProgress size={20} sx={{ color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a' }} />
                 ) : (
                   <IconButton 
                     edge="start" 
                     onClick={() => window.location.reload()}
                     sx={{ 
-                      mr: 1,
-                      color: '#0a0a0a',
+                      mr: 0.25,
+                      color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                       '&:hover': {
-                        backgroundColor: '#f5f5f5',
+                        backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
                       },
                     }}
                   >
@@ -1005,25 +1110,54 @@ export default function Home() {
                   </IconButton>
                 )}
               </Box>
-              <Typography 
-                variant="h6" 
-                component="div" 
-                sx={{ 
-                  flexGrow: 1,
-                  fontWeight: 600,
-                  fontSize: 15,
-                  color: '#0a0a0a',
-                }}
-              >
-                포장 예약
-              </Typography>
+              <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography 
+                  variant="h6" 
+                  component="div" 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: 20,
+                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                  }}
+                >
+                  포장 예약
+                </Typography>
+                {(() => {
+                  // 잔여금액 합계 계산 (totalAmount - prepaymentTotal)
+                  const totalRemainingAmount = restaurants.reduce((sum, restaurant) => {
+                    if (restaurant.reservation && !restaurant.reservation.isReceipt && restaurant.reservation.menus) {
+                      const restaurantTotal = restaurant.reservation.menus.reduce((menuSum, menu) => menuSum + (menu.cost || 0), 0);
+                      const prepaymentTotal = restaurant.prepaymentTotal || 0;
+                      const remainingAmount = restaurantTotal - prepaymentTotal;
+                      return sum + remainingAmount;
+                    }
+                    return sum;
+                  }, 0);
+                  
+                  if (totalRemainingAmount > 0) {
+                    return (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#999999',
+                          fontSize: 14,
+                          fontWeight: 400,
+                        }}
+                      >
+                        {totalRemainingAmount.toLocaleString()}원
+                      </Typography>
+                    );
+                  }
+                  return null;
+                })()}
+              </Box>
               <IconButton
                 edge="end"
                 onClick={handleMenuOpen}
                 sx={{
-                  color: '#0a0a0a',
+                  color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
                   },
                 }}
               >
@@ -1036,26 +1170,17 @@ export default function Home() {
                 PaperProps={{
                   sx: {
                     borderRadius: 2,
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-                    border: '1px solid #e5e5e5',
+                    boxShadow: currentTheme === 'black' 
+                      ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
+                      : '0 8px 32px rgba(0, 0, 0, 0.08)',
+                    border: `1px solid ${currentTheme === 'black' ? '#333333' : '#e5e5e5'}`,
+                    backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#ffffff',
+                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                     mt: 1,
                     minWidth: 180,
                   },
                 }}
               >
-                <MenuItem 
-                  onClick={handleMenuClose}
-                  sx={{
-                    fontSize: 14,
-                    py: 1.5,
-                    '&:hover': {
-                      backgroundColor: '#f5f5f5',
-                    },
-                  }}
-                >
-                  <RestaurantIcon sx={{ mr: 1.5, fontSize: 18 }} />
-                  예약 관리
-                </MenuItem>
                 <MenuItem 
                   onClick={() => {
                     setNewRestaurant({
@@ -1073,19 +1198,37 @@ export default function Home() {
                   sx={{
                     fontSize: 14,
                     py: 1.5,
+                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                     '&:hover': {
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                     },
                   }}
                 >
                   <AddCircleIcon sx={{ mr: 1.5, fontSize: 18 }} />
                   식당 등록
                 </MenuItem>
+                <MenuItem 
+                  onClick={() => {
+                    handleThemeDialogOpen();
+                    handleMenuClose();
+                  }}
+                  sx={{
+                    fontSize: 14,
+                    py: 1.5,
+                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                    '&:hover': {
+                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                    },
+                  }}
+                >
+                  <PaletteIcon sx={{ mr: 1.5, fontSize: 18 }} />
+                  테마
+                </MenuItem>
               </Menu>
             </Toolbar>
           </AppBar>
         </Box>
-        <Container maxWidth="sm" sx={{ py: 3, px: { xs: 2, sm: 3 } }}>
+        <Container maxWidth="sm" sx={{ py: 0, px: { xs: 1, sm: 2 } }}>
 
           {loading ? (
             <Box
@@ -1103,7 +1246,7 @@ export default function Home() {
               {error}
             </Alert>
           ) : (
-            <Box sx={{ mt: 3 }}>
+            <Box sx={{ mt: 0 }}>
               {restaurants.length === 0 ? (
                 <Typography variant="body1" align="center" sx={{ mt: 4 }}>
                   등록된 레스토랑이 없습니다.
@@ -1113,16 +1256,56 @@ export default function Home() {
                   component={Paper}
                   elevation={0}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: 0,
                     overflow: 'hidden',
+                    border: 'none',
                   }}
                 >
-                  <Table>
+                  <Table sx={{ borderCollapse: 'separate', tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>식당</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>예약메뉴</TableCell>
-                        <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>전화</TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600,
+                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
+                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderLeft: 'none',
+                            borderRight: 'none',
+                            px: 0,
+                            width: '45%',
+                          }}
+                        >
+                          식당
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600,
+                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
+                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderLeft: 'none',
+                            borderRight: 'none',
+                            px: 0,
+                            width: '40%',
+                          }}
+                        >
+                          예약메뉴
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600, 
+                            whiteSpace: 'nowrap',
+                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
+                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
+                            borderLeft: 'none',
+                            borderRight: 'none',
+                            px: 0,
+                          }}
+                        >
+                          전화/네비
+                        </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1147,7 +1330,7 @@ export default function Home() {
                           if (prepaymentTotal === 0) {
                             amountColor = 'red';
                           } else if (prepaymentTotal >= totalAmount) {
-                            amountColor = 'blue';
+                            amountColor = currentTheme === 'black' ? '#60a5fa' : 'blue';
                           } else {
                             amountColor = 'orange';
                           }
@@ -1158,27 +1341,56 @@ export default function Home() {
                         return (
                           <TableRow
                             key={restaurant.id}
-                            onClick={() => handleRestaurantClick(restaurant)}
+                            onClick={(e) => {
+                              // 네비 아이콘이 disabled 상태일 때는 상세 팝업 열지 않음
+                              const target = e.target as HTMLElement;
+                              const clickedButton = target.closest('button');
+                              const isDisabledNavIcon = clickedButton && (
+                                clickedButton.hasAttribute('disabled') ||
+                                clickedButton.classList.contains('Mui-disabled') ||
+                                (!restaurant.naviUrl && clickedButton.querySelector('svg'))
+                              );
+                              
+                              // 네비 아이콘 영역인지 확인 (NavigationIcon이 포함된 버튼)
+                              if (isDisabledNavIcon && !restaurant.naviUrl) {
+                                return; // 아무 동작도 하지 않음
+                              }
+                              
+                              handleRestaurantClick(restaurant);
+                            }}
                             sx={{
                               cursor: 'pointer',
-                              borderBottom: '1px solid #e5e5e5',
+                              backgroundColor: currentTheme === 'black' ? '#000000' : '#ffffff',
+                              borderBottom: 'none',
                               '&:hover': {
-                                backgroundColor: '#fafafa',
+                                backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#fafafa',
                               },
                             }}
                           >
-                            <TableCell align="left">
+                            <TableCell 
+                              align="left"
+                              sx={{
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                px: 0,
+                                width: '45%',
+                              }}
+                            >
                               <Button
-                                variant="text"
+                                variant="outlined"
                                 size="small"
                                 sx={{
                                   textTransform: 'none',
                                   justifyContent: 'flex-start',
-                                  px: 0,
+                                  px: 1,
                                   fontWeight: !isReceipt ? 600 : 500,
-                                  color: !isReceipt ? '#2563eb' : '#0a0a0a',
+                                  color: !isReceipt 
+                                    ? (currentTheme === 'black' ? '#2563eb' : '#2563eb')
+                                    : (currentTheme === 'black' ? '#808080' : '#0a0a0a'),
+                                  borderColor: !isReceipt ? '#2563eb' : (currentTheme === 'black' ? '#333333' : '#e5e5e5'),
                                   '&:hover': {
-                                    backgroundColor: 'transparent',
+                                    backgroundColor: !isReceipt ? 'rgba(37, 99, 235, 0.04)' : '#f5f5f5',
+                                    borderColor: !isReceipt ? '#2563eb' : '#e5e5e5',
                                   },
                                 }}
                                 onClick={(e) => {
@@ -1189,57 +1401,128 @@ export default function Home() {
                                 {restaurant.name}
                               </Button>
                             </TableCell>
-                            <TableCell>
+                            <TableCell
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                              sx={{
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                px: 0,
+                                width: '40%',
+                              }}
+                            >
                               <Box>
                                 {menuText && (
                                   <Typography
                                     variant="body2"
                                     sx={{
-                                      color: isReceipt ? 'rgba(0, 0, 0, 0.2)' : 'inherit',
-                                      opacity: isReceipt ? 0.3 : 1,
+                                      color: isReceipt 
+                                        ? (currentTheme === 'black' ? '#555555' : 'rgba(0, 0, 0, 0.2)')
+                                        : amountColor,
+                                      opacity: isReceipt ? (currentTheme === 'black' ? 1 : 0.3) : 1,
+                                      fontSize: '0.75rem',
                                     }}
                                   >
                                     {menuText}
                                   </Typography>
                                 )}
-                                {!isReceipt && totalAmount > 0 && (
-                                  <Typography
-                                    variant="body2"
-                                    component="span"
-                                    sx={{
-                                      color: amountColor,
-                                      fontWeight: 400,
-                                      mt: 0.5,
-                                      display: 'inline-block',
-                                    }}
-                                  >
-                                    {totalAmount.toLocaleString()}원
-                                    {remainingAmount !== totalAmount && remainingAmount > 0 && (
-                                      <span style={{ marginLeft: '4px' }}>
-                                        ({remainingAmount.toLocaleString()})
-                                      </span>
-                                    )}
-                                  </Typography>
+                                {!isReceipt && (
+                                  prepaymentTotal === 0 ? (
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: '#999999',
+                                        fontWeight: 400,
+                                        fontSize: '0.75rem',
+                                        mt: 0.5,
+                                      }}
+                                    >
+                                      ({totalAmount.toLocaleString()})
+                                    </Typography>
+                                  ) : remainingAmount > 0 && remainingAmount !== totalAmount && (
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: '#999999',
+                                        fontWeight: 400,
+                                        fontSize: '0.75rem',
+                                        mt: 0.5,
+                                      }}
+                                    >
+                                      ({remainingAmount.toLocaleString()})
+                                    </Typography>
+                                  )
                                 )}
                               </Box>
                             </TableCell>
-                            <TableCell>
-                              <Link
-                                href={`tel:${restaurant.telNo}`}
-                                sx={{ 
-                                  textDecoration: 'none', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'flex-end',
-                                  color: '#666666',
-                                  '&:hover': {
-                                    color: '#0a0a0a',
-                                  },
+                            <TableCell
+                              sx={{
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                px: 0,
+                              }}
+                            >
+                              <Box 
+                                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}
+                                onClick={(e) => {
+                                  // naviUrl이 없을 때 네비 아이콘 영역 클릭 시 이벤트 전파 차단
+                                  const target = e.target as HTMLElement;
+                                  const clickedButton = target.closest('button');
+                                  if (clickedButton && !restaurant.naviUrl) {
+                                    e.stopPropagation();
+                                  }
                                 }}
-                                onClick={(e) => e.stopPropagation()}
                               >
-                                <PhoneIcon fontSize="small" />
-                              </Link>
+                                <Link
+                                  href={`tel:${restaurant.telNo}`}
+                                  sx={{ 
+                                    textDecoration: 'none', 
+                                    display: 'flex', 
+                                    alignItems: 'center',
+                                    color: '#666666',
+                                    '&:hover': {
+                                      color: '#0a0a0a',
+                                    },
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <PhoneIcon fontSize="small" />
+                                </Link>
+                                <Box
+                                  onClick={(e) => {
+                                    if (!restaurant.naviUrl) {
+                                      e.stopPropagation();
+                                    }
+                                  }}
+                                >
+                                  <IconButton
+                                    size="small"
+                                    disabled={!restaurant.naviUrl}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (restaurant.naviUrl) {
+                                        window.open(restaurant.naviUrl, '_blank');
+                                      }
+                                    }}
+                                    sx={{
+                                      color: '#666666',
+                                      opacity: restaurant.naviUrl ? 1 : 0.3,
+                                      '&:hover': {
+                                        backgroundColor: restaurant.naviUrl ? '#f5f5f5' : 'transparent',
+                                        color: restaurant.naviUrl ? '#0a0a0a' : '#666666',
+                                      },
+                                      '&.Mui-disabled': {
+                                        opacity: 0.3,
+                                      },
+                                      p: 0.5,
+                                      ml: 0,
+                                    }}
+                                  >
+                                    <NavigationIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
                             </TableCell>
                           </TableRow>
                         );
@@ -1261,11 +1544,14 @@ export default function Home() {
               sx: {
                 borderRadius: 2,
                 m: { xs: 0.5, sm: 2 },
-                maxHeight: { xs: '95vh', sm: '80vh' },
+                height: '80vh',
+                maxHeight: '80vh',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-                border: '1px solid #e5e5e5',
+                boxShadow: currentTheme === 'black' 
+                  ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
+                  : '0 8px 32px rgba(0, 0, 0, 0.08)',
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
                 width: { xs: 'calc(100% - 8px)', sm: 'auto' },
               },
             }}
@@ -1277,7 +1563,8 @@ export default function Home() {
                     pb: 2, 
                     pt: 2,
                     px: { xs: 1.5, sm: 3 },
-                    borderBottom: '1px solid #e5e5e5',
+                    borderBottom: 'none',
+                    color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
@@ -1287,7 +1574,7 @@ export default function Home() {
                         sx={{ 
                           fontSize: 16,
                           fontWeight: 600,
-                          color: '#0a0a0a',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
                           wordBreak: 'break-word' 
                         }}
                       >
@@ -1323,10 +1610,10 @@ export default function Home() {
                         }}
                         sx={{ 
                           p: 0.5,
-                          color: '#666666',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                           '&:hover': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
+                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                           },
                         }}
                       >
@@ -1338,15 +1625,20 @@ export default function Home() {
                         <IconButton
                           size="small"
                           onClick={() => {
-                            if (selectedRestaurant.menuUrl) {
-                              window.open(selectedRestaurant.menuUrl, '_blank');
+                            // menuImgId를 우선 적용
+                            if (selectedRestaurant.menuImgId) {
+                              const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+                              const url = `https://res.cloudinary.com/${cloudName}/image/upload/${selectedRestaurant.menuImgId}`;
+                              window.open(url, '_blank', 'noopener');
+                            } else if (selectedRestaurant.menuUrl) {
+                              window.open(selectedRestaurant.menuUrl, '_blank', 'noopener');
                             }
                           }}
                           sx={{ 
                             flexShrink: 0,
-                            color: '#666666',
+                            color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                             '&:hover': {
-                              backgroundColor: '#f5f5f5',
+                              backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                             },
                           }}
                         >
@@ -1356,7 +1648,40 @@ export default function Home() {
                     </Box>
                   </Box>
                 </DialogTitle>
-                <Box sx={{ borderBottom: '1px solid #e5e5e5', px: { xs: 1, sm: 2 } }}>
+                {(() => {
+                  // summary 계산 - 메뉴와 선결제 금액이 변경될 때마다 실시간으로 갱신
+                  const totalAmount = editableMenus.reduce((sum, menu) => sum + (menu.cost || 0), 0);
+                  const prepaymentTotal = prepayments.reduce((sum, prepayment) => sum + (prepayment.amount || 0), 0);
+                  const remainingAmount = totalAmount - prepaymentTotal;
+                  
+                  if (totalAmount > 0) {
+                    return (
+                      <Box sx={{ px: { xs: 1.5, sm: 3 }, pb: 1, pt: 0 }}>
+                        <Alert
+                          severity="info"
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: currentTheme === 'black' ? '#1a1a1a' : '#999999',
+                            backgroundColor: currentTheme === 'black' ? '#c0c0c0' : '#f5f5f5',
+                            padding: '4px 8px',
+                            '& .MuiAlert-icon': {
+                              display: 'none',
+                            },
+                            '& .MuiAlert-message': {
+                              fontSize: '0.75rem',
+                              color: currentTheme === 'black' ? '#1a1a1a' : '#999999',
+                              padding: 0,
+                            },
+                          }}
+                        >
+                          가격 {totalAmount.toLocaleString()}원 - 선결제 {prepaymentTotal.toLocaleString()}원 = {remainingAmount.toLocaleString()}원
+                        </Alert>
+                      </Box>
+                    );
+                  }
+                  return null;
+                })()}
+                <Box sx={{ borderBottom: 'none', px: { xs: 1, sm: 2 } }}>
                   <Tabs 
                     value={currentTab} 
                     onChange={(e, newValue) => setCurrentTab(newValue)}
@@ -1366,9 +1691,9 @@ export default function Home() {
                         fontWeight: 500,
                         fontSize: 14,
                         minHeight: 48,
-                        color: '#666666',
+                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                         '&.Mui-selected': {
-                          color: '#0a0a0a',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
                         },
                       },
                       '& .MuiTabs-indicator': {
@@ -1403,22 +1728,172 @@ export default function Home() {
                             sx: {
                               mb: { xs: 1.5, sm: 2 },
                               '& .MuiInputBase-input': {
-                                fontSize: '0.875rem'
+                                fontSize: '0.8125rem'
                               },
                               '& .MuiInputLabel-root': {
-                                fontSize: '0.875rem'
+                                fontSize: '0.8125rem'
                               }
                             }
                           }
                         }}
                       />
                       <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
-                        <Table size="small" sx={{ '& .MuiTableCell-root': { fontSize: '0.875rem', py: { xs: 0.5, sm: 1 } } }}>
+                        <Table 
+                          size="small" 
+                          sx={{ 
+                            '& .MuiTableCell-root': { 
+                              fontSize: '0.875rem', 
+                              py: { xs: 0.5, sm: 1 },
+                              border: 'none',
+                              backgroundColor: 'transparent',
+                            },
+                            '& .MuiTableHead-root .MuiTableCell-root': {
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                            },
+                            '& .MuiTableBody-root .MuiTableRow-root': {
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                            },
+                          }}
+                        >
                           <TableHead>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 } }}>메뉴</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 } }}>가격</TableCell>
-                              <TableCell width={32} sx={{ px: 0 }}></TableCell>
+                            <TableRow
+                              sx={{
+                                '&:hover': {
+                                  backgroundColor: 'transparent !important',
+                                },
+                              }}
+                            >
+                              <TableCell 
+                                sx={{ 
+                                  fontWeight: 'bold', 
+                                  px: { xs: 0.5, sm: 1 }, 
+                                  border: 'none', 
+                                  backgroundColor: 'transparent',
+                                  '&:hover': {
+                                    backgroundColor: 'transparent !important',
+                                  },
+                                }}
+                              >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <span>메뉴</span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (!user || !selectedRestaurant) return;
+                                      
+                                      try {
+                                        // 해당 식당의 모든 예약 데이터 조회
+                                        const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
+                                        const reservationRef = ref(database, reservationPath);
+                                        const snapshot = await get(reservationRef);
+                                        
+                                        const menuSet = new Set<string>();
+                                        
+                                        if (snapshot.exists()) {
+                                          const reservations = snapshot.val();
+                                          // 모든 날짜의 예약 데이터 순회
+                                          Object.keys(reservations).forEach((date) => {
+                                            const reservation: ReservationData = reservations[date];
+                                            if (reservation && reservation.menus) {
+                                              reservation.menus.forEach((menuItem: MenuItem) => {
+                                                // 메뉴명과 가격을 조합한 키로 중복 체크
+                                                const key = `${menuItem.menu}|${menuItem.cost}`;
+                                                menuSet.add(key);
+                                              });
+                                            }
+                                          });
+                                        }
+                                        
+                                        // 중복 없는 메뉴 리스트 생성
+                                        const uniqueMenus: { menu: string; cost: number }[] = [];
+                                        menuSet.forEach((key) => {
+                                          const [menu, costStr] = key.split('|');
+                                          uniqueMenus.push({
+                                            menu,
+                                            cost: parseInt(costStr, 10),
+                                          });
+                                        });
+                                        
+                                        // 메뉴명으로 정렬
+                                        uniqueMenus.sort((a, b) => a.menu.localeCompare(b.menu));
+                                        
+                                        setMenuHistoryList(uniqueMenus);
+                                        setMenuHistoryDialogOpen(true);
+                                      } catch (error) {
+                                        console.error('Error fetching menu history:', error);
+                                        alert('메뉴 이력을 불러오는 중 오류가 발생했습니다.');
+                                      }
+                                    }}
+                                    sx={{
+                                      p: 0.5,
+                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                                      '&:hover': {
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                                      },
+                                      '&:active': {
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                      },
+                                    }}
+                                  >
+                                    <AccessTimeIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton 
+                                    aria-label="추가"
+                                    tabIndex={-1}
+                                    disableRipple
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    onMouseUp={(e) => {
+                                      e.currentTarget.blur();
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.blur();
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddRow();
+                                      // 클릭 후 즉시 포커스 제거
+                                      const target = e.currentTarget as HTMLElement;
+                                      setTimeout(() => {
+                                        if (target) {
+                                          target.blur();
+                                        }
+                                      }, 0);
+                                    }}
+                                    size="small"
+                                    sx={{
+                                      p: 0.5,
+                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                                      backgroundColor: 'transparent',
+                                      '&:hover': {
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                                      },
+                                      '&:active': {
+                                        backgroundColor: 'transparent !important',
+                                      },
+                                      '&:focus': {
+                                        backgroundColor: 'transparent !important',
+                                        outline: 'none',
+                                      },
+                                      '&:focus-visible': {
+                                        outline: 'none',
+                                        backgroundColor: 'transparent !important',
+                                      },
+                                    }}
+                                  >
+                                    <AddCircleOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>가격</TableCell>
+                              <TableCell width={32} sx={{ px: 0, border: 'none', backgroundColor: 'transparent' }}></TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -1429,21 +1904,25 @@ export default function Home() {
                                   '&:nth-of-type(even)': {
                                     backgroundColor: 'transparent',
                                   },
+                                  border: 'none',
                                 }}
                               >
-                                <TableCell sx={{ px: { xs: 0.5, sm: 1 } }}>
+                                <TableCell sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
                                   <TextField
                                     value={menuItem.menu}
                                     onChange={(e) => handleMenuChange(menuItem.id, 'menu', e.target.value)}
                                     placeholder="메뉴명"
                                     size="small"
                                     fullWidth
+                                    inputProps={{
+                                      'data-menu-id': menuItem.id,
+                                    }}
                                     InputProps={{
                                       sx: { fontSize: '0.875rem' }
                                     }}
                                   />
                                 </TableCell>
-                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 } }}>
+                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
                                   <TextField
                                     type="number"
                                     value={menuItem.cost || ''}
@@ -1457,7 +1936,7 @@ export default function Home() {
                                     }}
                                   />
                                 </TableCell>
-                                <TableCell sx={{ px: 0, width: 32 }}>
+                                <TableCell sx={{ px: 0, width: 32, border: 'none', backgroundColor: 'transparent' }}>
                                   <IconButton
                                     size="small"
                                     onClick={() => handleDeleteRow(menuItem.id)}
@@ -1491,16 +1970,96 @@ export default function Home() {
                               fontSize: '0.875rem', 
                               py: { xs: 0.5, sm: 1 },
                               whiteSpace: 'nowrap',
+                              border: 'none',
+                              backgroundColor: 'transparent',
+                            },
+                            '& .MuiTableHead-root .MuiTableCell-root': {
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                            },
+                            '& .MuiTableBody-root .MuiTableRow-root': {
+                              backgroundColor: 'transparent',
+                              border: 'none',
                             },
                             width: '100%',
                             tableLayout: 'fixed',
                           }}
                         >
                           <TableHead>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '45%' }}>날짜</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '40%' }}>금액</TableCell>
-                              <TableCell width={32} sx={{ px: 0 }}></TableCell>
+                            <TableRow
+                              sx={{
+                                '&:hover': {
+                                  backgroundColor: 'transparent !important',
+                                },
+                              }}
+                            >
+                              <TableCell 
+                                sx={{ 
+                                  fontWeight: 'bold', 
+                                  px: { xs: 0.5, sm: 1 }, 
+                                  width: '45%', 
+                                  border: 'none', 
+                                  backgroundColor: 'transparent',
+                                  '&:hover': {
+                                    backgroundColor: 'transparent !important',
+                                  },
+                                }}
+                              >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <span>날짜</span>
+                                  <IconButton 
+                                    aria-label="추가"
+                                    tabIndex={-1}
+                                    disableRipple
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    onMouseUp={(e) => {
+                                      e.currentTarget.blur();
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.blur();
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddPrepaymentRow();
+                                      // 클릭 후 즉시 포커스 제거
+                                      const target = e.currentTarget as HTMLElement;
+                                      setTimeout(() => {
+                                        if (target) {
+                                          target.blur();
+                                        }
+                                      }, 0);
+                                    }}
+                                    size="small"
+                                    sx={{
+                                      p: 0.5,
+                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                                      backgroundColor: 'transparent',
+                                      '&:hover': {
+                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                                      },
+                                      '&:active': {
+                                        backgroundColor: 'transparent !important',
+                                      },
+                                      '&:focus': {
+                                        backgroundColor: 'transparent !important',
+                                        outline: 'none',
+                                      },
+                                      '&:focus-visible': {
+                                        outline: 'none',
+                                        backgroundColor: 'transparent !important',
+                                      },
+                                    }}
+                                  >
+                                    <AddCircleOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '40%', border: 'none', backgroundColor: 'transparent' }}>금액</TableCell>
+                              <TableCell width={32} sx={{ px: 0, border: 'none', backgroundColor: 'transparent' }}></TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -1511,9 +2070,10 @@ export default function Home() {
                                   '&:nth-of-type(even)': {
                                     backgroundColor: 'transparent',
                                   },
+                                  border: 'none',
                                 }}
                               >
-                                <TableCell sx={{ px: { xs: 0.5, sm: 1 }, overflow: 'visible' }}>
+                                <TableCell sx={{ px: { xs: 0.5, sm: 1 }, overflow: 'visible', border: 'none', backgroundColor: 'transparent' }}>
                                   <DatePicker
                                     value={prepaymentItem.dateValue}
                                     onChange={(newValue) => handlePrepaymentChange(prepaymentItem.id, 'date', newValue)}
@@ -1524,7 +2084,7 @@ export default function Home() {
                                         fullWidth: true,
                                         sx: {
                                           '& .MuiInputBase-input': {
-                                            fontSize: '0.875rem',
+                                            fontSize: '0.8125rem',
                                             paddingRight: '48px !important',
                                             minWidth: 0,
                                           },
@@ -1534,29 +2094,31 @@ export default function Home() {
                                           },
                                           '& .MuiInputAdornment-root': {
                                             position: 'absolute',
-                                            right: 4,
-                                            pointerEvents: 'none',
+                                            right: 8,
                                           }
                                         }
                                       }
                                     }}
                                   />
                                 </TableCell>
-                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 } }}>
+                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
                                   <TextField
                                     type="number"
                                     value={prepaymentItem.amount || ''}
                                     onChange={(e) => handlePrepaymentChange(prepaymentItem.id, 'amount', parseInt(e.target.value) || 0)}
                                     placeholder="금액"
                                     size="small"
-                                    inputProps={{ min: 0 }}
+                                    inputProps={{ 
+                                      min: 0,
+                                      'data-prepayment-id': prepaymentItem.id,
+                                    }}
                                     sx={{ width: '100%', maxWidth: 120 }}
                                     InputProps={{
                                       sx: { fontSize: '0.875rem' }
                                     }}
                                   />
                                 </TableCell>
-                                <TableCell sx={{ px: 0, width: 32 }}>
+                                <TableCell sx={{ px: 0, width: 32, border: 'none', backgroundColor: 'transparent' }}>
                                   <IconButton
                                     size="small"
                                     onClick={() => handleDeletePrepaymentRow(prepaymentItem.id)}
@@ -1581,13 +2143,12 @@ export default function Home() {
                     </Box>
                   )}
                 </DialogContent>
-                <Divider sx={{ borderColor: '#e5e5e5' }} />
                 <DialogActions 
                   sx={{ 
                     justifyContent: 'center', 
                     gap: 1, 
                     p: { xs: 1.5, sm: 3 },
-                    borderTop: '1px solid #e5e5e5',
+                    borderTop: 'none',
                     flexWrap: 'wrap',
                   }}
                 >
@@ -1595,11 +2156,15 @@ export default function Home() {
                     aria-label="공유" 
                     size="small"
                     onClick={handleShare}
+                    disabled={selectedRestaurant?.reservation?.isReceipt === true}
                     sx={{
-                      color: '#666666',
-                      '&:hover': {
-                        backgroundColor: '#f5f5f5',
-                        color: '#0a0a0a',
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                      '&:hover:not(:disabled)': {
+                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                      },
+                      '&.Mui-disabled': {
+                        opacity: 0.3,
                       },
                     }}
                   >
@@ -1609,11 +2174,15 @@ export default function Home() {
                     aria-label="수령" 
                     size="small"
                     onClick={handleReceipt}
+                    disabled={selectedRestaurant?.reservation?.isReceipt === true}
                     sx={{
-                      color: '#666666',
-                      '&:hover': {
-                        backgroundColor: '#f5f5f5',
-                        color: '#0a0a0a',
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                      '&:hover:not(:disabled)': {
+                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
+                      },
+                      '&.Mui-disabled': {
+                        opacity: 0.3,
                       },
                     }}
                   >
@@ -1627,38 +2196,30 @@ export default function Home() {
                         disabled={saving}
                         size="small"
                         sx={{
-                          color: saving ? '#999999' : '#666666',
+                          color: saving 
+                            ? (currentTheme === 'black' ? '#666666' : '#999999')
+                            : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
                           '&:hover:not(:disabled)': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
+                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                           },
                         }}
                       >
                         <SaveIcon fontSize="small" />
                       </IconButton>
                       <IconButton 
-                        aria-label="추가"
-                        onClick={handleAddRow}
-                        size="small"
-                        sx={{
-                          color: '#666666',
-                          '&:hover': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
-                          },
-                        }}
-                      >
-                        <AddCircleIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
                         aria-label="삭제"
                         onClick={handleDelete}
+                        disabled={selectedRestaurant?.reservation?.isReceipt === true}
                         size="small"
                         sx={{
                           color: '#dc2626',
-                          '&:hover': {
+                          '&:hover:not(:disabled)': {
                             backgroundColor: '#fef2f2',
                             color: '#b91c1c',
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.3,
                           },
                         }}
                       >
@@ -1674,38 +2235,30 @@ export default function Home() {
                         disabled={savingPrepayment}
                         size="small"
                         sx={{
-                          color: savingPrepayment ? '#999999' : '#666666',
+                          color: savingPrepayment 
+                            ? (currentTheme === 'black' ? '#666666' : '#999999')
+                            : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
                           '&:hover:not(:disabled)': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
+                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                           },
                         }}
                       >
                         <SaveIcon fontSize="small" />
                       </IconButton>
                       <IconButton 
-                        aria-label="추가"
-                        onClick={handleAddPrepaymentRow}
-                        size="small"
-                        sx={{
-                          color: '#666666',
-                          '&:hover': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#0a0a0a',
-                          },
-                        }}
-                      >
-                        <AddCircleIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
                         aria-label="삭제"
                         onClick={handleDeletePrepayment}
+                        disabled={selectedRestaurant?.reservation?.isReceipt === true}
                         size="small"
                         sx={{
                           color: '#dc2626',
-                          '&:hover': {
+                          '&:hover:not(:disabled)': {
                             backgroundColor: '#fef2f2',
                             color: '#b91c1c',
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.3,
                           },
                         }}
                       >
@@ -1718,10 +2271,10 @@ export default function Home() {
                     aria-label="닫기" 
                     size="small"
                     sx={{
-                      color: '#666666',
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                       '&:hover': {
-                        backgroundColor: '#f5f5f5',
-                        color: '#0a0a0a',
+                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                       },
                     }}
                   >
@@ -1744,6 +2297,7 @@ export default function Home() {
                 m: { xs: 0.5, sm: 2 },
                 width: { xs: 'calc(100% - 8px)', sm: 'auto' },
                 maxHeight: { xs: '95vh', sm: '80vh' },
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
               },
             }}
           >
@@ -1752,22 +2306,22 @@ export default function Home() {
                 pb: 2, 
                 pt: 2,
                 px: { xs: 1.5, sm: 3 },
-                borderBottom: '1px solid #e5e5e5',
+                borderBottom: 'none',
                 fontSize: 16,
                 fontWeight: 600,
-                color: '#0a0a0a',
+                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
               }}
             >
               {editableRestaurant?.id || '식당 수정'}
             </DialogTitle>
             <DialogContent 
               sx={{ 
-                px: { xs: 1, sm: 3 }, 
+                px: { xs: 2, sm: 4 }, 
                 py: 2,
               }}
             >
               {editableRestaurant && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
                   <TextField
                     label="식당명"
                     value={editableRestaurant.name}
@@ -1884,21 +2438,20 @@ export default function Home() {
                 </Box>
               )}
             </DialogContent>
-            <Divider sx={{ borderColor: '#e5e5e5' }} />
             <DialogActions 
               sx={{ 
                 justifyContent: 'flex-end', 
                 gap: 1, 
                 p: { xs: 1.5, sm: 3 },
-                borderTop: '1px solid #e5e5e5',
+                borderTop: 'none',
               }}
             >
               <Button
                 onClick={() => setRestaurantEditDialogOpen(false)}
                 sx={{
-                  color: '#666666',
+                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                   },
                 }}
               >
@@ -1910,6 +2463,7 @@ export default function Home() {
                   
                   try {
                     const restaurantPath = `food-resv/restaurant/${editableRestaurant.id}`;
+                    const savedRestaurantId = editableRestaurant.id;
                     await set(ref(database, restaurantPath), {
                       name: editableRestaurant.name,
                       telNo: editableRestaurant.telNo || '',
@@ -1918,10 +2472,38 @@ export default function Home() {
                       menuUrl: editableRestaurant.menuUrl || '',
                       naviUrl: editableRestaurant.naviUrl || '',
                     });
-                    alert('저장되었습니다.');
                     setRestaurantEditDialogOpen(false);
-                    // 데이터가 업데이트되도록 리스트를 다시 로드하기 위해 선택된 식당 초기화
-                    setSelectedRestaurant(null);
+                    setEditableRestaurant(null);
+                    // 다이얼로그가 완전히 닫힌 후 alert 표시 및 식당 상세 팝업창 다시 열기
+                    setTimeout(() => {
+                      setSnackbarMessage('저장되었습니다.');
+                      setSnackbarOpen(true);
+                      // 저장 후 최신 데이터로 selectedRestaurant 업데이트하여 식당 상세 팝업창 유지
+                      // Firebase에서 데이터가 업데이트되기를 기다린 후 최신 데이터 가져오기
+                      const restaurantRef = ref(database, `food-resv/restaurant/${savedRestaurantId}`);
+                      get(restaurantRef).then((snapshot) => {
+                        if (snapshot.exists()) {
+                          const restaurantData = snapshot.val();
+                          // 최신 restaurants 리스트에서 찾기
+                          const updatedRestaurant = restaurants.find(r => r.id === savedRestaurantId);
+                          if (updatedRestaurant) {
+                            // 기존 예약 정보는 유지하고 restaurant 데이터만 업데이트
+                            setSelectedRestaurant({
+                              ...updatedRestaurant,
+                              name: restaurantData.name || updatedRestaurant.name,
+                              telNo: restaurantData.telNo || updatedRestaurant.telNo,
+                              kind: restaurantData.kind || updatedRestaurant.kind,
+                              menuImgId: restaurantData.menuImgId || updatedRestaurant.menuImgId,
+                              menuUrl: restaurantData.menuUrl || updatedRestaurant.menuUrl,
+                              naviUrl: restaurantData.naviUrl || updatedRestaurant.naviUrl,
+                            });
+                            setDialogOpen(true);
+                          }
+                        }
+                      }).catch((error) => {
+                        console.error('Error fetching updated restaurant:', error);
+                      });
+                    }, 200);
                   } catch (error) {
                     console.error('Error saving restaurant:', error);
                     alert('저장 중 오류가 발생했습니다.');
@@ -1953,6 +2535,7 @@ export default function Home() {
                 m: { xs: 0.5, sm: 2 },
                 width: { xs: 'calc(100% - 8px)', sm: 'auto' },
                 maxHeight: { xs: '95vh', sm: '80vh' },
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
               },
             }}
           >
@@ -1961,17 +2544,17 @@ export default function Home() {
                 pb: 2, 
                 pt: 2,
                 px: { xs: 1.5, sm: 3 },
-                borderBottom: '1px solid #e5e5e5',
+                borderBottom: 'none',
                 fontSize: 16,
                 fontWeight: 600,
-                color: '#0a0a0a',
+                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
               }}
             >
               식당 등록
             </DialogTitle>
             <DialogContent 
               sx={{ 
-                px: { xs: 1, sm: 3 }, 
+                px: { xs: 2, sm: 4 }, 
                 py: 2,
               }}
             >
@@ -1979,7 +2562,11 @@ export default function Home() {
                 <TextField
                   label="식당 ID"
                   value={newRestaurant.id}
-                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, id: e.target.value }))}
+                  onChange={(e) => {
+                    // 영어대문자와 숫자만 허용
+                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    setNewRestaurant(prev => ({ ...prev, id: value }));
+                  }}
                   fullWidth
                   size="small"
                   required
@@ -2108,21 +2695,20 @@ export default function Home() {
                 />
               </Box>
             </DialogContent>
-            <Divider sx={{ borderColor: '#e5e5e5' }} />
             <DialogActions 
               sx={{ 
                 justifyContent: 'flex-end', 
                 gap: 1, 
                 p: { xs: 1.5, sm: 3 },
-                borderTop: '1px solid #e5e5e5',
+                borderTop: 'none',
               }}
             >
               <Button
                 onClick={() => setRestaurantAddDialogOpen(false)}
                 sx={{
-                  color: '#666666',
+                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                   },
                 }}
               >
@@ -2142,7 +2728,8 @@ export default function Home() {
                     const snapshot = await get(restaurantRef);
                     
                     if (snapshot.exists()) {
-                      alert('이미 존재하는 식당 ID입니다.');
+                      setSnackbarMessage('이미 존재하는 식당 ID입니다.');
+                      setSnackbarOpen(true);
                       return;
                     }
                     
@@ -2154,7 +2741,6 @@ export default function Home() {
                       menuUrl: newRestaurant.menuUrl || '',
                       naviUrl: newRestaurant.naviUrl || '',
                     });
-                    alert('저장되었습니다.');
                     setRestaurantAddDialogOpen(false);
                     setNewRestaurant({
                       id: '',
@@ -2165,6 +2751,11 @@ export default function Home() {
                       menuUrl: '',
                       naviUrl: '',
                     });
+                    // 다이얼로그가 완전히 닫힌 후 Snackbar 표시
+                    setTimeout(() => {
+                      setSnackbarMessage('저장되었습니다.');
+                      setSnackbarOpen(true);
+                    }, 100);
                   } catch (error) {
                     console.error('Error saving restaurant:', error);
                     alert('저장 중 오류가 발생했습니다.');
@@ -2183,6 +2774,321 @@ export default function Home() {
               </Button>
             </DialogActions>
           </Dialog>
+          
+          {/* 삭제 확인 Dialog */}
+          <Dialog
+            open={deleteConfirmDialogOpen}
+            onClose={() => {
+              setDeleteConfirmDialogOpen(false);
+              setDeleteType(null);
+            }}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                p: 2,
+              },
+            }}
+          >
+            <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 1 }}>
+              삭제 확인
+            </DialogTitle>
+            <DialogContent>
+              <Typography sx={{ fontSize: '0.875rem' }}>
+                {deleteType === 'reservation' 
+                  ? '예약 정보를 삭제하시겠습니까?' 
+                  : '선결제 정보를 삭제하시겠습니까?'}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ gap: 1, px: 2, pb: 2 }}>
+              <Button
+                onClick={() => {
+                  setDeleteConfirmDialogOpen(false);
+                  setDeleteType(null);
+                }}
+                sx={{
+                  color: '#666666',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                  },
+                }}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                variant="contained"
+                sx={{
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  '&:hover': {
+                    backgroundColor: '#b91c1c',
+                  },
+                }}
+              >
+                삭제
+              </Button>
+            </DialogActions>
+          </Dialog>
+          
+          {/* 메뉴 이력 선택 Dialog */}
+          <Dialog
+            open={menuHistoryDialogOpen}
+            onClose={() => setMenuHistoryDialogOpen(false)}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                m: { xs: 0.5, sm: 2 },
+                maxHeight: { xs: '80vh', sm: '70vh' },
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
+              },
+            }}
+          >
+            <DialogTitle 
+              sx={{ 
+                fontSize: 16, 
+                fontWeight: 600, 
+                pb: 1,
+                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+              }}
+            >
+              메뉴 선택
+            </DialogTitle>
+            <DialogContent sx={{ p: 0 }}>
+              <TableContainer sx={{ maxHeight: { xs: '60vh', sm: '50vh' }, overflow: 'auto' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell 
+                        sx={{ 
+                          fontWeight: 'bold', 
+                          fontSize: '0.875rem',
+                          backgroundColor: currentTheme === 'black' ? '#2a2a2a' : 'rgb(246, 246, 246)',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                        }}
+                      >
+                        메뉴
+                      </TableCell>
+                      <TableCell 
+                        align="right" 
+                        sx={{ 
+                          fontWeight: 'bold', 
+                          fontSize: '0.875rem',
+                          backgroundColor: currentTheme === 'black' ? '#2a2a2a' : 'rgb(246, 246, 246)',
+                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                        }}
+                      >
+                        가격
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {menuHistoryList.length === 0 ? (
+                      <TableRow>
+                        <TableCell 
+                          colSpan={2} 
+                          align="center" 
+                          sx={{ 
+                            py: 3, 
+                            color: currentTheme === 'black' ? '#808080' : '#999999',
+                          }}
+                        >
+                          등록된 메뉴가 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      menuHistoryList.map((menuItem, index) => (
+                        <TableRow
+                          key={`${menuItem.menu}-${menuItem.cost}-${index}`}
+                          onClick={() => {
+                            // 첫 행이 비어있으면 첫 행에 반영, 아니면 새 행 추가
+                            setEditableMenus(prev => {
+                              if (prev.length > 0 && prev[0].menu.trim() === '' && prev[0].cost === 0) {
+                                // 첫 행이 비어있으면 첫 행에 반영
+                                return [
+                                  {
+                                    ...prev[0],
+                                    menu: menuItem.menu,
+                                    cost: menuItem.cost,
+                                  },
+                                  ...prev.slice(1),
+                                ];
+                              } else {
+                                // 새 행 추가
+                                const newMenu: EditableMenuItem = {
+                                  id: `menu-${Date.now()}-${index}`,
+                                  menu: menuItem.menu,
+                                  cost: menuItem.cost,
+                                };
+                                return [...prev, newMenu];
+                              }
+                            });
+                            setMenuHistoryDialogOpen(false);
+                          }}
+                          sx={{
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
+                            },
+                          }}
+                        >
+                          <TableCell 
+                            sx={{ 
+                              fontSize: '0.875rem',
+                              color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                            }}
+                          >
+                            {menuItem.menu}
+                          </TableCell>
+                          <TableCell 
+                            align="right" 
+                            sx={{ 
+                              fontSize: '0.875rem',
+                              color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                            }}
+                          >
+                            {menuItem.cost.toLocaleString()}원
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button
+                onClick={() => setMenuHistoryDialogOpen(false)}
+                sx={{
+                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                  '&:hover': {
+                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                  },
+                }}
+              >
+                닫기
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* 테마 선택 다이얼로그 */}
+          <Dialog
+            open={themeDialogOpen}
+            onClose={() => setThemeDialogOpen(false)}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                m: { xs: 0.5, sm: 2 },
+                width: { xs: 'calc(100% - 8px)', sm: 'auto' },
+                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
+              },
+            }}
+          >
+            <DialogTitle 
+              sx={{ 
+                pb: 2, 
+                pt: 2,
+                px: { xs: 1.5, sm: 3 },
+                borderBottom: 'none',
+                fontSize: 16,
+                fontWeight: 600,
+                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+              }}
+            >
+              테마 선택
+            </DialogTitle>
+            <DialogContent 
+              sx={{ 
+                px: { xs: 2, sm: 3 }, 
+                py: 2,
+              }}
+            >
+              <FormControl component="fieldset" fullWidth>
+                <RadioGroup
+                  value={selectedTheme}
+                  onChange={(e) => setSelectedTheme(e.target.value as 'white' | 'black')}
+                >
+                  <FormControlLabel
+                    value="white"
+                    control={<Radio />}
+                    label="화이트"
+                    sx={{
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                      '& .MuiRadio-root': {
+                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                        '&.Mui-checked': {
+                          color: currentTheme === 'black' ? '#ffffff' : '#000000',
+                        },
+                      },
+                    }}
+                  />
+                  <FormControlLabel
+                    value="black"
+                    control={<Radio />}
+                    label="블랙"
+                    sx={{
+                      color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
+                      '& .MuiRadio-root': {
+                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                        '&.Mui-checked': {
+                          color: currentTheme === 'black' ? '#ffffff' : '#000000',
+                        },
+                      },
+                    }}
+                  />
+                </RadioGroup>
+              </FormControl>
+            </DialogContent>
+            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2, pt: 1 }}>
+              <Button
+                onClick={() => setThemeDialogOpen(false)}
+                sx={{
+                  textTransform: 'none',
+                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                  '&:hover': {
+                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                  },
+                }}
+              >
+                닫기
+              </Button>
+              <Button
+                onClick={saveTheme}
+                variant="contained"
+                sx={{
+                  textTransform: 'none',
+                  backgroundColor: currentTheme === 'black' ? '#ffffff' : '#000000',
+                  color: currentTheme === 'black' ? '#000000' : '#ffffff',
+                  '&:hover': {
+                    backgroundColor: currentTheme === 'black' ? '#e0e0e0' : '#333333',
+                  },
+                }}
+              >
+                확인
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Snackbar */}
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={1000}
+            onClose={() => setSnackbarOpen(false)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            <Alert 
+              onClose={() => setSnackbarOpen(false)} 
+              severity="success" 
+              sx={{ width: '100%' }}
+            >
+              {snackbarMessage}
+            </Alert>
+          </Snackbar>
         </Container>
       </ProtectedRoute>
     </ThemeProvider>

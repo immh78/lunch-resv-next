@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PWA Icon Generator from restaurant-icon.svg</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px;
+            display: block;
+            background: white;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #333;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <div class="info">
+        <p><strong>사용 방법:</strong></p>
+        <ol>
+            <li>아래 버튼을 클릭하여 아이콘을 다운로드하세요.</li>
+            <li>다운로드한 파일을 <code>public</code> 폴더에 저장하세요.</li>
+            <li>파일명: <code>icon-192.png</code>, <code>icon-512.png</code></li>
+        </ol>
+    </div>
+    
+    <div>
+        <h3>192x192 아이콘</h3>
+        <canvas id="canvas192" width="192" height="192"></canvas>
+        <button onclick="downloadIcon(192)">Download icon-192.png</button>
+    </div>
+    
+    <div>
+        <h3>512x512 아이콘</h3>
+        <canvas id="canvas512" width="512" height="512"></canvas>
+        <button onclick="downloadIcon(512)">Download icon-512.png</button>
+    </div>
+
+    <script>
+        // restaurant-icon.svg의 경로 데이터
+        const svgPath = "M280-80v-366q-51-14-85.5-56T160-600v-280h80v280h40v-280h80v280h40v-280h80v280q0 56-34.5 98T360-446v366h-80Zm400 0v-320H560v-280q0-83 58.5-141.5T760-880v800h-80Z";
+        const viewBox = "0 -960 960 960";
+        
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // 배경 (흰색)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+            
+            // SVG를 이미지로 변환
+            const svg = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="${size}" height="${size}">
+                    <path d="${svgPath}" fill="#000000"/>
+                </svg>
+            `;
+            
+            const img = new Image();
+            const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            img.onload = function() {
+                ctx.clearRect(0, 0, size, size);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, size, size);
+                ctx.drawImage(img, 0, 0, size, size);
+                URL.revokeObjectURL(url);
+            };
+            
+            img.onerror = function() {
+                console.error('Failed to load SVG');
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            
+            // 캔버스가 비어있는지 확인
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const hasContent = imageData.data.some((channel, index) => {
+                // 알파 채널 확인 (4번째 값)
+                return index % 4 === 3 && channel > 0;
+            });
+            
+            if (!hasContent) {
+                alert('아이콘이 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // 페이지 로드 시 아이콘 그리기
+        window.onload = function() {
+            setTimeout(() => {
+                drawIcon(document.getElementById('canvas192'), 192);
+                drawIcon(document.getElementById('canvas512'), 512);
+            }, 100);
+        };
+    </script>
+</body>
+</html>
+

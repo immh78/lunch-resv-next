@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PWA Icon Generator</title>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <p>이 페이지를 브라우저에서 열고 아이콘을 생성하세요.</p>
+    <canvas id="canvas192" width="192" height="192" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    <canvas id="canvas512" width="512" height="512" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    <br>
+    <button onclick="downloadIcon(192)">Download 192x192</button>
+    <button onclick="downloadIcon(512)">Download 512x512</button>
+
+    <script>
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // 배경 (흰색)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+            
+            // 아이콘 색상 (검은색)
+            ctx.fillStyle = '#000000';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = size / 24;
+            
+            // Restaurant 아이콘 그리기 (Material Icons 스타일)
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const scale = size / 24;
+            
+            // 포크와 나이프 아이콘 그리기
+            ctx.beginPath();
+            // 포크
+            ctx.moveTo(centerX - scale * 4, centerY - scale * 6);
+            ctx.lineTo(centerX - scale * 4, centerY + scale * 6);
+            ctx.moveTo(centerX - scale * 3, centerY - scale * 5);
+            ctx.lineTo(centerX - scale * 3, centerY + scale * 5);
+            ctx.moveTo(centerX - scale * 2, centerY - scale * 4);
+            ctx.lineTo(centerX - scale * 2, centerY + scale * 4);
+            
+            // 나이프
+            ctx.moveTo(centerX + scale * 2, centerY - scale * 6);
+            ctx.lineTo(centerX + scale * 2, centerY + scale * 6);
+            ctx.moveTo(centerX + scale * 3, centerY - scale * 5);
+            ctx.lineTo(centerX + scale * 3, centerY + scale * 5);
+            ctx.moveTo(centerX + scale * 4, centerY - scale * 4);
+            ctx.lineTo(centerX + scale * 4, centerY + scale * 4);
+            
+            // 접시
+            ctx.arc(centerX, centerY + scale * 2, scale * 5, 0, Math.PI, false);
+            ctx.stroke();
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // 페이지 로드 시 아이콘 그리기
+        window.onload = function() {
+            drawIcon(document.getElementById('canvas192'), 192);
+            drawIcon(document.getElementById('canvas512'), 512);
+        };
+    </script>
+</body>
+</html>
+
