@@ -19,7 +19,6 @@ export type CalendarProps = Omit<
 
 const Calendar = ({
   className,
-  classNames,
   showOutsideDays = true,
   mode = "single",
   selected,
