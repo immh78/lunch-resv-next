@@ -1417,8 +1417,10 @@ export default function Home() {
                                   <Typography
                                     variant="body2"
                                     sx={{
-                                      color: isReceipt ? 'rgba(0, 0, 0, 0.2)' : amountColor,
-                                      opacity: isReceipt ? 0.3 : 1,
+                                      color: isReceipt 
+                                        ? (currentTheme === 'black' ? '#555555' : 'rgba(0, 0, 0, 0.2)')
+                                        : amountColor,
+                                      opacity: isReceipt ? (currentTheme === 'black' ? 1 : 0.3) : 1,
                                       fontSize: '0.75rem',
                                     }}
                                   >
@@ -1841,20 +1843,48 @@ export default function Home() {
                                   </IconButton>
                                   <IconButton 
                                     aria-label="추가"
+                                    tabIndex={-1}
+                                    disableRipple
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    onMouseUp={(e) => {
+                                      e.currentTarget.blur();
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.blur();
+                                    }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleAddRow();
+                                      // 클릭 후 즉시 포커스 제거
+                                      const target = e.currentTarget as HTMLElement;
+                                      setTimeout(() => {
+                                        if (target) {
+                                          target.blur();
+                                        }
+                                      }, 0);
                                     }}
                                     size="small"
                                     sx={{
                                       p: 0.5,
                                       color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                                      backgroundColor: 'transparent',
                                       '&:hover': {
                                         backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                                         color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                                       },
                                       '&:active': {
-                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                        backgroundColor: 'transparent !important',
+                                      },
+                                      '&:focus': {
+                                        backgroundColor: 'transparent !important',
+                                        outline: 'none',
+                                      },
+                                      '&:focus-visible': {
+                                        outline: 'none',
+                                        backgroundColor: 'transparent !important',
                                       },
                                     }}
                                   >
@@ -1979,20 +2009,48 @@ export default function Home() {
                                   <span>날짜</span>
                                   <IconButton 
                                     aria-label="추가"
+                                    tabIndex={-1}
+                                    disableRipple
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    onMouseUp={(e) => {
+                                      e.currentTarget.blur();
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.blur();
+                                    }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleAddPrepaymentRow();
+                                      // 클릭 후 즉시 포커스 제거
+                                      const target = e.currentTarget as HTMLElement;
+                                      setTimeout(() => {
+                                        if (target) {
+                                          target.blur();
+                                        }
+                                      }, 0);
                                     }}
                                     size="small"
                                     sx={{
                                       p: 0.5,
                                       color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
+                                      backgroundColor: 'transparent',
                                       '&:hover': {
                                         backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
                                         color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
                                       },
                                       '&:active': {
-                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
+                                        backgroundColor: 'transparent !important',
+                                      },
+                                      '&:focus': {
+                                        backgroundColor: 'transparent !important',
+                                        outline: 'none',
+                                      },
+                                      '&:focus-visible': {
+                                        outline: 'none',
+                                        backgroundColor: 'transparent !important',
                                       },
                                     }}
                                   >
