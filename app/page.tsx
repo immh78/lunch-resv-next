@@ -839,13 +839,13 @@ function RestaurantFormDialog({
 }: RestaurantFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85vh] max-w-md flex-col p-0">
+        <DialogHeader className="border-b border-border/50 px-5 py-4">
           <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
-          <DialogDescription>식당 정보를 입력하고 저장해주세요.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="space-y-4">
           {mode === 'create' && (
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground">식당 ID</Label>
@@ -926,34 +926,46 @@ function RestaurantFormDialog({
           </div>
 
           {mode === 'edit' && onToggleHide && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'w-full justify-start text-sm text-muted-foreground',
-                isHidden && 'text-destructive'
-              )}
-              onClick={onToggleHide}
-            >
-              <EyeOff className="mr-2 h-4 w-4" />
-              {isHidden ? '이 식당 다시 표시하기' : '이 식당 감추기'}
-            </Button>
+            <div className="flex items-center justify-between">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'justify-start text-sm text-muted-foreground',
+                  isHidden && 'text-destructive'
+                )}
+                onClick={onToggleHide}
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                {isHidden ? '이 식당 다시 표시하기' : '이 식당 감추기'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onSave}
+                disabled={saving}
+                className="h-8 w-8"
+              >
+                {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+              </Button>
+            </div>
           )}
+          {mode === 'create' && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onSave}
+                disabled={saving || !restaurant.id || !restaurant.name}
+                className="h-8 w-8"
+              >
+                {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+          </div>
         </div>
-
-        <DialogFooter className="mt-6">
-          <Button variant="outline" onClick={onClose}>
-            닫기
-          </Button>
-          <Button
-            onClick={onSave}
-            disabled={saving || (mode === 'create' && (!restaurant.id || !restaurant.name))}
-          >
-            {saving && <Spinner size="sm" className="mr-2" />}
-            저장
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
