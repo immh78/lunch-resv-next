@@ -1413,17 +1413,17 @@ export default function Home() {
                               }}
                             >
                               <Box>
-                                {menuText && (
-                                  <Typography
-                                    variant="body2"
-                                    sx={{
-                                      color: isReceipt 
-                                        ? (currentTheme === 'black' ? '#555555' : 'rgba(0, 0, 0, 0.2)')
-                                        : amountColor,
-                                      opacity: isReceipt ? (currentTheme === 'black' ? 1 : 0.3) : 1,
-                                      fontSize: '0.75rem',
-                                    }}
-                                  >
+                                  {menuText && (
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: isReceipt 
+                                          ? (currentTheme === 'black' ? '#555555' : '#9ca3af')
+                                          : amountColor,
+                                        opacity: isReceipt ? (currentTheme === 'black' ? 1 : 0.6) : 1,
+                                        fontSize: '0.75rem',
+                                      }}
+                                    >
                                     {menuText}
                                   </Typography>
                                 )}
