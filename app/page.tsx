@@ -1,188 +1,80 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 import { ref, onValue, set, remove, get } from 'firebase/database';
+import { toast } from 'sonner';
+
 import { database } from '@/lib/firebase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import {
-  Container,
-  Typography,
-  Box,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  Link,
-  CircularProgress,
-  IconButton,
+} from '@/components/ui/table';
+import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Divider,
-  Tabs,
-  Tab,
-  AppBar,
-  Toolbar,
-  Button,
-  Menu,
-  MenuItem,
-  InputAdornment,
-  Snackbar,
-  Alert,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormControl,
-} from '@mui/material';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import PhoneIcon from '@mui/icons-material/Phone';
-import NavigationIcon from '@mui/icons-material/Navigation';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import ShareIcon from '@mui/icons-material/Share';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import SaveIcon from '@mui/icons-material/Save';
-import DeleteIcon from '@mui/icons-material/Delete';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import ClearIcon from '@mui/icons-material/Clear';
-import EditIcon from '@mui/icons-material/Edit';
-import CameraAltIcon from '@mui/icons-material/CameraAlt';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import LunchDiningIcon from '@mui/icons-material/LunchDining';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import RamenDiningIcon from '@mui/icons-material/RamenDining';
-import LocalDiningIcon from '@mui/icons-material/LocalDining';
-import SetMealIcon from '@mui/icons-material/SetMeal';
-import GroupsIcon from '@mui/icons-material/Groups';
-import CoffeeIcon from '@mui/icons-material/Coffee';
-import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import PaletteIcon from '@mui/icons-material/Palette';
-import TextField from '@mui/material/TextField';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs, { Dayjs } from 'dayjs';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
-const createAppTheme = (themeMode: 'white' | 'black') => {
-  const isDark = themeMode === 'black';
-  
-  return createTheme({
-    typography: {
-      fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontSize: 14,
-      fontWeightRegular: 400,
-      fontWeightMedium: 500,
-      fontWeightBold: 600,
-    },
-    palette: {
-      mode: isDark ? 'dark' : 'light',
-      primary: {
-        main: isDark ? '#ffffff' : '#000000',
-        contrastText: isDark ? '#000000' : '#ffffff',
-      },
-      background: {
-        default: isDark ? '#000000' : '#ffffff',
-        paper: isDark ? '#1a1a1a' : '#ffffff',
-      },
-      text: {
-        primary: isDark ? '#ffffff' : '#0a0a0a',
-        secondary: isDark ? '#b0b0b0' : '#666666',
-      },
-      divider: isDark ? '#333333' : '#e5e5e5',
-      action: {
-        hover: isDark ? '#1a1a1a' : '#f5f5f5',
-        selected: isDark ? '#ffffff' : '#000000',
-      },
-    },
-    shape: {
-      borderRadius: 2,
-    },
-    components: {
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            textTransform: 'none',
-            fontWeight: 500,
-            borderRadius: 2,
-            padding: '6px 12px',
-          },
-        },
-      },
-      MuiTableCell: {
-        styleOverrides: {
-          root: {
-            borderColor: isDark ? '#333333' : '#e5e5e5',
-            fontSize: 14,
-            padding: '12px 16px',
-          },
-          head: {
-            fontWeight: 600,
-            fontSize: 13,
-            color: isDark ? '#b0b0b0' : '#666666',
-            backgroundColor: isDark ? '#1a1a1a' : '#fafafa',
-          },
-        },
-      },
-      MuiTableRow: {
-        styleOverrides: {
-          root: {
-            '&:hover': {
-              backgroundColor: isDark ? '#1a1a1a' : '#fafafa',
-            },
-          },
-        },
-      },
-      MuiDialog: {
-        styleOverrides: {
-          paper: {
-            borderRadius: 12,
-            boxShadow: isDark 
-              ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
-              : '0 8px 32px rgba(0, 0, 0, 0.08)',
-            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-          },
-        },
-      },
-      MuiTextField: {
-        styleOverrides: {
-          root: {
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              fontSize: 14,
-            },
-          },
-        },
-      },
-      MuiIconButton: {
-        styleOverrides: {
-          root: {
-            borderRadius: 2,
-          },
-        },
-      },
-      MuiAppBar: {
-        styleOverrides: {
-          root: {
-            backgroundColor: isDark ? '#000000' : '#ffffff',
-            color: isDark ? '#ffffff' : '#0a0a0a',
-          },
-        },
-      },
-    },
-  });
-};
+import {
+  UtensilsCrossed,
+  MoreVertical,
+  Phone,
+  Navigation,
+  MoreHorizontal,
+  Share2,
+  Receipt,
+  Save,
+  Trash2,
+  X,
+  Pencil,
+  Clock3,
+  PlusCircle,
+  XCircle,
+  BookOpen,
+  Camera,
+  EyeOff,
+  Palette,
+} from 'lucide-react';
 
-// Cloudinary 타입 정의
+type ThemeMode = 'white' | 'black';
+
 interface CloudinaryWindow extends Window {
   cloudinary?: {
     createUploadWidget: (
@@ -238,14 +130,14 @@ interface ReservationData {
 
 interface PrepaymentItem {
   amount: number;
-  date: string; // yyyyMMdd
+  date: string;
 }
 
 interface EditablePrepaymentItem {
   id: string;
   amount: number;
-  date: string; // yyyyMMdd
-  dateValue: Dayjs | null;
+  date: string;
+  dateValue: Date | null;
 }
 
 interface RestaurantWithReservation extends Restaurant {
@@ -254,31 +146,943 @@ interface RestaurantWithReservation extends Restaurant {
   prepaymentTotal?: number;
 }
 
+interface MenuHistoryItem {
+  menu: string;
+  cost: number;
+}
+
+type DeleteTarget = 'reservation' | 'prepayment';
+
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+const formatCurrency = (value: number) => value.toLocaleString('ko-KR');
+
+const getNextFriday = (): string => {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  let daysUntilFriday = 5 - dayOfWeek;
+  if (daysUntilFriday <= 0) {
+    daysUntilFriday += 7;
+  }
+  const nextFriday = new Date(today);
+  nextFriday.setDate(today.getDate() + daysUntilFriday);
+  return dayjs(nextFriday).format('YYYYMMDD');
+};
+
+const compactToDate = (value?: string): Date | null => {
+  if (!value || value.length !== 8) {
+    return null;
+  }
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(4, 6)) - 1;
+  const day = Number(value.slice(6, 8));
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return null;
+  }
+  return new Date(year, month, day);
+};
+
+const displayToDate = (value?: string): Date | null => {
+  if (!value) return null;
+  const parts = value.split('.');
+  if (parts.length !== 3) return null;
+  const [yearStr, monthStr, dayStr] = parts;
+  const year = Number(yearStr);
+  const month = Number(monthStr) - 1;
+  const day = Number(dayStr);
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return null;
+  }
+  return new Date(year, month, day);
+};
+
+const dateToDisplay = (date: Date | null): string => {
+  if (!date || Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return dayjs(date).format('YYYY.MM.DD');
+};
+
+const compactToDisplay = (value?: string): string => dateToDisplay(compactToDate(value));
+
+const displayToCompact = (value: string): string => value.replace(/\./g, '');
+
+const formatShareDate = (value: string): string => {
+  const date = compactToDate(value);
+  if (!date) return '';
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekday = WEEKDAYS[date.getDay()];
+  return `${month}.${day}(${weekday})`;
+};
+
+const formatShareReservationDate = (value: string): string => {
+  const date = displayToDate(value);
+  if (!date) return '';
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekday = WEEKDAYS[date.getDay()];
+  return `${month}.${day} (${weekday})`;
+};
+
+const sumMenuAmount = (menus: { cost: number }[]): number =>
+  menus.reduce((sum, menu) => sum + (menu.cost || 0), 0);
+
+const sumPrepaymentAmount = (items: { amount: number }[]): number =>
+  items.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+const getAmountColor = (total: number, prepayment: number, isReceipt: boolean): string => {
+  if (isReceipt || total === 0) {
+    return 'text-muted-foreground';
+  }
+  if (prepayment >= total) {
+    return 'text-sky-500';
+  }
+  if (prepayment === 0) {
+    return 'text-red-500';
+  }
+  return 'text-amber-500';
+};
+
+const todayCompact = () => dayjs().format('YYYYMMDD');
+
+type RestaurantListProps = {
+  restaurants: RestaurantWithReservation[];
+  hiddenIds: string[];
+  showHidden: boolean;
+  onShowHidden: () => void;
+  onSelect: (restaurant: RestaurantWithReservation) => void;
+  loading: boolean;
+  error: string;
+  currentTheme: ThemeMode;
+};
+
+function RestaurantList({
+  restaurants,
+  hiddenIds,
+  showHidden,
+  onShowHidden,
+  onSelect,
+  loading,
+  error,
+  currentTheme,
+}: RestaurantListProps) {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const hiddenSet = new Set(hiddenIds);
+  const visibleRestaurants = restaurants.filter((restaurant) => !hiddenSet.has(restaurant.id));
+  const hiddenRestaurants = restaurants.filter((restaurant) => hiddenSet.has(restaurant.id));
+  const rows = showHidden ? [...visibleRestaurants, ...hiddenRestaurants] : visibleRestaurants;
+  const hasHidden = hiddenRestaurants.length > 0;
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow className="border-border/40">
+          <TableHead className="w-[38%] text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            식당
+          </TableHead>
+          <TableHead className="w-[42%] text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            예약메뉴
+          </TableHead>
+          <TableHead className="w-[20%] text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            전화/네비
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((restaurant) => {
+          const reservation = restaurant.reservation;
+          const isReceipt = reservation ? reservation.isReceipt : true;
+          const menus = reservation?.menus ?? [];
+          const menuText = menus.map((menu) => menu.menu).join(' + ');
+          const totalAmount = sumMenuAmount(menus);
+          const prepaymentTotal = restaurant.prepaymentTotal ?? 0;
+          const remaining = Math.max(totalAmount - prepaymentTotal, 0);
+          const amountColor = getAmountColor(totalAmount, prepaymentTotal, !!isReceipt);
+
+          return (
+            <TableRow
+              key={restaurant.id}
+              onClick={() => onSelect(restaurant)}
+              className={cn(
+                'cursor-pointer border-border/30 transition hover:bg-muted/70',
+                isReceipt && 'opacity-60'
+              )}
+            >
+              <TableCell className="align-middle">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'w-full justify-start truncate',
+                    !isReceipt && 'font-semibold text-foreground'
+                  )}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(restaurant);
+                  }}
+                >
+                  {restaurant.name}
+                </Button>
+              </TableCell>
+              <TableCell className="align-middle">
+                <div className="flex flex-col gap-1">
+                  {menuText ? (
+                    <span className={cn('text-xs', amountColor)}>{menuText}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">예약 없음</span>
+                  )}
+                  {!isReceipt && (
+                    <>
+                      {prepaymentTotal === 0 ? (
+                        <span className="text-xs text-muted-foreground">
+                          ({formatCurrency(totalAmount)})
+                        </span>
+                      ) : (
+                        remaining > 0 &&
+                        remaining !== totalAmount && (
+                          <span className="text-xs text-muted-foreground">
+                            ({formatCurrency(remaining)})
+                          </span>
+                        )
+                      )}
+                    </>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="align-middle">
+                <div className="flex items-center justify-end gap-2">
+                  <a
+                    href={`tel:${restaurant.telNo}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className={cn(
+                      'rounded-full p-1 transition',
+                      currentTheme === 'white' ? 'text-black hover:text-black/80' : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <Phone className="h-4 w-4" />
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={!restaurant.naviUrl}
+                    className={cn(
+                      'h-8 w-8',
+                      !restaurant.naviUrl && 'pointer-events-none'
+                    )}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (restaurant.naviUrl) {
+                        const baseUrl = 'https://map.naver.com/v5/search/';
+                        window.open(`${baseUrl}${encodeURIComponent(restaurant.naviUrl)}`, '_blank');
+                      }
+                    }}
+                  >
+                    <Navigation
+                      className={cn(
+                        'h-4 w-4',
+                        !restaurant.naviUrl && currentTheme === 'white' && 'text-gray-400',
+                        !restaurant.naviUrl && currentTheme === 'black' && 'text-gray-600'
+                      )}
+                    />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+
+        {!rows.length && (
+          <TableRow>
+            <TableCell
+              colSpan={3}
+              className="py-10 text-center text-sm text-muted-foreground"
+            >
+              등록된 식당이 없습니다.
+            </TableCell>
+          </TableRow>
+        )}
+
+        {!showHidden && hasHidden && (
+          <TableRow>
+            <TableCell colSpan={3} className="px-0">
+              <div className="flex justify-center py-2">
+                <Button variant="ghost" size="icon" onClick={onShowHidden}>
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
+type RestaurantDetailDialogProps = {
+  open: boolean;
+  restaurant: RestaurantWithReservation | null;
+  menuRows: EditableMenuItem[];
+  onMenuChange: (id: string, field: 'menu' | 'cost', value: string | number) => void;
+  onAddMenuRow: () => void;
+  onRemoveMenuRow: (id: string) => void;
+  reservationDate: string;
+  onReservationDateChange: (date: Date | undefined) => void;
+  prepaymentRows: EditablePrepaymentItem[];
+  onPrepaymentAmountChange: (id: string, amount: number) => void;
+  onPrepaymentDateChange: (id: string, date: Date | undefined) => void;
+  onAddPrepaymentRow: () => void;
+  onRemovePrepaymentRow: (id: string) => void;
+  onShare: () => void;
+  onReceipt: () => void;
+  onSaveMenus: () => void;
+  onDeleteMenus: () => void;
+  onSavePrepayments: () => void;
+  onDeletePrepayments: () => void;
+  onClose: () => void;
+  onOpenMenuHistory: () => void;
+  onOpenRestaurantEditor: () => void;
+  onOpenMenuResource: () => void;
+  currentTab: 'menu' | 'prepayment';
+  onTabChange: (tab: 'menu' | 'prepayment') => void;
+  savingMenus: boolean;
+  savingPrepayments: boolean;
+  isReceipt: boolean;
+  summary: { total: number; prepayment: number; remaining: number };
+};
+
+function RestaurantDetailDialog({
+  open,
+  restaurant,
+  menuRows,
+  onMenuChange,
+  onAddMenuRow,
+  onRemoveMenuRow,
+  reservationDate,
+  onReservationDateChange,
+  prepaymentRows,
+  onPrepaymentAmountChange,
+  onPrepaymentDateChange,
+  onAddPrepaymentRow,
+  onRemovePrepaymentRow,
+  onShare,
+  onReceipt,
+  onSaveMenus,
+  onDeleteMenus,
+  onSavePrepayments,
+  onDeletePrepayments,
+  onClose,
+  onOpenMenuHistory,
+  onOpenRestaurantEditor,
+  onOpenMenuResource,
+  currentTab,
+  onTabChange,
+  savingMenus,
+  savingPrepayments,
+  isReceipt,
+  summary,
+}: RestaurantDetailDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="mx-auto flex h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] flex-col items-start justify-center px-1 pt-[5vh] [&>div]:max-w-full [&>div]:w-full [&>div]:rounded-sm">
+        {restaurant && (
+          <>
+            <DialogHeader className="space-y-0 border-b border-border/50 px-5 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="text-base font-semibold">
+                    {restaurant.name}
+                  </DialogTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground"
+                    onClick={onOpenRestaurantEditor}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  {(restaurant.menuImgId || restaurant.menuUrl) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground"
+                      onClick={onOpenMenuResource}
+                    >
+                      <BookOpen className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {summary.total > 0 && (
+                <Alert variant="subtle" className="mt-4 border-none bg-muted">
+                  <AlertDescription className="text-xs text-muted-foreground">
+                    가격 {formatCurrency(summary.total)}원 - 선결제 {formatCurrency(summary.prepayment)}원 ={' '}
+                    {formatCurrency(summary.remaining)}원
+                  </AlertDescription>
+                </Alert>
+              )}
+            </DialogHeader>
+
+            <div className="px-5 pt-4">
+              <Tabs value={currentTab} onValueChange={(value) => onTabChange(value as 'menu' | 'prepayment')}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="menu">메뉴</TabsTrigger>
+                  <TabsTrigger value="prepayment">선결제</TabsTrigger>
+                </TabsList>
+                <TabsContent value="menu" className="pt-4">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-muted-foreground">예약일</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between font-normal"
+                          >
+                            {reservationDate || '예약일을 선택하세요'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={displayToDate(reservationDate) ?? undefined}
+                            onSelect={onReservationDateChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="rounded-sm border border-border">
+                      <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="flex items-center gap-2">
+                          메뉴
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground"
+                            onClick={onOpenMenuHistory}
+                          >
+                            <Clock3 className="h-4 w-4" />
+                          </Button>
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground"
+                          onClick={onAddMenuRow}
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="divide-y divide-border/60">
+                        {menuRows.map((menu) => (
+                          <div
+                            key={menu.id}
+                            className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
+                          >
+                            <Input
+                              value={menu.menu}
+                              onChange={(event) =>
+                                onMenuChange(menu.id, 'menu', event.target.value)
+                              }
+                              placeholder="메뉴"
+                              className="text-sm"
+                            />
+                            <Input
+                              type="number"
+                              min={0}
+                              step={100}
+                              value={menu.cost || ''}
+                              onChange={(event) =>
+                                onMenuChange(
+                                  menu.id,
+                                  'cost',
+                                  Number(event.target.value) || 0
+                                )
+                              }
+                              placeholder="금액"
+                              className="w-24 text-right text-sm"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => onRemoveMenuRow(menu.id)}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="prepayment" className="pt-4">
+                  <div className="rounded-sm border border-border">
+                    <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span>선결제</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground"
+                        onClick={onAddPrepaymentRow}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="divide-y divide-border/60">
+                      {prepaymentRows.map((item) => (
+                        <div
+                          key={item.id}
+                          className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
+                        >
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="justify-start text-left font-normal"
+                              >
+                                {item.date ? compactToDisplay(item.date) : '날짜'}
+                              </Button>
+                            </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={item.dateValue ?? compactToDate(item.date) ?? undefined}
+                                  onSelect={(date) => onPrepaymentDateChange(item.id, date)}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                          </Popover>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={100}
+                            value={item.amount || ''}
+                            onChange={(event) =>
+                              onPrepaymentAmountChange(
+                                item.id,
+                                Number(event.target.value) || 0
+                              )
+                            }
+                            placeholder="금액"
+                            className="w-24 text-right text-sm"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => onRemovePrepaymentRow(item.id)}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            <DialogFooter className="mt-auto border-t border-border/50 px-5 py-4">
+              <div className="flex w-full flex-wrap items-center justify-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onShare}
+                  disabled={isReceipt}
+                  className={cn('h-9 w-9', isReceipt && 'text-gray-400')}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onReceipt}
+                  disabled={isReceipt}
+                  className={cn('h-9 w-9', isReceipt && 'text-gray-400')}
+                >
+                  <Receipt className="h-4 w-4" />
+                </Button>
+                {currentTab === 'menu' ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onSaveMenus}
+                      disabled={savingMenus}
+                      className={cn('h-9 w-9', savingMenus && 'text-gray-400')}
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onDeleteMenus}
+                      disabled={isReceipt}
+                      className={cn('h-9 w-9 text-destructive', isReceipt && 'text-gray-400')}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onSavePrepayments}
+                      disabled={savingPrepayments}
+                      className={cn('h-9 w-9', savingPrepayments && 'text-gray-400')}
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onDeletePrepayments}
+                      disabled={isReceipt}
+                      className={cn('h-9 w-9 text-destructive', isReceipt && 'text-gray-400')}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type MenuHistoryDialogProps = {
+  open: boolean;
+  menus: MenuHistoryItem[];
+  onClose: () => void;
+  onSelect: (menu: MenuHistoryItem) => void;
+};
+
+function MenuHistoryDialog({ open, menus, onClose, onSelect }: MenuHistoryDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>메뉴 히스토리</DialogTitle>
+          <DialogDescription>이전에 등록한 메뉴를 빠르게 불러올 수 있어요.</DialogDescription>
+        </DialogHeader>
+        <div className="max-h-80 space-y-2 overflow-y-auto">
+          {menus.length === 0 ? (
+            <p className="text-sm text-muted-foreground">등록된 메뉴가 없습니다.</p>
+          ) : (
+            menus.map((menu) => (
+              <button
+                key={`${menu.menu}-${menu.cost}`}
+                type="button"
+                className="flex w-full items-center justify-between rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted"
+                onClick={() => onSelect(menu)}
+              >
+                <span>{menu.menu}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatCurrency(menu.cost)}원
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type RestaurantFormDialogProps = {
+  open: boolean;
+  mode: 'edit' | 'create';
+  restaurant: Restaurant;
+  onChange: (updates: Partial<Restaurant>) => void;
+  onClose: () => void;
+  onSave: () => void;
+  saving: boolean;
+  onToggleHide?: () => void;
+  isHidden?: boolean;
+  onOpenUpload: () => void;
+};
+
+function RestaurantFormDialog({
+  open,
+  mode,
+  restaurant,
+  onChange,
+  onClose,
+  onSave,
+  saving,
+  onToggleHide,
+  isHidden = false,
+  onOpenUpload,
+}: RestaurantFormDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="flex max-h-[85vh] max-w-md flex-col p-0">
+        <DialogHeader className="border-b border-border/50 px-5 py-4">
+          <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="space-y-4">
+          {mode === 'create' && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">식당 ID</Label>
+              <Input
+                value={restaurant.id}
+                onChange={(event) =>
+                  onChange({
+                    id: event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                  })
+                }
+                placeholder="영문 대문자와 숫자 조합"
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">식당명</Label>
+            <Input
+              value={restaurant.name}
+              onChange={(event) => onChange({ name: event.target.value })}
+              placeholder="식당명을 입력하세요"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">종류</Label>
+            <Input
+              value={restaurant.kind ?? ''}
+              onChange={(event) => onChange({ kind: event.target.value })}
+              placeholder="식당 종류"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">전화번호</Label>
+            <Input
+              value={restaurant.telNo ?? ''}
+              onChange={(event) => onChange({ telNo: event.target.value })}
+              placeholder="전화번호"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">메뉴 URL</Label>
+            <Input
+              value={restaurant.menuUrl ?? ''}
+              onChange={(event) => onChange({ menuUrl: event.target.value })}
+              placeholder="메뉴 페이지 URL"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">메뉴 이미지 ID</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={restaurant.menuImgId ?? ''}
+                onChange={(event) => onChange({ menuImgId: event.target.value })}
+                placeholder="Cloudinary 이미지 ID"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground"
+                onClick={onOpenUpload}
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">식당 위치</Label>
+            <Input
+              value={restaurant.naviUrl ?? ''}
+              onChange={(event) => onChange({ naviUrl: event.target.value })}
+              placeholder="네이버 지도 검색어 또는 주소"
+            />
+          </div>
+
+          {mode === 'edit' && onToggleHide && (
+            <div className="flex items-center justify-between">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'justify-start text-sm text-muted-foreground',
+                  isHidden && 'text-destructive'
+                )}
+                onClick={onToggleHide}
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                {isHidden ? '이 식당 다시 표시하기' : '이 식당 감추기'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onSave}
+                disabled={saving}
+                className="h-8 w-8"
+              >
+                {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+          {mode === 'create' && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onSave}
+                disabled={saving || !restaurant.id || !restaurant.name}
+                className="h-8 w-8"
+              >
+                {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type ThemeDialogProps = {
+  open: boolean;
+  selectedTheme: ThemeMode;
+  onChange: (theme: ThemeMode) => void;
+  onClose: () => void;
+  onSave: () => void;
+  saving: boolean;
+};
+
+function ThemeDialog({ open, selectedTheme, onChange, onClose, onSave, saving }: ThemeDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>테마 설정</DialogTitle>
+          <DialogDescription>선호하는 테마를 선택해주세요.</DialogDescription>
+        </DialogHeader>
+        <RadioGroup
+          value={selectedTheme}
+          onValueChange={(value) => onChange(value as ThemeMode)}
+          className="space-y-3"
+        >
+          <div className="flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-sm">
+            <RadioGroupItem value="white" id="theme-white" />
+            <Label htmlFor="theme-white" className="cursor-pointer">
+              화이트
+            </Label>
+          </div>
+          <div className="flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-sm">
+            <RadioGroupItem value="black" id="theme-black" />
+            <Label htmlFor="theme-black" className="cursor-pointer">
+              블랙
+            </Label>
+          </div>
+        </RadioGroup>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            닫기
+          </Button>
+          <Button onClick={onSave} disabled={saving}>
+            {saving && <Spinner size="sm" className="mr-2" />}
+            확인
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type DeleteConfirmDialogProps = {
+  open: boolean;
+  target: DeleteTarget | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+function DeleteConfirmDialog({ open, target, onCancel, onConfirm }: DeleteConfirmDialogProps) {
+  return (
+    <AlertDialog open={open} onOpenChange={(next) => !next && onCancel()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>삭제하시겠어요?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {target === 'prepayment'
+              ? '선결제 내역을 모두 삭제합니다.'
+              : '선택한 식당의 예약 정보를 삭제합니다.'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onCancel}>취소</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(event) => {
+              event.preventDefault();
+              onConfirm();
+            }}
+          >
+            삭제
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export default function Home() {
   const { user } = useAuth();
+
   const [restaurants, setRestaurants] = useState<RestaurantWithReservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantWithReservation | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editableMenus, setEditableMenus] = useState<EditableMenuItem[]>([]);
-  const [editableDate, setEditableDate] = useState<string>('');
-  const [editableDateValue, setEditableDateValue] = useState<Dayjs | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [currentTab, setCurrentTab] = useState(0);
-  const [prepayments, setPrepayments] = useState<EditablePrepaymentItem[]>([]);
-  const [savingPrepayment, setSavingPrepayment] = useState(false);
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [restaurantEditDialogOpen, setRestaurantEditDialogOpen] = useState(false);
-  const [restaurantAddDialogOpen, setRestaurantAddDialogOpen] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
-  const [deleteType, setDeleteType] = useState<'reservation' | 'prepayment' | null>(null);
-  const [menuHistoryDialogOpen, setMenuHistoryDialogOpen] = useState(false);
-  const [menuHistoryList, setMenuHistoryList] = useState<{ menu: string; cost: number }[]>([]);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [menuRows, setMenuRows] = useState<EditableMenuItem[]>([]);
+  const [reservationDate, setReservationDate] = useState<string>('');
+  const [prepaymentRows, setPrepaymentRows] = useState<EditablePrepaymentItem[]>([]);
+  const [currentTab, setCurrentTab] = useState<'menu' | 'prepayment'>('menu');
+  const [savingMenus, setSavingMenus] = useState(false);
+  const [savingPrepayments, setSavingPrepayments] = useState(false);
+
+  const [deleteState, setDeleteState] = useState<{ open: boolean; target: DeleteTarget | null }>({
+    open: false,
+    target: null,
+  });
+
+  const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
+  const [menuHistoryList, setMenuHistoryList] = useState<MenuHistoryItem[]>([]);
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editableRestaurant, setEditableRestaurant] = useState<Restaurant | null>(null);
-  const [newRestaurant, setNewRestaurant] = useState<Omit<Restaurant, 'id'> & { id: string }>({
+  const [newRestaurant, setNewRestaurant] = useState<Restaurant>({
     id: '',
     name: '',
     telNo: '',
@@ -287,97 +1091,95 @@ export default function Home() {
     menuUrl: '',
     naviUrl: '',
   });
-  const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
-  const [currentTheme, setCurrentTheme] = useState<'white' | 'black'>('white');
-  const [showHiddenRestaurants, setShowHiddenRestaurants] = useState(false);
-  const [hiddenRestaurantIds, setHiddenRestaurantIds] = useState<string[]>([]);
-  const [themeDialogOpen, setThemeDialogOpen] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState<'white' | 'black'>('white');
+  const [savingRestaurant, setSavingRestaurant] = useState(false);
+  const [creatingRestaurant, setCreatingRestaurant] = useState(false);
 
-  // Cloudinary widget 초기화
+  const [currentTheme, setCurrentTheme] = useState<ThemeMode>('white');
+  const [selectedTheme, setSelectedTheme] = useState<ThemeMode>('white');
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const [savingTheme, setSavingTheme] = useState(false);
+
+  const [hiddenRestaurantIds, setHiddenRestaurantIds] = useState<string[]>([]);
+  const [showHidden, setShowHidden] = useState(false);
+
+  const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
+
   useEffect(() => {
-    const initCloudinaryWidget = () => {
-      if (typeof window !== 'undefined') {
-        const cloudinaryWindow = window as unknown as CloudinaryWindow;
-        if (cloudinaryWindow.cloudinary) {
-          const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
-          const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
-          
-          const widget = cloudinaryWindow.cloudinary.createUploadWidget(
-            {
-              cloudName,
-              uploadPreset,
-              sources: ['local', 'url', 'camera'],
-              multiple: false,
-              folder: 'images',
-              maxFileSize: 5_000_000,
-              cropping: false,
-              clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-              showAdvancedOptions: false,
-              showPoweredBy: false,
-              styles: { palette: { windowBorder: '#ddd' } }
-            },
-            (error: Error | null, result: { event?: string; info?: { public_id: string } }) => {
-              if (!error && result && result.event === 'success' && result.info) {
-                const publicId = result.info.public_id;
-                
-                // 현재 열려있는 다이얼로그에 따라 menuImgId 업데이트
-                // 함수형 업데이트를 사용하여 최신 상태를 보장
-                setEditableRestaurant(prev => {
-                  if (prev && restaurantEditDialogOpen) {
-                    return { ...prev, menuImgId: publicId };
-                  }
-                  return prev;
-                });
-                
-                setNewRestaurant(prev => {
-                  if (restaurantAddDialogOpen) {
-                    return { ...prev, menuImgId: publicId };
-                  }
-                  return prev;
-                });
-              } else if (result && result.event === 'close') {
-                // 닫기 시 아무것도 하지 않음
-              } else if (error) {
-                console.error('Cloudinary upload error:', error);
-              }
-            }
-          );
-          
-          setUploadWidget(widget);
+    document.documentElement.classList.toggle('dark', currentTheme === 'black');
+  }, [currentTheme]);
+
+  useEffect(() => {
+    if (!hiddenRestaurantIds.length) {
+      setShowHidden(false);
+    }
+  }, [hiddenRestaurantIds]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const cloudinaryWindow = window as unknown as CloudinaryWindow;
+
+    const setup = () => {
+      if (!cloudinaryWindow.cloudinary) return;
+
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
+
+      const widget = cloudinaryWindow.cloudinary.createUploadWidget(
+        {
+          cloudName,
+          uploadPreset,
+          sources: ['local', 'url', 'camera'],
+          multiple: false,
+          folder: 'images',
+          maxFileSize: 5_000_000,
+          cropping: false,
+          clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+          showAdvancedOptions: false,
+          showPoweredBy: false,
+          styles: { palette: { windowBorder: '#ddd' } },
+        },
+        (error: Error | null, result: { event?: string; info?: { public_id: string } }) => {
+          if (!error && result && result.event === 'success' && result.info) {
+            const publicId = result.info.public_id;
+            setEditableRestaurant((prev) =>
+              prev && editDialogOpen ? { ...prev, menuImgId: publicId } : prev
+            );
+            setNewRestaurant((prev) =>
+              createDialogOpen ? { ...prev, menuImgId: publicId } : prev
+            );
+          }
         }
-      }
+      );
+
+      setUploadWidget(widget);
     };
 
-    // Cloudinary 스크립트가 로드되었는지 확인
-    if (typeof window !== 'undefined') {
-      const cloudinaryWindow = window as unknown as CloudinaryWindow;
-      if (cloudinaryWindow.cloudinary) {
-        initCloudinaryWidget();
-      } else {
-        // 스크립트 로드를 기다림
-        const checkCloudinary = setInterval(() => {
-          if (cloudinaryWindow.cloudinary) {
-            initCloudinaryWidget();
-            clearInterval(checkCloudinary);
-          }
-        }, 100);
-
-        // 10초 후 타임아웃
-        setTimeout(() => {
-          clearInterval(checkCloudinary);
-        }, 10000);
-      }
+    if (cloudinaryWindow.cloudinary) {
+      setup();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantEditDialogOpen, restaurantAddDialogOpen]);
 
-  // 테마 로드
+    const interval = setInterval(() => {
+      if (cloudinaryWindow.cloudinary) {
+        setup();
+        clearInterval(interval);
+      }
+    }, 150);
+
+    const timeout = setTimeout(() => clearInterval(interval), 10_000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [editDialogOpen, createDialogOpen]);
+
   useEffect(() => {
     if (!user) return;
 
     const themeRef = ref(database, `food-resv/theme/${user.uid}`);
-    const unsubscribeTheme = onValue(
+    const unsubscribe = onValue(
       themeRef,
       (snapshot) => {
         if (snapshot.exists()) {
@@ -393,30 +1195,8 @@ export default function Home() {
       }
     );
 
-    return () => {
-      unsubscribeTheme();
-    };
+    return () => unsubscribe();
   }, [user]);
-
-  // 테마 저장
-  const saveTheme = async () => {
-    if (!user) return;
-
-    try {
-      const themeRef = ref(database, `food-resv/theme/${user.uid}`);
-      await set(themeRef, { theme: selectedTheme });
-      setCurrentTheme(selectedTheme);
-      setThemeDialogOpen(false);
-    } catch (error) {
-      console.error('Error saving theme:', error);
-      alert('테마 저장 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleThemeDialogOpen = () => {
-    setSelectedTheme(currentTheme);
-    setThemeDialogOpen(true);
-  };
 
   useEffect(() => {
     if (!user) return;
@@ -424,24 +1204,74 @@ export default function Home() {
     const restaurantsRef = ref(database, 'food-resv/restaurant');
     const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
     const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}`);
-    const hideRestaurantRef = ref(database, `food-resv/hideRestaurant/${user.uid}`);
-    
-    let restaurantsData: { [key: string]: Restaurant } = {};
-    let reservationData: { [key: string]: { [date: string]: ReservationData } } = {};
-    let prepaymentData: { [key: string]: PrepaymentItem[] } = {};
-    let hideRestaurantData: string[] = [];
+    const hideRef = ref(database, `food-resv/hideRestaurant/${user.uid}`);
 
-    const unsubscribeRestaurants = onValue(
+    let restaurantData: Record<string, Restaurant> = {};
+    let reservationData: Record<string, Record<string, ReservationData>> = {};
+    let prepaymentData: Record<string, PrepaymentItem[]> = {};
+    let hideData: string[] = [];
+
+    const combine = () => {
+      if (!restaurantData || Object.keys(restaurantData).length === 0) {
+        setRestaurants([]);
+        setLoading(false);
+        return;
+      }
+
+      const list: RestaurantWithReservation[] = Object.entries(restaurantData).map(
+        ([id, restaurantEntry]) => {
+          const reservations = reservationData[id];
+          let latestDate: string | undefined;
+          let latestReservation: ReservationData | undefined;
+
+          if (reservations) {
+            const dates = Object.keys(reservations);
+            if (dates.length > 0) {
+              dates.sort((a, b) => b.localeCompare(a));
+              latestDate = dates[0];
+              latestReservation = reservations[latestDate];
+            }
+          }
+
+          const prepayments = prepaymentData[id] ?? [];
+          const prepaymentTotal = prepayments.reduce(
+            (sum, item) => sum + (item.amount || 0),
+            0
+          );
+
+          return {
+            id,
+            name: restaurantEntry.name,
+            telNo: restaurantEntry.telNo,
+            kind: restaurantEntry.kind,
+            menuImgId: restaurantEntry.menuImgId,
+            menuUrl: restaurantEntry.menuUrl,
+            naviUrl: restaurantEntry.naviUrl,
+            reservationDate: latestDate,
+            reservation: latestReservation,
+            prepaymentTotal,
+          };
+        }
+      );
+
+      list.sort((a, b) => {
+        if (!a.reservationDate && !b.reservationDate) return 0;
+        if (!a.reservationDate) return 1;
+        if (!b.reservationDate) return -1;
+        return b.reservationDate.localeCompare(a.reservationDate);
+      });
+
+      setRestaurants(list);
+      setHiddenRestaurantIds(hideData || []);
+      setLoading(false);
+      setError('');
+    };
+
+    const unsubRestaurant = onValue(
       restaurantsRef,
       (snapshot) => {
-        if (snapshot.exists()) {
-          restaurantsData = snapshot.val();
-          combineData();
-        } else {
-          setRestaurants([]);
-          setError('레스토랑 데이터가 없습니다.');
-          setLoading(false);
-        }
+        restaurantData = snapshot.exists() ? snapshot.val() : {};
+        combine();
       },
       (err) => {
         console.error('Error fetching restaurants:', err);
@@ -450,2398 +1280,607 @@ export default function Home() {
       }
     );
 
-    const unsubscribeReservations = onValue(
+    const unsubReservation = onValue(
       reservationRef,
       (snapshot) => {
-        if (snapshot.exists()) {
-          reservationData = snapshot.val();
-        } else {
-          reservationData = {};
-        }
-        combineData();
+        reservationData = snapshot.exists() ? snapshot.val() : {};
+        combine();
       },
       (err) => {
         console.error('Error fetching reservations:', err);
-        // 예약 데이터가 없어도 계속 진행
-        reservationData = {};
-        combineData();
       }
     );
 
-    const unsubscribePrepayments = onValue(
+    const unsubPrepayment = onValue(
       prepaymentRef,
       (snapshot) => {
-        if (snapshot.exists()) {
-          prepaymentData = snapshot.val();
-        } else {
-          prepaymentData = {};
-        }
-        combineData();
+        prepaymentData = snapshot.exists() ? snapshot.val() : {};
+        combine();
       },
       (err) => {
         console.error('Error fetching prepayments:', err);
-        // 선결제 데이터가 없어도 계속 진행
-        prepaymentData = {};
-        combineData();
       }
     );
 
-    const unsubscribeHideRestaurants = onValue(
-      hideRestaurantRef,
+    const unsubHidden = onValue(
+      hideRef,
       (snapshot) => {
-        if (snapshot.exists()) {
-          hideRestaurantData = snapshot.val() || [];
-          setHiddenRestaurantIds(hideRestaurantData);
-        } else {
-          hideRestaurantData = [];
-          setHiddenRestaurantIds([]);
-        }
-        combineData();
+        hideData = snapshot.exists() ? snapshot.val() ?? [] : [];
+        combine();
       },
       (err) => {
         console.error('Error fetching hideRestaurants:', err);
-        // hideRestaurant 데이터가 없어도 계속 진행
-        hideRestaurantData = [];
-        setHiddenRestaurantIds([]);
-        combineData();
       }
     );
 
-    const combineData = () => {
-      if (!restaurantsData || Object.keys(restaurantsData).length === 0) {
-        return;
-      }
-
-      const restaurantList: RestaurantWithReservation[] = Object.keys(restaurantsData).map((restaurantKey) => {
-        const restaurant = restaurantsData[restaurantKey];
-        
-        // 해당 식당의 예약 데이터 찾기
-        const restaurantReservations = reservationData[restaurantKey];
-        let latestReservation: ReservationData | undefined;
-        let latestDate: string | undefined;
-
-        if (restaurantReservations) {
-          // 예약일(yyyyMMdd) 중 가장 큰 값 찾기
-          const dates = Object.keys(restaurantReservations);
-          if (dates.length > 0) {
-            dates.sort((a, b) => b.localeCompare(a)); // 내림차순 정렬
-            latestDate = dates[0];
-            latestReservation = restaurantReservations[latestDate];
-          }
-        }
-
-        // 선결제 총합 계산
-        let prepaymentTotal = 0;
-        if (prepaymentData[restaurantKey]) {
-          prepaymentTotal = prepaymentData[restaurantKey].reduce((sum, item) => sum + (item.amount || 0), 0);
-        }
-
-        return {
-          id: restaurantKey,
-          name: restaurant.name,
-          telNo: restaurant.telNo,
-          kind: restaurant.kind,
-          menuImgId: restaurant.menuImgId,
-          menuUrl: restaurant.menuUrl,
-          naviUrl: restaurant.naviUrl,
-          reservationDate: latestDate,
-          reservation: latestReservation,
-          prepaymentTotal,
-        };
-      });
-
-      // 정렬: 예약일 내림차순, 예약일 없으면 가장 아래
-      restaurantList.sort((a, b) => {
-        if (!a.reservationDate && !b.reservationDate) return 0;
-        if (!a.reservationDate) return 1; // 예약일 없으면 아래로
-        if (!b.reservationDate) return -1; // 예약일 없으면 아래로
-        return b.reservationDate.localeCompare(a.reservationDate); // 내림차순
-      });
-
-      setRestaurants(restaurantList);
-      setError('');
-      setLoading(false);
-    };
-
     return () => {
-      unsubscribeRestaurants();
-      unsubscribeReservations();
-      unsubscribePrepayments();
-      unsubscribeHideRestaurants();
+      unsubRestaurant();
+      unsubReservation();
+      unsubPrepayment();
+      unsubHidden();
     };
   }, [user]);
 
-  // 오늘에서 가장 가까운 다가올 금요일 찾기
-  const getNextFriday = (): string => {
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0: 일요일, 5: 금요일
-    let daysUntilFriday = 5 - dayOfWeek;
-    if (daysUntilFriday <= 0) {
-      daysUntilFriday += 7; // 이번 주 금요일이 지났으면 다음 주 금요일
-    }
-    const nextFriday = new Date(today);
-    nextFriday.setDate(today.getDate() + daysUntilFriday);
-    
-    const year = nextFriday.getFullYear();
-    const month = String(nextFriday.getMonth() + 1).padStart(2, '0');
-    const day = String(nextFriday.getDate()).padStart(2, '0');
-    return `${year}${month}${day}`;
-  };
-
-  // yyyyMMdd를 yyyy.MM.dd로 변환
-  const formatReservationDate = (dateStr: string): string => {
-    if (!dateStr || dateStr.length !== 8) return '';
-    const year = dateStr.substring(0, 4);
-    const month = dateStr.substring(4, 6);
-    const day = dateStr.substring(6, 8);
-    return `${year}.${month}.${day}`;
-  };
-
-  // yyyyMMdd를 한국어 형식으로 변환 (예: 1.15 (월)) - 현재 사용되지 않음
-  // const formatKoreanDate = (dateStr: string): string => {
-  //   if (!dateStr || dateStr.length !== 8) return '';
-  //   
-  //   const year = parseInt(dateStr.substring(0, 4), 10);
-  //   const month = parseInt(dateStr.substring(4, 6), 10) - 1; // JS는 0부터 시작
-  //   const day = parseInt(dateStr.substring(6, 8), 10);
-  //   
-  //   const date = new Date(year, month, day);
-  //   if (isNaN(date.getTime())) return '잘못된 날짜';
-  //   
-  //   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-  //   const weekday = dayNames[date.getDay()];
-  //   
-  //   return `${month + 1}.${day} (${weekday})`;
-  // };
-
-  // yyyyMMdd를 공유용 날짜 형식으로 변환 (예: 11.5(수))
-  const formatShareDate = (dateStr: string): string => {
-    if (!dateStr || dateStr.length !== 8) return '';
-    
-    const year = parseInt(dateStr.substring(0, 4), 10);
-    const month = parseInt(dateStr.substring(4, 6), 10) - 1; // JS는 0부터 시작
-    const day = parseInt(dateStr.substring(6, 8), 10);
-    
-    const date = new Date(year, month, day);
-    if (isNaN(date.getTime())) return '';
-    
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    const weekday = dayNames[date.getDay()];
-    
-    return `${month + 1}.${day}(${weekday})`;
-  };
-
-  // yyyy.MM.dd를 공유용 예약일 형식으로 변환 (예: 11.7 (금))
-  const formatShareReservationDate = (dateStr: string): string => {
-    if (!dateStr || dateStr.length !== 10) return '';
-    
-    // yyyy.MM.dd 형식을 파싱
-    const parts = dateStr.split('.');
-    if (parts.length !== 3) return '';
-    
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // JS는 0부터 시작
-    const day = parseInt(parts[2], 10);
-    
-    const date = new Date(year, month, day);
-    if (isNaN(date.getTime())) return '';
-    
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    const weekday = dayNames[date.getDay()];
-    
-    return `${month + 1}.${day} (${weekday})`;
-  };
-
-  // yyyy.MM.dd를 yyyyMMdd로 변환
-  const parseReservationDate = (dateStr: string): string => {
-    return dateStr.replace(/\./g, '');
-  };
-
-  // yyyyMMdd를 Dayjs로 변환
-  const parseDateToDayjs = (dateStr: string): Dayjs | null => {
-    if (!dateStr || dateStr.length !== 8) return null;
-    const year = dateStr.substring(0, 4);
-    const month = dateStr.substring(4, 6);
-    const day = dateStr.substring(6, 8);
-    return dayjs(`${year}-${month}-${day}`);
-  };
-
-  const handleRestaurantClick = async (restaurant: RestaurantWithReservation) => {
-    setSelectedRestaurant(restaurant);
-    
-    // 수령여부가 false인 메뉴만 필터링
-    let menus: EditableMenuItem[] = [];
-    let reservationDate = '';
-    
-    if (restaurant.reservation && restaurant.reservation.menus) {
-      // isReceipt가 false인 메뉴만 필터링
-      const unreceivedMenus = restaurant.reservation.menus.filter(
-        () => !restaurant.reservation?.isReceipt
-      );
-      
-      if (unreceivedMenus.length > 0 && restaurant.reservationDate) {
-        menus = unreceivedMenus.map((menu, idx) => ({
-          id: `menu-${idx}`,
-          menu: menu.menu,
-          cost: menu.cost,
-        }));
-        reservationDate = formatReservationDate(restaurant.reservationDate);
+  const outstandingAmount = useMemo(() => {
+    return restaurants.reduce((sum, restaurant) => {
+      if (!restaurant.reservation || restaurant.reservation.isReceipt) {
+        return sum;
       }
-    }
-    
-    // 수령여부가 false인 메뉴가 없으면 빈 행과 금요일 날짜 설정
-    if (menus.length === 0) {
-      reservationDate = formatReservationDate(getNextFriday());
-      menus = [{
-        id: `menu-${Date.now()}`,
-        menu: '',
-        cost: 0,
-      }];
-    }
-    
-    setEditableMenus(menus);
-    setEditableDate(reservationDate);
-    setEditableDateValue(parseDateToDayjs(parseReservationDate(reservationDate)));
-    
-    // 선결제 데이터 로드
-    if (user) {
-      await loadPrepayments(user.uid, restaurant.id);
-    }
-    
-    setCurrentTab(0);
-    setDialogOpen(true);
-  };
-  
-  const loadPrepayments = async (userId: string, restaurantId: string) => {
-    try {
-      const prepaymentRef = ref(database, `food-resv/prepayment/${userId}/${restaurantId}`);
-      const snapshot = await get(prepaymentRef);
-      
-      if (snapshot.exists()) {
-        const data: PrepaymentItem[] = snapshot.val();
-        const today = dayjs().format('YYYYMMDD');
-        const prepaymentItems: EditablePrepaymentItem[] = data.map((item, idx) => ({
-          id: `prepayment-${idx}`,
-          amount: item.amount || 0,
-          date: item.date || today,
-          dateValue: parseDateToDayjs(item.date || today),
-        }));
-        setPrepayments(prepaymentItems);
-      } else {
-        // 선결제 데이터가 없으면 기본 행 하나 추가
-        const today = dayjs().format('YYYYMMDD');
-        setPrepayments([{
-          id: `prepayment-${Date.now()}`,
-          amount: 0,
-          date: today,
-          dateValue: dayjs(),
-        }]);
-      }
-    } catch (error) {
-      console.error('Error loading prepayments:', error);
-      // 에러 발생 시 기본 행 하나 추가
-      const today = dayjs().format('YYYYMMDD');
-      setPrepayments([{
-        id: `prepayment-${Date.now()}`,
-        amount: 0,
-        date: today,
-        dateValue: dayjs(),
-      }]);
-    }
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setSelectedRestaurant(null);
-    setEditableMenus([]);
-    setEditableDate('');
-    setEditableDateValue(null);
-    setPrepayments([]);
-    setCurrentTab(0);
-  };
-
-  const handleDateChange = (newValue: Dayjs | null) => {
-    if (newValue) {
-      setEditableDateValue(newValue);
-      const formattedDate = newValue.format('YYYY.MM.DD');
-      setEditableDate(formattedDate);
-    } else {
-      setEditableDateValue(null);
-      setEditableDate('');
-    }
-  };
-
-  const handleAddRow = () => {
-    const newId = `menu-${Date.now()}`;
-    setEditableMenus([
-      ...editableMenus,
-      {
-        id: newId,
-        menu: '',
-        cost: 0,
-      },
-    ]);
-    // 새로 추가된 행의 메뉴명 TextField에 포커스
-    setTimeout(() => {
-      const input = document.querySelector(`input[data-menu-id="${newId}"]`) as HTMLInputElement;
-      if (input) {
-        input.focus();
-      }
+      const total = sumMenuAmount(restaurant.reservation.menus);
+      const prepayment = restaurant.prepaymentTotal ?? 0;
+      const remaining = total - prepayment;
+      return remaining > 0 ? sum + remaining : sum;
     }, 0);
-  };
-
-  const handleDeleteRow = (id: string) => {
-    if (editableMenus.length === 1) {
-      // 마지막 행이면 메뉴와 금액만 초기화
-      setEditableMenus([{
-        id: editableMenus[0].id,
-        menu: '',
-        cost: 0,
-      }]);
-    } else {
-      setEditableMenus(editableMenus.filter((menu) => menu.id !== id));
-    }
-  };
+  }, [restaurants]);
 
   const handleMenuChange = (id: string, field: 'menu' | 'cost', value: string | number) => {
-    setEditableMenus(editableMenus.map((menu) => {
-      if (menu.id === id) {
-        return { ...menu, [field]: value };
+    setMenuRows((prev) =>
+      prev.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              [field]: field === 'cost' ? Math.max(0, Number(value)) : (value as string),
+            }
+          : row
+      )
+    );
+  };
+
+  const handleAddMenuRow = () => {
+    setMenuRows((prev) => [
+      ...prev,
+      { id: `menu-${Date.now()}-${prev.length}`, menu: '', cost: 0 },
+    ]);
+  };
+
+  const handleRemoveMenuRow = (id: string) => {
+    setMenuRows((prev) => {
+      if (prev.length === 1) {
+        return prev.map((row) =>
+          row.id === id ? { ...row, menu: '', cost: 0 } : row
+        );
       }
-      return menu;
-    }));
+      return prev.filter((row) => row.id !== id);
+    });
   };
 
-  const handleSave = async () => {
-    if (!user || !selectedRestaurant) return;
-    
-    // 빈 메뉴 제거
-    const validMenus = editableMenus.filter((m) => m.menu.trim() !== '' && m.cost > 0);
-    
-    if (validMenus.length === 0) {
-      alert('메뉴와 금액을 입력해주세요.');
-      return;
-    }
-    
-    if (!editableDate || editableDate.length !== 10) {
-      alert('예약일을 올바르게 입력해주세요.');
-      return;
-    }
-    
-    setSaving(true);
-    try {
-      const reservationDate = parseReservationDate(editableDate);
-      const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationDate}`;
-      
-      const reservationData: ReservationData = {
-        isReceipt: false,
-        menus: validMenus.map((m) => ({
-          menu: m.menu,
-          cost: m.cost,
-        })),
-      };
-      
-      await set(ref(database, reservationPath), reservationData);
-      setSnackbarMessage('저장되었습니다.');
-      setSnackbarOpen(true);
-      handleCloseDialog();
-    } catch (error) {
-      console.error('Error saving reservation:', error);
-      alert('저장 중 오류가 발생했습니다.');
-    } finally {
-      setSaving(false);
-    }
+  const handlePrepaymentAmountChange = (id: string, amount: number) => {
+    setPrepaymentRows((prev) =>
+      prev.map((row) =>
+        row.id === id ? { ...row, amount: Math.max(0, amount) } : row
+      )
+    );
   };
 
-  const handleDelete = () => {
-    if (!user || !selectedRestaurant) return;
-    setDeleteType('reservation');
-    setDeleteConfirmDialogOpen(true);
+  const handlePrepaymentDateChange = (id: string, date: Date | undefined) => {
+    if (!date || Number.isNaN(date.getTime())) return;
+    setPrepaymentRows((prev) =>
+      prev.map((row) =>
+        row.id === id
+          ? { ...row, dateValue: date, date: dayjs(date).format('YYYYMMDD') }
+          : row
+      )
+    );
   };
 
-  const handleConfirmDelete = async () => {
-    if (!user || !selectedRestaurant || !deleteType) return;
-    
-    try {
-      if (deleteType === 'reservation') {
-        const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
-        await remove(ref(database, reservationPath));
-        setSnackbarMessage('삭제되었습니다.');
-        setSnackbarOpen(true);
-        handleCloseDialog();
-      } else if (deleteType === 'prepayment') {
-        const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
-        await remove(ref(database, prepaymentPath));
-        setSnackbarMessage('삭제되었습니다.');
-        setSnackbarOpen(true);
-        // 선결제 데이터 다시 로드
-        await loadPrepayments(user.uid, selectedRestaurant.id);
-      }
-    } catch (error) {
-      console.error('Error deleting:', error);
-      alert('삭제 중 오류가 발생했습니다.');
-    } finally {
-      setDeleteConfirmDialogOpen(false);
-      setDeleteType(null);
-    }
-  };
-
-  // 선결제 관련 핸들러
   const handleAddPrepaymentRow = () => {
-    const today = dayjs().format('YYYYMMDD');
-    const newId = `prepayment-${Date.now()}`;
-    setPrepayments([
-      ...prepayments,
+    const now = new Date();
+    setPrepaymentRows((prev) => [
+      ...prev,
       {
-        id: newId,
+        id: `prepayment-${Date.now()}-${prev.length}`,
         amount: 0,
-        date: today,
-        dateValue: dayjs(),
+        date: dayjs(now).format('YYYYMMDD'),
+        dateValue: now,
       },
     ]);
-    // 새로 추가된 행의 금액 TextField에 포커스
-    setTimeout(() => {
-      const input = document.querySelector(`input[data-prepayment-id="${newId}"]`) as HTMLInputElement;
-      if (input) {
-        input.focus();
+  };
+
+  const handleRemovePrepaymentRow = (id: string) => {
+    setPrepaymentRows((prev) => {
+      if (prev.length === 1) {
+        const now = new Date();
+        return [
+          {
+            id: prev[0].id,
+            amount: 0,
+            date: dayjs(now).format('YYYYMMDD'),
+            dateValue: now,
+          },
+        ];
       }
-    }, 0);
+      return prev.filter((row) => row.id !== id);
+    });
   };
 
-  const handleDeletePrepaymentRow = (id: string) => {
-    if (prepayments.length === 1) {
-      // 마지막 행이면 초기화만
-      const today = dayjs().format('YYYYMMDD');
-      setPrepayments([{
-        id: prepayments[0].id,
-        amount: 0,
-        date: today,
-        dateValue: dayjs(),
-      }]);
-    } else {
-      setPrepayments(prepayments.filter((item) => item.id !== id));
-    }
+  const handleReservationDateChange = (date: Date | undefined) => {
+    if (!date || Number.isNaN(date.getTime())) return;
+    setReservationDate(dateToDisplay(date));
   };
 
-  const handlePrepaymentChange = (id: string, field: 'amount' | 'date', value: number | Dayjs | null) => {
-    setPrepayments(prepayments.map((item) => {
-      if (item.id === id) {
-        if (field === 'amount') {
-          return { ...item, amount: value as number };
-        } else {
-          const dateValue = value as Dayjs | null;
-          if (dateValue) {
-            return {
-              ...item,
-              date: dateValue.format('YYYYMMDD'),
-              dateValue: dateValue,
-            };
-          }
-          return item;
-        }
-      }
-      return item;
-    }));
-  };
-
-  const handleSavePrepayment = async () => {
-    if (!user || !selectedRestaurant) return;
-    
-    setSavingPrepayment(true);
+  const handleToggleHide = async (restaurantId: string) => {
+    if (!user) return;
     try {
-      const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
-      
-      // 유효한 데이터만 필터링 (금액이 0보다 큰 것만)
-      const validPrepayments = prepayments
-        .filter((item) => item.amount > 0 && item.date)
-        .map((item) => ({
-          amount: item.amount,
-          date: item.date,
-        }));
-      
-      if (validPrepayments.length === 0) {
-        // 빈 배열로 저장하면 삭제 효과
-        await set(ref(database, prepaymentPath), []);
-        setSnackbarMessage('저장되었습니다.');
-        setSnackbarOpen(true);
-      } else {
-        await set(ref(database, prepaymentPath), validPrepayments);
-        setSnackbarMessage('저장되었습니다.');
-        setSnackbarOpen(true);
-      }
+      const next = hiddenRestaurantIds.includes(restaurantId)
+        ? hiddenRestaurantIds.filter((id) => id !== restaurantId)
+        : [...hiddenRestaurantIds, restaurantId];
+      await set(ref(database, `food-resv/hideRestaurant/${user.uid}`), next);
+      toast.success('숨김 상태가 변경되었습니다.');
     } catch (error) {
-      console.error('Error saving prepayment:', error);
-      alert('저장 중 오류가 발생했습니다.');
-    } finally {
-      setSavingPrepayment(false);
+      console.error('Error toggling hide', error);
+      toast.error('숨김 상태 변경 중 오류가 발생했습니다.');
     }
   };
 
-  const handleDeletePrepayment = () => {
+  const loadPrepayments = useCallback(
+    async (userId: string, restaurantId: string) => {
+      try {
+        const prepaymentRef = ref(database, `food-resv/prepayment/${userId}/${restaurantId}`);
+        const snapshot = await get(prepaymentRef);
+        if (snapshot.exists()) {
+          const data: PrepaymentItem[] = snapshot.val() ?? [];
+          if (data.length) {
+            setPrepaymentRows(
+              data.map((item, index) => {
+                const dateValue = compactToDate(item.date) ?? new Date();
+                return {
+                  id: `prepayment-${Date.now()}-${index}`,
+                  amount: item.amount || 0,
+                  date: item.date || todayCompact(),
+                  dateValue,
+                };
+              })
+            );
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading prepayments', error);
+      }
+      const today = new Date();
+      setPrepaymentRows([
+        {
+          id: `prepayment-${Date.now()}`,
+          amount: 0,
+          date: dayjs(today).format('YYYYMMDD'),
+          dateValue: today,
+        },
+      ]);
+    },
+    []
+  );
+
+  const handleRestaurantClick = useCallback(
+    async (restaurant: RestaurantWithReservation) => {
+      if (!user) return;
+
+      setSelectedRestaurant(restaurant);
+      const nextReservationDate =
+        compactToDisplay(restaurant.reservationDate) ||
+        dateToDisplay(compactToDate(getNextFriday()));
+      setReservationDate(nextReservationDate);
+
+      if (restaurant.reservation && !restaurant.reservation.isReceipt) {
+        setMenuRows(
+          restaurant.reservation.menus.map((menu, index) => ({
+            id: `menu-${Date.now()}-${index}`,
+            menu: menu.menu,
+            cost: menu.cost,
+          }))
+        );
+      } else {
+        setMenuRows([{ id: `menu-${Date.now()}`, menu: '', cost: 0 }]);
+      }
+
+      await loadPrepayments(user.uid, restaurant.id);
+      setCurrentTab('menu');
+      setDetailOpen(true);
+    },
+    [loadPrepayments, user]
+  );
+
+  const handleCloseDetail = () => {
+    setDetailOpen(false);
+    setSelectedRestaurant(null);
+    setMenuRows([]);
+    setPrepaymentRows([]);
+    setReservationDate('');
+    setMenuHistoryList([]);
+    setMenuHistoryOpen(false);
+    setCurrentTab('menu');
+  };
+
+  const handleSaveMenus = async () => {
     if (!user || !selectedRestaurant) return;
-    setDeleteType('prepayment');
-    setDeleteConfirmDialogOpen(true);
+
+    const validMenus = menuRows.filter((menu) => menu.menu.trim() && menu.cost > 0);
+    if (!validMenus.length) {
+      toast.error('메뉴와 금액을 입력해주세요.');
+      return;
+    }
+    if (!reservationDate) {
+      toast.error('예약일을 선택해주세요.');
+      return;
+    }
+
+    try {
+      setSavingMenus(true);
+      const reservationKey = displayToCompact(reservationDate);
+      const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationKey}`;
+      const data: ReservationData = {
+        isReceipt: false,
+        menus: validMenus.map((menu) => ({
+          menu: menu.menu.trim(),
+          cost: menu.cost,
+        })),
+      };
+      await set(ref(database, reservationPath), data);
+      toast.success('예약 정보를 저장했습니다.');
+      handleCloseDetail();
+    } catch (error) {
+      console.error('Error saving reservation', error);
+      toast.error('예약 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingMenus(false);
+    }
+  };
+
+  const handleDeleteMenus = () => {
+    setDeleteState({ open: true, target: 'reservation' });
+  };
+
+  const handleSavePrepayments = async () => {
+    if (!user || !selectedRestaurant) return;
+
+    const validItems = prepaymentRows
+      .filter((item) => item.amount > 0 && item.date)
+      .map((item) => ({
+        amount: item.amount,
+        date: item.date,
+      }));
+
+    try {
+      setSavingPrepayments(true);
+      const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
+      await set(ref(database, prepaymentPath), validItems);
+      toast.success('선결제를 저장했습니다.');
+    } catch (error) {
+      console.error('Error saving prepayment', error);
+      toast.error('선결제 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingPrepayments(false);
+    }
+  };
+
+  const handleDeletePrepayments = () => {
+    setDeleteState({ open: true, target: 'prepayment' });
   };
 
   const handleReceipt = async () => {
     if (!user || !selectedRestaurant) return;
-    
-    if (!editableDate || editableDate.length !== 10) {
-      alert('예약일이 필요합니다.');
+    if (!reservationDate) {
+      toast.error('예약일이 필요합니다.');
       return;
     }
-    
+
     try {
-      // isReceipt를 true로 변경
-      const reservationDate = parseReservationDate(editableDate);
-      const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationDate}`;
-      
-      // 기존 예약 데이터 가져오기
-      const reservationRef = ref(database, reservationPath);
-      const snapshot = await get(reservationRef);
-      
+      const reservationKey = displayToCompact(reservationDate);
+      const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationKey}`;
+      const snapshot = await get(ref(database, reservationPath));
+
       if (snapshot.exists()) {
-        const existingData: ReservationData = snapshot.val();
-        const updatedData: ReservationData = {
-          ...existingData,
-          isReceipt: true,
-        };
-        await set(ref(database, reservationPath), updatedData);
+        const existing = snapshot.val() as ReservationData;
+        await set(ref(database, reservationPath), { ...existing, isReceipt: true });
       }
-      
-      // prepayment 삭제
-      const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
-      await remove(ref(database, prepaymentPath));
-      
-      setSnackbarMessage('수령 처리되었습니다.');
-      setSnackbarOpen(true);
-      handleCloseDialog();
+
+      await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
+      toast.success('수령 처리되었습니다.');
+      handleCloseDetail();
     } catch (error) {
-      console.error('Error processing receipt:', error);
-      alert('수령 처리 중 오류가 발생했습니다.');
+      console.error('Error processing receipt', error);
+      toast.error('수령 처리 중 오류가 발생했습니다.');
     }
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMenuAnchorEl(event.currentTarget);
+  const handleConfirmDelete = async () => {
+    if (!user || !selectedRestaurant || !deleteState.target) return;
+
+    try {
+      if (deleteState.target === 'reservation') {
+        await remove(ref(database, `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`));
+        toast.success('예약 정보를 삭제했습니다.');
+        handleCloseDetail();
+      } else {
+        await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
+        toast.success('선결제를 삭제했습니다.');
+        await loadPrepayments(user.uid, selectedRestaurant.id);
+      }
+    } catch (error) {
+      console.error('Error deleting data', error);
+      toast.error('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeleteState({ open: false, target: null });
+    }
   };
 
-  const handleMenuClose = () => {
-    setMenuAnchorEl(null);
-  };
-
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!selectedRestaurant) return;
 
+    const validMenus = menuRows.filter((menu) => menu.menu.trim() && menu.cost > 0);
+    const menuText = validMenus.map((menu) => menu.menu.trim()).join(' + ');
+    const totalAmount = validMenus.reduce((sum, menu) => sum + menu.cost, 0);
+
+    const validPrepayments = prepaymentRows
+      .filter((item) => item.amount > 0 && item.date)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const prepaymentLines = validPrepayments.map(
+      (item) => `${formatShareDate(item.date)} ${formatCurrency(item.amount)}원`
+    );
+    const prepaymentTotal = validPrepayments.reduce((sum, item) => sum + item.amount, 0);
+
+    const lines: string[] = ['━━━━━━━━━━'];
+    if (menuText) lines.push(`■ 메뉴 : ${menuText}`);
+    if (totalAmount > 0) lines.push(`■ 가격 : ${formatCurrency(totalAmount)}원`);
+    if (reservationDate) lines.push(`■ 예약일 : ${formatShareReservationDate(reservationDate)}`);
+    lines.push('━━━━━━━━━━');
+
+    if (prepaymentLines.length) {
+      lines.push('');
+      lines.push('□ 선결제');
+      lines.push(...prepaymentLines);
+      lines.push('──────────');
+      lines.push(`합계 ${formatCurrency(prepaymentTotal)}원`);
+    }
+
+    const text = lines.join('\n');
+
+    (async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: '', text });
+        } else {
+          await navigator.clipboard.writeText(text);
+          toast.success('공유 내용을 클립보드에 복사했습니다.');
+        }
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error sharing', error);
+          toast.error('공유 중 오류가 발생했습니다.');
+        }
+      }
+    })();
+  };
+
+  const handleThemeSave = async () => {
+    if (!user) return;
+
     try {
-      // 메뉴 문자열 생성
-      let menuText = '';
-      let totalAmount = 0;
-      if (editableMenus && editableMenus.length > 0) {
-        const validMenus = editableMenus.filter((m) => m.menu.trim() !== '' && m.cost > 0);
-        if (validMenus.length > 0) {
-          menuText = validMenus.map((m) => m.menu).join(' + ');
-          totalAmount = validMenus.reduce((sum, m) => sum + (m.cost || 0), 0);
-        }
-      }
-
-      // 선결제 정보 생성
-      let prepaymentLines: string[] = [];
-      let prepaymentTotal = 0;
-      if (prepayments && prepayments.length > 0) {
-        const validPrepayments = prepayments
-          .filter((p) => p.amount > 0 && p.date)
-          .sort((a, b) => a.date.localeCompare(b.date)); // 날짜 순으로 정렬
-        
-        if (validPrepayments.length > 0) {
-          prepaymentLines = validPrepayments
-            .map((p) => `${formatShareDate(p.date)} ${p.amount.toLocaleString()}원`);
-          prepaymentTotal = validPrepayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        }
-      }
-
-      // 공유 텍스트 생성
-      let shareText = '━━━━━━━━━━\n';
-      
-      if (menuText) {
-        shareText += `■ 메뉴 : ${menuText}\n`;
-      }
-      if (totalAmount > 0) {
-        shareText += `■ 가격 : ${totalAmount.toLocaleString()}원\n`;
-      }
-      if (editableDate) {
-        const formattedDate = formatShareReservationDate(editableDate);
-        shareText += `■ 예약일 : ${formattedDate}\n`;
-      }
-      shareText += '━━━━━━━━━━\n\n';
-
-      if (prepaymentLines.length > 0) {
-        shareText += '□ 선결제\n';
-        shareText += prepaymentLines.join('\n') + '\n';
-        shareText += '──────────\n';
-        shareText += `합계 ${prepaymentTotal.toLocaleString()}원`;
-      }
-
-      // navigator.share 사용
-      if (navigator.share) {
-        await navigator.share({
-          title: '',
-          text: shareText,
-        });
-      } else {
-        // navigator.share가 지원되지 않는 경우 클립보드에 복사
-        await navigator.clipboard.writeText(shareText);
-        alert('공유 내용이 클립보드에 복사되었습니다.');
-      }
+      setSavingTheme(true);
+      await set(ref(database, `food-resv/theme/${user.uid}`), { theme: selectedTheme });
+      setCurrentTheme(selectedTheme);
+      toast.success('테마를 저장했습니다.');
+      setThemeDialogOpen(false);
     } catch (error) {
-      // 사용자가 공유를 취소한 경우 등은 무시
-      if ((error as Error).name !== 'AbortError') {
-        console.error('공유 중 오류:', error);
-      }
+      console.error('Error saving theme', error);
+      toast.error('테마 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingTheme(false);
     }
   };
 
-  const appTheme = createAppTheme(currentTheme);
+  const handleMenuHistoryOpen = useCallback(async () => {
+    if (!user || !selectedRestaurant) return;
+
+    try {
+      const reservationRef = ref(database, `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`);
+      const snapshot = await get(reservationRef);
+      const unique = new Map<string, MenuHistoryItem>();
+
+      if (snapshot.exists()) {
+        const reservations = snapshot.val() as Record<string, ReservationData>;
+        Object.values(reservations).forEach((reservation) => {
+          reservation?.menus?.forEach((menu) => {
+            if (!menu.menu) return;
+            const key = `${menu.menu}|${menu.cost}`;
+            if (!unique.has(key)) {
+              unique.set(key, { menu: menu.menu, cost: menu.cost });
+            }
+          });
+        });
+      }
+
+      const list = Array.from(unique.values()).sort((a, b) =>
+        a.menu.localeCompare(b.menu)
+      );
+      setMenuHistoryList(list);
+      setMenuHistoryOpen(true);
+    } catch (error) {
+      console.error('Error fetching menu history', error);
+      toast.error('메뉴 이력을 불러오는 중 오류가 발생했습니다.');
+    }
+  }, [user, selectedRestaurant]);
+
+  const handleMenuHistorySelect = (item: MenuHistoryItem) => {
+    setMenuRows((prev) => {
+      if (!prev.length) {
+        return [{ id: `menu-${Date.now()}`, menu: item.menu, cost: item.cost }];
+      }
+      if (prev[0].menu.trim() === '') {
+        const [first, ...rest] = prev;
+        return [{ ...first, menu: item.menu, cost: item.cost }, ...rest];
+      }
+      return [...prev, { id: `menu-${Date.now()}`, menu: item.menu, cost: item.cost }];
+    });
+    setMenuHistoryOpen(false);
+    toast.success('메뉴가 추가되었습니다.');
+  };
+
+  const handleOpenRestaurantEditor = () => {
+    if (!selectedRestaurant) return;
+    const latest =
+      restaurants.find((item) => item.id === selectedRestaurant.id) ?? selectedRestaurant;
+    setEditableRestaurant({
+      id: latest.id,
+      name: latest.name,
+      telNo: latest.telNo ?? '',
+      kind: latest.kind ?? '',
+      menuImgId: latest.menuImgId ?? '',
+      menuUrl: latest.menuUrl ?? '',
+      naviUrl: latest.naviUrl ?? '',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleMenuImageOpen = () => {
+    if (!selectedRestaurant) return;
+    if (selectedRestaurant.menuImgId) {
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+      const url = `https://res.cloudinary.com/${cloudName}/image/upload/${selectedRestaurant.menuImgId}`;
+      window.open(url, '_blank', 'noopener');
+    } else if (selectedRestaurant.menuUrl) {
+      window.open(selectedRestaurant.menuUrl, '_blank', 'noopener');
+    }
+  };
+
+  const handleRestaurantUpdate = async () => {
+    if (!user || !editableRestaurant) return;
+    const { id, name, telNo, kind, menuImgId, menuUrl, naviUrl } = editableRestaurant;
+    if (!name.trim()) {
+      toast.error('식당명을 입력해주세요.');
+      return;
+    }
+    try {
+      setSavingRestaurant(true);
+      await set(ref(database, `food-resv/restaurant/${id}`), {
+        name: name.trim(),
+        telNo: telNo || '',
+        kind: kind || '',
+        menuImgId: menuImgId || '',
+        menuUrl: menuUrl || '',
+        naviUrl: naviUrl || '',
+      });
+      toast.success('식당 정보를 저장했습니다.');
+      setEditDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving restaurant', error);
+      toast.error('식당 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingRestaurant(false);
+    }
+  };
+
+  const handleRestaurantCreate = async () => {
+    if (!user) return;
+
+    const id = newRestaurant.id.trim().toUpperCase();
+    const name = newRestaurant.name.trim();
+
+    if (!id || !name) {
+      toast.error('식당 ID와 식당명을 입력해주세요.');
+      return;
+    }
+
+    if (!/^[A-Z0-9]+$/.test(id)) {
+      toast.error('식당 ID는 영문 대문자와 숫자만 가능합니다.');
+      return;
+    }
+
+    try {
+      setCreatingRestaurant(true);
+      const restaurantRef = ref(database, `food-resv/restaurant/${id}`);
+      const exists = await get(restaurantRef);
+      if (exists.exists()) {
+        toast.error('이미 존재하는 식당 ID입니다.');
+        setCreatingRestaurant(false);
+        return;
+      }
+
+      await set(restaurantRef, {
+        name,
+        telNo: newRestaurant.telNo || '',
+        kind: newRestaurant.kind || '',
+        menuImgId: newRestaurant.menuImgId || '',
+        menuUrl: newRestaurant.menuUrl || '',
+        naviUrl: newRestaurant.naviUrl || '',
+      });
+
+      toast.success('식당을 등록했습니다.');
+      setCreateDialogOpen(false);
+      setNewRestaurant({
+        id: '',
+        name: '',
+        telNo: '',
+        kind: '',
+        menuImgId: '',
+        menuUrl: '',
+        naviUrl: '',
+      });
+    } catch (error) {
+      console.error('Error creating restaurant', error);
+      toast.error('식당 등록 중 오류가 발생했습니다.');
+    } finally {
+      setCreatingRestaurant(false);
+    }
+  };
+
+  const handleShareThemeDialog = () => {
+    setSelectedTheme(currentTheme);
+    setThemeDialogOpen(true);
+  };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <ThemeProvider theme={appTheme}>
-        <CssBaseline />
-        <ProtectedRoute>
-        <Box sx={{ flexGrow: 1 }}>
-          <AppBar 
-            position="static"
-            elevation={0}
-            sx={{
-              backgroundColor: currentTheme === 'black' ? '#000000' : '#ffffff',
-              color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-              borderBottom: 'none',
-            }}
-          >
-            <Toolbar sx={{ minHeight: '56px !important', px: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mr: 0.25 }}>
-                {loading ? (
-                  <CircularProgress size={20} sx={{ color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a' }} />
-                ) : (
-                  <IconButton 
-                    edge="start" 
-                    onClick={() => window.location.reload()}
-                    sx={{ 
-                      mr: 0.25,
-                      color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                      '&:hover': {
-                        backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
-                      },
-                    }}
-                  >
-                    <RestaurantIcon fontSize="small" />
-                  </IconButton>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background text-foreground">
+        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={() => window.location.reload()}
+              >
+                <UtensilsCrossed className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-semibold leading-tight">포장 예약</span>
+                {outstandingAmount > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    {formatCurrency(outstandingAmount)}원
+                  </span>
                 )}
-              </Box>
-              <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography 
-                  variant="h6" 
-                  component="div" 
-                  sx={{ 
-                    fontWeight: 600,
-                    fontSize: 20,
-                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                  }}
-                >
-                  포장 예약
-                </Typography>
-                {(() => {
-                  // 잔여금액 합계 계산 (totalAmount - prepaymentTotal)
-                  const totalRemainingAmount = restaurants.reduce((sum, restaurant) => {
-                    if (restaurant.reservation && !restaurant.reservation.isReceipt && restaurant.reservation.menus) {
-                      const restaurantTotal = restaurant.reservation.menus.reduce((menuSum, menu) => menuSum + (menu.cost || 0), 0);
-                      const prepaymentTotal = restaurant.prepaymentTotal || 0;
-                      const remainingAmount = restaurantTotal - prepaymentTotal;
-                      return sum + remainingAmount;
-                    }
-                    return sum;
-                  }, 0);
-                  
-                  if (totalRemainingAmount > 0) {
-                    return (
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: '#999999',
-                          fontSize: 14,
-                          fontWeight: 400,
-                        }}
-                      >
-                        {totalRemainingAmount.toLocaleString()}원
-                      </Typography>
-                    );
-                  }
-                  return null;
-                })()}
-              </Box>
-              <IconButton
-                edge="end"
-                onClick={handleMenuOpen}
-                sx={{
-                  color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                  '&:hover': {
-                    backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
-                  },
-                }}
-              >
-                <MoreVertIcon fontSize="small" />
-              </IconButton>
-              <Menu
-                anchorEl={menuAnchorEl}
-                open={Boolean(menuAnchorEl)}
-                onClose={handleMenuClose}
-                PaperProps={{
-                  sx: {
-                    borderRadius: 2,
-                    boxShadow: currentTheme === 'black' 
-                      ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
-                      : '0 8px 32px rgba(0, 0, 0, 0.08)',
-                    border: `1px solid ${currentTheme === 'black' ? '#333333' : '#e5e5e5'}`,
-                    backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#ffffff',
-                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                    mt: 1,
-                    minWidth: 180,
-                  },
-                }}
-              >
-                <MenuItem 
-                  onClick={() => {
-                    setNewRestaurant({
-                      id: '',
-                      name: '',
-                      telNo: '',
-                      kind: '',
-                      menuImgId: '',
-                      menuUrl: '',
-                      naviUrl: '',
-                    });
-                    setRestaurantAddDialogOpen(true);
-                    handleMenuClose();
-                  }}
-                  sx={{
-                    fontSize: 14,
-                    py: 1.5,
-                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                    '&:hover': {
-                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                    },
-                  }}
-                >
-                  <AddCircleIcon sx={{ mr: 1.5, fontSize: 18 }} />
-                  식당 등록
-                </MenuItem>
-                <MenuItem 
-                  onClick={() => {
-                    handleThemeDialogOpen();
-                    handleMenuClose();
-                  }}
-                  sx={{
-                    fontSize: 14,
-                    py: 1.5,
-                    color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                    '&:hover': {
-                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                    },
-                  }}
-                >
-                  <PaletteIcon sx={{ mr: 1.5, fontSize: 18 }} />
-                  테마
-                </MenuItem>
-              </Menu>
-            </Toolbar>
-          </AppBar>
-        </Box>
-        <Container maxWidth="sm" sx={{ py: 0, px: { xs: 1, sm: 2 } }}>
-
-          {loading ? (
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '50vh',
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          ) : error ? (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          ) : (
-            <Box sx={{ mt: 0 }}>
-              {restaurants.length === 0 ? (
-                <Typography variant="body1" align="center" sx={{ mt: 4 }}>
-                  등록된 레스토랑이 없습니다.
-                </Typography>
-              ) : (
-                <TableContainer 
-                  component={Paper}
-                  elevation={0}
-                  sx={{
-                    borderRadius: 0,
-                    overflow: 'hidden',
-                    border: 'none',
-                  }}
-                >
-                  <Table sx={{ borderCollapse: 'separate', tableLayout: 'fixed' }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell 
-                          sx={{ 
-                            fontWeight: 600,
-                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
-                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
-                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
-                            borderLeft: 'none',
-                            borderRight: 'none',
-                            px: 0,
-                            width: '45%',
-                          }}
-                        >
-                          식당
-                        </TableCell>
-                        <TableCell 
-                          sx={{ 
-                            fontWeight: 600,
-                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
-                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
-                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
-                            borderLeft: 'none',
-                            borderRight: 'none',
-                            px: 0,
-                            width: '40%',
-                          }}
-                        >
-                          예약메뉴
-                        </TableCell>
-                        <TableCell 
-                          sx={{ 
-                            fontWeight: 600, 
-                            whiteSpace: 'nowrap',
-                            backgroundColor: currentTheme === 'black' ? '#1a1a1a' : 'rgb(246, 246, 246)',
-                            borderTop: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
-                            borderBottom: `1px solid ${currentTheme === 'black' ? '#333333' : 'rgb(220, 220, 220)'}`,
-                            borderLeft: 'none',
-                            borderRight: 'none',
-                            px: 0,
-                          }}
-                        >
-                          전화/네비
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {restaurants
-                        .filter(restaurant => {
-                          if (showHiddenRestaurants) {
-                            return true; // 모든 식당 표시
-                          }
-                          return !hiddenRestaurantIds.includes(restaurant.id); // hideRestaurant에 없는 식당만 표시
-                        })
-                        .sort((a, b) => {
-                          // hideRestaurant에 없는 식당이 먼저, 있는 식당이 나중에
-                          const aHide = hiddenRestaurantIds.includes(a.id);
-                          const bHide = hiddenRestaurantIds.includes(b.id);
-                          if (aHide === bHide) return 0;
-                          return aHide ? 1 : -1;
-                        })
-                        .map((restaurant, index) => {
-                        // 예약 메뉴 문자열 생성
-                        let menuText = '';
-                        let totalAmount = 0;
-                        if (restaurant.reservation && restaurant.reservation.menus) {
-                          menuText = restaurant.reservation.menus
-                            .map((m) => m.menu)
-                            .join(' + ');
-                          totalAmount = restaurant.reservation.menus.reduce((sum, m) => sum + (m.cost || 0), 0);
-                        }
-
-                        // reservation이 존재하지 않으면 isReceipt를 true로 처리
-                        const isReceipt = restaurant.reservation ? (restaurant.reservation.isReceipt ?? false) : true;
-                        const prepaymentTotal = restaurant.prepaymentTotal || 0;
-                        
-                        // isReceipt가 false일 때 색상 결정
-                        let amountColor = 'inherit';
-                        if (!isReceipt) {
-                          if (prepaymentTotal === 0) {
-                            amountColor = 'red';
-                          } else if (prepaymentTotal >= totalAmount) {
-                            amountColor = currentTheme === 'black' ? '#60a5fa' : 'blue';
-                          } else {
-                            amountColor = 'orange';
-                          }
-                        }
-
-                        const remainingAmount = totalAmount - prepaymentTotal;
-
-                        return (
-                          <TableRow
-                            key={restaurant.id}
-                            onClick={(e) => {
-                              // 네비 아이콘이 disabled 상태일 때는 상세 팝업 열지 않음
-                              const target = e.target as HTMLElement;
-                              const clickedButton = target.closest('button');
-                              const isDisabledNavIcon = clickedButton && (
-                                clickedButton.hasAttribute('disabled') ||
-                                clickedButton.classList.contains('Mui-disabled') ||
-                                (!restaurant.naviUrl && clickedButton.querySelector('svg'))
-                              );
-                              
-                              // 네비 아이콘 영역인지 확인 (NavigationIcon이 포함된 버튼)
-                              if (isDisabledNavIcon && !restaurant.naviUrl) {
-                                return; // 아무 동작도 하지 않음
-                              }
-                              
-                              handleRestaurantClick(restaurant);
-                            }}
-                            sx={{
-                              cursor: 'pointer',
-                              backgroundColor: currentTheme === 'black' ? '#000000' : '#ffffff',
-                              borderBottom: 'none',
-                              '&:hover': {
-                                backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#fafafa',
-                              },
-                            }}
-                          >
-                            <TableCell 
-                              align="left"
-                              sx={{
-                                borderLeft: 'none',
-                                borderRight: 'none',
-                                px: 0,
-                                width: '45%',
-                              }}
-                            >
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                sx={{
-                                  textTransform: 'none',
-                                  justifyContent: 'flex-start',
-                                  px: 1,
-                                  fontWeight: !isReceipt ? 600 : 500,
-                                  color: !isReceipt 
-                                    ? (currentTheme === 'black' ? '#2563eb' : '#2563eb')
-                                    : (currentTheme === 'black' ? '#808080' : '#0a0a0a'),
-                                  borderColor: !isReceipt ? '#2563eb' : (currentTheme === 'black' ? '#333333' : '#e5e5e5'),
-                                  '&:hover': {
-                                    backgroundColor: !isReceipt ? 'rgba(37, 99, 235, 0.04)' : '#f5f5f5',
-                                    borderColor: !isReceipt ? '#2563eb' : '#e5e5e5',
-                                  },
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRestaurantClick(restaurant);
-                                }}
-                              >
-                                {restaurant.name}
-                              </Button>
-                            </TableCell>
-                            <TableCell
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                              sx={{
-                                borderLeft: 'none',
-                                borderRight: 'none',
-                                px: 0,
-                                width: '40%',
-                              }}
-                            >
-                              <Box>
-                                  {menuText && (
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        color: isReceipt 
-                                          ? (currentTheme === 'black' ? '#555555' : '#9ca3af')
-                                          : amountColor,
-                                        opacity: isReceipt ? (currentTheme === 'black' ? 1 : 0.6) : 1,
-                                        fontSize: '0.75rem',
-                                      }}
-                                    >
-                                    {menuText}
-                                  </Typography>
-                                )}
-                                {!isReceipt && (
-                                  prepaymentTotal === 0 ? (
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        color: '#999999',
-                                        fontWeight: 400,
-                                        fontSize: '0.75rem',
-                                        mt: 0.5,
-                                      }}
-                                    >
-                                      ({totalAmount.toLocaleString()})
-                                    </Typography>
-                                  ) : remainingAmount > 0 && remainingAmount !== totalAmount && (
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        color: '#999999',
-                                        fontWeight: 400,
-                                        fontSize: '0.75rem',
-                                        mt: 0.5,
-                                      }}
-                                    >
-                                      ({remainingAmount.toLocaleString()})
-                                    </Typography>
-                                  )
-                                )}
-                              </Box>
-                            </TableCell>
-                            <TableCell
-                              sx={{
-                                borderLeft: 'none',
-                                borderRight: 'none',
-                                px: 0,
-                              }}
-                            >
-                              <Box 
-                                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}
-                                onClick={(e) => {
-                                  // naviUrl이 없을 때 네비 아이콘 영역 클릭 시 이벤트 전파 차단
-                                  const target = e.target as HTMLElement;
-                                  const clickedButton = target.closest('button');
-                                  if (clickedButton && !restaurant.naviUrl) {
-                                    e.stopPropagation();
-                                  }
-                                }}
-                              >
-                                <Link
-                                  href={`tel:${restaurant.telNo}`}
-                                  sx={{ 
-                                    textDecoration: 'none', 
-                                    display: 'flex', 
-                                    alignItems: 'center',
-                                    color: '#666666',
-                                    '&:hover': {
-                                      color: '#0a0a0a',
-                                    },
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <PhoneIcon fontSize="small" />
-                                </Link>
-                                <Box
-                                  onClick={(e) => {
-                                    if (!restaurant.naviUrl) {
-                                      e.stopPropagation();
-                                    }
-                                  }}
-                                >
-                                  <IconButton
-                                    size="small"
-                                    disabled={!restaurant.naviUrl}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (restaurant.naviUrl) {
-                                        const baseNaverMapUrl = 'https://map.naver.com/v5/search/';
-                                        const encodedNaviUrl = encodeURIComponent(restaurant.naviUrl);
-                                        window.open(`${baseNaverMapUrl}${encodedNaviUrl}`, '_blank');
-                                      }
-                                    }}
-                                    sx={{
-                                      color: '#666666',
-                                      opacity: restaurant.naviUrl ? 1 : 0.3,
-                                      '&:hover': {
-                                        backgroundColor: restaurant.naviUrl ? '#f5f5f5' : 'transparent',
-                                        color: restaurant.naviUrl ? '#0a0a0a' : '#666666',
-                                      },
-                                      '&.Mui-disabled': {
-                                        opacity: 0.3,
-                                      },
-                                      p: 0.5,
-                                      ml: 0,
-                                    }}
-                                  >
-                                    <NavigationIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                      {!showHiddenRestaurants && restaurants.some(r => hiddenRestaurantIds.includes(r.id)) && (
-                        <TableRow>
-                          <TableCell colSpan={3} align="center" sx={{ border: 'none', py: 1 }}>
-                            <IconButton
-                              onClick={() => setShowHiddenRestaurants(true)}
-                              sx={{
-                                color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                                '&:hover': {
-                                  backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
-                                },
-                              }}
-                            >
-                              <MoreHorizIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </Box>
-          )}
-
-          {/* 식당 상세 팝업 */}
-          <Dialog
-            open={dialogOpen}
-            onClose={handleCloseDialog}
-            maxWidth="sm"
-            fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                m: { xs: 0.5, sm: 2 },
-                height: '80vh',
-                maxHeight: '80vh',
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: currentTheme === 'black' 
-                  ? '0 8px 32px rgba(0, 0, 0, 0.5)' 
-                  : '0 8px 32px rgba(0, 0, 0, 0.08)',
-                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
-                width: { xs: 'calc(100% - 8px)', sm: 'auto' },
-              },
-            }}
-          >
-            {selectedRestaurant && (
-              <>
-                <DialogTitle 
-                  sx={{ 
-                    pb: 2, 
-                    pt: 2,
-                    px: { xs: 1.5, sm: 3 },
-                    borderBottom: 'none',
-                    color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Typography 
-                        variant="h6" 
-                        sx={{ 
-                          fontSize: 16,
-                          fontWeight: 600,
-                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                          wordBreak: 'break-word' 
-                        }}
-                      >
-                        {selectedRestaurant.name}
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          // 최신 restaurants 리스트에서 식당 정보를 가져옴
-                          const latestRestaurant = restaurants.find(r => r.id === selectedRestaurant.id);
-                          if (latestRestaurant) {
-                            setEditableRestaurant({
-                              id: latestRestaurant.id,
-                              name: latestRestaurant.name || '',
-                              telNo: latestRestaurant.telNo || '',
-                              kind: latestRestaurant.kind || '',
-                              menuImgId: latestRestaurant.menuImgId || '',
-                              menuUrl: latestRestaurant.menuUrl || '',
-                              naviUrl: latestRestaurant.naviUrl || '',
-                            });
-                          } else {
-                            setEditableRestaurant({
-                              id: selectedRestaurant.id,
-                              name: selectedRestaurant.name || '',
-                              telNo: selectedRestaurant.telNo || '',
-                              kind: selectedRestaurant.kind || '',
-                              menuImgId: selectedRestaurant.menuImgId || '',
-                              menuUrl: selectedRestaurant.menuUrl || '',
-                              naviUrl: selectedRestaurant.naviUrl || '',
-                            });
-                          }
-                          setRestaurantEditDialogOpen(true);
-                        }}
-                        sx={{ 
-                          p: 0.5,
-                          color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                          '&:hover': {
-                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                          },
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {(selectedRestaurant.menuImgId || selectedRestaurant.menuUrl) && (
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            // menuImgId를 우선 적용
-                            if (selectedRestaurant.menuImgId) {
-                              const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
-                              const url = `https://res.cloudinary.com/${cloudName}/image/upload/${selectedRestaurant.menuImgId}`;
-                              window.open(url, '_blank', 'noopener');
-                            } else if (selectedRestaurant.menuUrl) {
-                              window.open(selectedRestaurant.menuUrl, '_blank', 'noopener');
-                            }
-                          }}
-                          sx={{ 
-                            flexShrink: 0,
-                            color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                            '&:hover': {
-                              backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                            },
-                          }}
-                        >
-                          <MenuBookIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Box>
-                  </Box>
-                </DialogTitle>
-                {(() => {
-                  // summary 계산 - 메뉴와 선결제 금액이 변경될 때마다 실시간으로 갱신
-                  const totalAmount = editableMenus.reduce((sum, menu) => sum + (menu.cost || 0), 0);
-                  const prepaymentTotal = prepayments.reduce((sum, prepayment) => sum + (prepayment.amount || 0), 0);
-                  const remainingAmount = totalAmount - prepaymentTotal;
-                  
-                  if (totalAmount > 0) {
-                    return (
-                      <Box sx={{ px: { xs: 1.5, sm: 3 }, pb: 1, pt: 0 }}>
-                        <Alert
-                          severity="info"
-                          sx={{
-                            fontSize: '0.75rem',
-                            color: currentTheme === 'black' ? '#1a1a1a' : '#999999',
-                            backgroundColor: currentTheme === 'black' ? '#c0c0c0' : '#f5f5f5',
-                            padding: '4px 8px',
-                            '& .MuiAlert-icon': {
-                              display: 'none',
-                            },
-                            '& .MuiAlert-message': {
-                              fontSize: '0.75rem',
-                              color: currentTheme === 'black' ? '#1a1a1a' : '#999999',
-                              padding: 0,
-                            },
-                          }}
-                        >
-                          가격 {totalAmount.toLocaleString()}원 - 선결제 {prepaymentTotal.toLocaleString()}원 = {remainingAmount.toLocaleString()}원
-                        </Alert>
-                      </Box>
-                    );
-                  }
-                  return null;
-                })()}
-                <Box sx={{ borderBottom: 'none', px: { xs: 1, sm: 2 } }}>
-                  <Tabs 
-                    value={currentTab} 
-                    onChange={(e, newValue) => setCurrentTab(newValue)}
-                    sx={{
-                      '& .MuiTab-root': {
-                        textTransform: 'none',
-                        fontWeight: 500,
-                        fontSize: 14,
-                        minHeight: 48,
-                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                        '&.Mui-selected': {
-                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                        },
-                      },
-                      '& .MuiTabs-indicator': {
-                        backgroundColor: '#0a0a0a',
-                      },
-                    }}
-                  >
-                    <Tab label="메뉴" />
-                    <Tab label="선결제" />
-                  </Tabs>
-                </Box>
-                <DialogContent 
-                  sx={{ 
-                    px: { xs: 1, sm: 3 }, 
-                    py: 2,
-                    overflow: 'auto',
-                    flex: 1,
-                    minHeight: 0,
-                  }}
-                >
-                  {currentTab === 0 && (
-                    <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-                      <DatePicker
-                        label="예약일"
-                        value={editableDateValue}
-                        onChange={handleDateChange}
-                        format="YYYY.MM.DD"
-                        slotProps={{
-                          textField: {
-                            size: 'small',
-                            fullWidth: true,
-                            sx: {
-                              mb: { xs: 1.5, sm: 2 },
-                              '& .MuiInputBase-input': {
-                                fontSize: '0.8125rem'
-                              },
-                              '& .MuiInputLabel-root': {
-                                fontSize: '0.8125rem'
-                              }
-                            }
-                          }
-                        }}
-                      />
-                      <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
-                        <Table 
-                          size="small" 
-                          sx={{ 
-                            '& .MuiTableCell-root': { 
-                              fontSize: '0.875rem', 
-                              py: { xs: 0.5, sm: 1 },
-                              border: 'none',
-                              backgroundColor: 'transparent',
-                            },
-                            '& .MuiTableHead-root .MuiTableCell-root': {
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                            },
-                            '& .MuiTableBody-root .MuiTableRow-root': {
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                            },
-                          }}
-                        >
-                          <TableHead>
-                            <TableRow
-                              sx={{
-                                '&:hover': {
-                                  backgroundColor: 'transparent !important',
-                                },
-                              }}
-                            >
-                              <TableCell 
-                                sx={{ 
-                                  fontWeight: 'bold', 
-                                  px: { xs: 0.5, sm: 1 }, 
-                                  border: 'none', 
-                                  backgroundColor: 'transparent',
-                                  '&:hover': {
-                                    backgroundColor: 'transparent !important',
-                                  },
-                                }}
-                              >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <span>메뉴</span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      if (!user || !selectedRestaurant) return;
-                                      
-                                      try {
-                                        // 해당 식당의 모든 예약 데이터 조회
-                                        const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`;
-                                        const reservationRef = ref(database, reservationPath);
-                                        const snapshot = await get(reservationRef);
-                                        
-                                        const menuSet = new Set<string>();
-                                        
-                                        if (snapshot.exists()) {
-                                          const reservations = snapshot.val();
-                                          // 모든 날짜의 예약 데이터 순회
-                                          Object.keys(reservations).forEach((date) => {
-                                            const reservation: ReservationData = reservations[date];
-                                            if (reservation && reservation.menus) {
-                                              reservation.menus.forEach((menuItem: MenuItem) => {
-                                                // 메뉴명과 가격을 조합한 키로 중복 체크
-                                                const key = `${menuItem.menu}|${menuItem.cost}`;
-                                                menuSet.add(key);
-                                              });
-                                            }
-                                          });
-                                        }
-                                        
-                                        // 중복 없는 메뉴 리스트 생성
-                                        const uniqueMenus: { menu: string; cost: number }[] = [];
-                                        menuSet.forEach((key) => {
-                                          const [menu, costStr] = key.split('|');
-                                          uniqueMenus.push({
-                                            menu,
-                                            cost: parseInt(costStr, 10),
-                                          });
-                                        });
-                                        
-                                        // 메뉴명으로 정렬
-                                        uniqueMenus.sort((a, b) => a.menu.localeCompare(b.menu));
-                                        
-                                        setMenuHistoryList(uniqueMenus);
-                                        setMenuHistoryDialogOpen(true);
-                                      } catch (error) {
-                                        console.error('Error fetching menu history:', error);
-                                        alert('메뉴 이력을 불러오는 중 오류가 발생했습니다.');
-                                      }
-                                    }}
-                                    sx={{
-                                      p: 0.5,
-                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                                      '&:hover': {
-                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                                      },
-                                      '&:active': {
-                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                                      },
-                                    }}
-                                  >
-                                    <AccessTimeIcon fontSize="small" />
-                                  </IconButton>
-                                  <IconButton 
-                                    aria-label="추가"
-                                    tabIndex={-1}
-                                    disableRipple
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
-                                    onMouseUp={(e) => {
-                                      e.currentTarget.blur();
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.blur();
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleAddRow();
-                                      // 클릭 후 즉시 포커스 제거
-                                      const target = e.currentTarget as HTMLElement;
-                                      setTimeout(() => {
-                                        if (target) {
-                                          target.blur();
-                                        }
-                                      }, 0);
-                                    }}
-                                    size="small"
-                                    sx={{
-                                      p: 0.5,
-                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                                      backgroundColor: 'transparent',
-                                      '&:hover': {
-                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                                      },
-                                      '&:active': {
-                                        backgroundColor: 'transparent !important',
-                                      },
-                                      '&:focus': {
-                                        backgroundColor: 'transparent !important',
-                                        outline: 'none',
-                                      },
-                                      '&:focus-visible': {
-                                        outline: 'none',
-                                        backgroundColor: 'transparent !important',
-                                      },
-                                    }}
-                                  >
-                                    <AddCircleOutlineIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>가격</TableCell>
-                              <TableCell width={32} sx={{ px: 0, border: 'none', backgroundColor: 'transparent' }}></TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {editableMenus.map((menuItem) => (
-                              <TableRow 
-                                key={menuItem.id}
-                                sx={{
-                                  '&:nth-of-type(even)': {
-                                    backgroundColor: 'transparent',
-                                  },
-                                  border: 'none',
-                                }}
-                              >
-                                <TableCell sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
-                                  <TextField
-                                    value={menuItem.menu}
-                                    onChange={(e) => handleMenuChange(menuItem.id, 'menu', e.target.value)}
-                                    placeholder="메뉴명"
-                                    size="small"
-                                    fullWidth
-                                    inputProps={{
-                                      'data-menu-id': menuItem.id,
-                                    }}
-                                    InputProps={{
-                                      sx: { fontSize: '0.875rem' }
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
-                                  <TextField
-                                    type="number"
-                                    value={menuItem.cost || ''}
-                                    onChange={(e) => handleMenuChange(menuItem.id, 'cost', parseInt(e.target.value) || 0)}
-                                    placeholder="금액"
-                                    size="small"
-                                    inputProps={{ min: 0 }}
-                                    sx={{ width: { xs: 100, sm: 120 } }}
-                                    InputProps={{
-                                      sx: { fontSize: '0.875rem' }
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell sx={{ px: 0, width: 32, border: 'none', backgroundColor: 'transparent' }}>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleDeleteRow(menuItem.id)}
-                                    aria-label="삭제"
-                                    sx={{ 
-                                      p: 0.5,
-                                      color: '#dc2626',
-                                      '&:hover': {
-                                        backgroundColor: '#fef2f2',
-                                        color: '#b91c1c',
-                                      },
-                                    }}
-                                  >
-                                    <ClearIcon fontSize="small" />
-                                  </IconButton>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-                  )}
-                  {currentTab === 1 && (
-                    <Box>
-                      <TableContainer sx={{ maxHeight: { xs: '40vh', sm: '50vh' }, overflow: 'auto' }}>
-                        <Table 
-                          size="small" 
-                          sx={{ 
-                            '& .MuiTableCell-root': { 
-                              fontSize: '0.875rem', 
-                              py: { xs: 0.5, sm: 1 },
-                              whiteSpace: 'nowrap',
-                              border: 'none',
-                              backgroundColor: 'transparent',
-                            },
-                            '& .MuiTableHead-root .MuiTableCell-root': {
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                            },
-                            '& .MuiTableBody-root .MuiTableRow-root': {
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                            },
-                            width: '100%',
-                            tableLayout: 'fixed',
-                          }}
-                        >
-                          <TableHead>
-                            <TableRow
-                              sx={{
-                                '&:hover': {
-                                  backgroundColor: 'transparent !important',
-                                },
-                              }}
-                            >
-                              <TableCell 
-                                sx={{ 
-                                  fontWeight: 'bold', 
-                                  px: { xs: 0.5, sm: 1 }, 
-                                  width: '45%', 
-                                  border: 'none', 
-                                  backgroundColor: 'transparent',
-                                  '&:hover': {
-                                    backgroundColor: 'transparent !important',
-                                  },
-                                }}
-                              >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <span>날짜</span>
-                                  <IconButton 
-                                    aria-label="추가"
-                                    tabIndex={-1}
-                                    disableRipple
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
-                                    onMouseUp={(e) => {
-                                      e.currentTarget.blur();
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.blur();
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleAddPrepaymentRow();
-                                      // 클릭 후 즉시 포커스 제거
-                                      const target = e.currentTarget as HTMLElement;
-                                      setTimeout(() => {
-                                        if (target) {
-                                          target.blur();
-                                        }
-                                      }, 0);
-                                    }}
-                                    size="small"
-                                    sx={{
-                                      p: 0.5,
-                                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                                      backgroundColor: 'transparent',
-                                      '&:hover': {
-                                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                                      },
-                                      '&:active': {
-                                        backgroundColor: 'transparent !important',
-                                      },
-                                      '&:focus': {
-                                        backgroundColor: 'transparent !important',
-                                        outline: 'none',
-                                      },
-                                      '&:focus-visible': {
-                                        outline: 'none',
-                                        backgroundColor: 'transparent !important',
-                                      },
-                                    }}
-                                  >
-                                    <AddCircleOutlineIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold', px: { xs: 0.5, sm: 1 }, width: '40%', border: 'none', backgroundColor: 'transparent' }}>금액</TableCell>
-                              <TableCell width={32} sx={{ px: 0, border: 'none', backgroundColor: 'transparent' }}></TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {prepayments.map((prepaymentItem) => (
-                              <TableRow 
-                                key={prepaymentItem.id}
-                                sx={{
-                                  '&:nth-of-type(even)': {
-                                    backgroundColor: 'transparent',
-                                  },
-                                  border: 'none',
-                                }}
-                              >
-                                <TableCell sx={{ px: { xs: 0.5, sm: 1 }, overflow: 'visible', border: 'none', backgroundColor: 'transparent' }}>
-                                  <DatePicker
-                                    value={prepaymentItem.dateValue}
-                                    onChange={(newValue) => handlePrepaymentChange(prepaymentItem.id, 'date', newValue)}
-                                    format="YYYY.MM.DD"
-                                    slotProps={{
-                                      textField: {
-                                        size: 'small',
-                                        fullWidth: true,
-                                        sx: {
-                                          '& .MuiInputBase-input': {
-                                            fontSize: '0.8125rem',
-                                            paddingRight: '48px !important',
-                                            minWidth: 0,
-                                          },
-                                          '& .MuiInputBase-root': {
-                                            width: '100%',
-                                            minWidth: 0,
-                                          },
-                                          '& .MuiInputAdornment-root': {
-                                            position: 'absolute',
-                                            right: 8,
-                                          }
-                                        }
-                                      }
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell align="right" sx={{ px: { xs: 0.5, sm: 1 }, border: 'none', backgroundColor: 'transparent' }}>
-                                  <TextField
-                                    type="number"
-                                    value={prepaymentItem.amount || ''}
-                                    onChange={(e) => handlePrepaymentChange(prepaymentItem.id, 'amount', parseInt(e.target.value) || 0)}
-                                    placeholder="금액"
-                                    size="small"
-                                    inputProps={{ 
-                                      min: 0,
-                                      'data-prepayment-id': prepaymentItem.id,
-                                    }}
-                                    sx={{ width: '100%', maxWidth: 120 }}
-                                    InputProps={{
-                                      sx: { fontSize: '0.875rem' }
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell sx={{ px: 0, width: 32, border: 'none', backgroundColor: 'transparent' }}>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleDeletePrepaymentRow(prepaymentItem.id)}
-                                    aria-label="삭제"
-                                    sx={{ 
-                                      p: 0.5,
-                                      color: '#dc2626',
-                                      '&:hover': {
-                                        backgroundColor: '#fef2f2',
-                                        color: '#b91c1c',
-                                      },
-                                    }}
-                                  >
-                                    <ClearIcon fontSize="small" />
-                                  </IconButton>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-                  )}
-                </DialogContent>
-                <DialogActions 
-                  sx={{ 
-                    justifyContent: 'center', 
-                    gap: 1, 
-                    p: { xs: 1.5, sm: 3 },
-                    borderTop: 'none',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <IconButton 
-                    aria-label="공유" 
-                    size="small"
-                    onClick={handleShare}
-                    disabled={selectedRestaurant?.reservation?.isReceipt === true}
-                    sx={{
-                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                      '&:hover:not(:disabled)': {
-                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                      },
-                      '&.Mui-disabled': {
-                        opacity: 0.3,
-                      },
-                    }}
-                  >
-                    <ShareIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    aria-label="수령" 
-                    size="small"
-                    onClick={handleReceipt}
-                    disabled={selectedRestaurant?.reservation?.isReceipt === true}
-                    sx={{
-                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                      '&:hover:not(:disabled)': {
-                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                      },
-                      '&.Mui-disabled': {
-                        opacity: 0.3,
-                      },
-                    }}
-                  >
-                    <ReceiptIcon fontSize="small" />
-                  </IconButton>
-                  {currentTab === 0 && (
-                    <>
-                      <IconButton 
-                        aria-label="저장" 
-                        onClick={handleSave}
-                        disabled={saving}
-                        size="small"
-                        sx={{
-                          color: saving 
-                            ? (currentTheme === 'black' ? '#666666' : '#999999')
-                            : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
-                          '&:hover:not(:disabled)': {
-                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                          },
-                        }}
-                      >
-                        <SaveIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        aria-label="삭제"
-                        onClick={handleDelete}
-                        disabled={selectedRestaurant?.reservation?.isReceipt === true}
-                        size="small"
-                        sx={{
-                          color: '#dc2626',
-                          '&:hover:not(:disabled)': {
-                            backgroundColor: '#fef2f2',
-                            color: '#b91c1c',
-                          },
-                          '&.Mui-disabled': {
-                            opacity: 0.3,
-                          },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </>
-                  )}
-                  {currentTab === 1 && (
-                    <>
-                      <IconButton 
-                        aria-label="저장" 
-                        onClick={handleSavePrepayment}
-                        disabled={savingPrepayment}
-                        size="small"
-                        sx={{
-                          color: savingPrepayment 
-                            ? (currentTheme === 'black' ? '#666666' : '#999999')
-                            : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
-                          '&:hover:not(:disabled)': {
-                            backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                            color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                          },
-                        }}
-                      >
-                        <SaveIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        aria-label="삭제"
-                        onClick={handleDeletePrepayment}
-                        disabled={selectedRestaurant?.reservation?.isReceipt === true}
-                        size="small"
-                        sx={{
-                          color: '#dc2626',
-                          '&:hover:not(:disabled)': {
-                            backgroundColor: '#fef2f2',
-                            color: '#b91c1c',
-                          },
-                          '&.Mui-disabled': {
-                            opacity: 0.3,
-                          },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </>
-                  )}
-                  <IconButton 
-                    onClick={handleCloseDialog} 
-                    aria-label="닫기" 
-                    size="small"
-                    sx={{
-                      color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                      '&:hover': {
-                        backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                        color: currentTheme === 'black' ? '#ffffff' : '#0a0a0a',
-                      },
-                    }}
-                  >
-                    <ExitToAppIcon fontSize="small" />
-                  </IconButton>
-                </DialogActions>
-              </>
-            )}
-          </Dialog>
-          
-          {/* 식당 수정 팝업 */}
-          <Dialog
-            open={restaurantEditDialogOpen}
-            onClose={() => setRestaurantEditDialogOpen(false)}
-            maxWidth="sm"
-            fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                m: { xs: 0.5, sm: 2 },
-                width: { xs: 'calc(100% - 8px)', sm: 'auto' },
-                maxHeight: { xs: '95vh', sm: '80vh' },
-                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
-              },
-            }}
-          >
-            <DialogTitle 
-              sx={{ 
-                pb: 2, 
-                pt: 2,
-                px: { xs: 1.5, sm: 3 },
-                borderBottom: 'none',
-                fontSize: 16,
-                fontWeight: 600,
-                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-              }}
-            >
-              {editableRestaurant?.id || '식당 수정'}
-            </DialogTitle>
-            <DialogContent 
-              sx={{ 
-                px: { xs: 2, sm: 4 }, 
-                py: 2,
-              }}
-            >
-              {editableRestaurant && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                  <TextField
-                    label="식당명"
-                    value={editableRestaurant.name}
-                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, name: e.target.value } : null)}
-                    fullWidth
-                    size="small"
-                    sx={{
-                      '& .MuiInputBase-input': {
-                        fontSize: '0.875rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  />
-                  <TextField
-                    label="전화번호"
-                    value={editableRestaurant.telNo || ''}
-                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, telNo: e.target.value } : null)}
-                    fullWidth
-                    size="small"
-                    sx={{
-                      '& .MuiInputBase-input': {
-                        fontSize: '0.875rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  />
-                  <TextField
-                    label="식당 종류"
-                    value={editableRestaurant.kind || ''}
-                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, kind: e.target.value } : null)}
-                    fullWidth
-                    size="small"
-                    sx={{
-                      '& .MuiInputBase-input': {
-                        fontSize: '0.875rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  />
-                  <TextField
-                    label="메뉴 URL"
-                    value={editableRestaurant.menuUrl || ''}
-                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, menuUrl: e.target.value } : null)}
-                    fullWidth
-                    size="small"
-                    sx={{
-                      '& .MuiInputBase-input': {
-                        fontSize: '0.875rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  />
-                  <TextField
-                    label="메뉴 이미지 ID"
-                    value={editableRestaurant.menuImgId || ''}
-                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, menuImgId: e.target.value } : null)}
-                    fullWidth
-                    size="small"
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              if (uploadWidget) {
-                                uploadWidget.open();
-                              }
-                            }}
-                            sx={{
-                              color: '#666666',
-                              '&:hover': {
-                                backgroundColor: '#f5f5f5',
-                                color: '#0a0a0a',
-                              },
-                            }}
-                          >
-                            <CameraAltIcon fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiInputBase-input': {
-                        fontSize: '0.875rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  />
-                  <TextField
-                    label="식당위치"
-                    value={editableRestaurant.naviUrl || ''}
-                    onChange={(e) => setEditableRestaurant(prev => prev ? { ...prev, naviUrl: e.target.value } : null)}
-                    fullWidth
-                    size="small"
-                    sx={{
-                      '& .MuiInputBase-input': {
-                        fontSize: '0.875rem',
-                      },
-                      '& .MuiInputLabel-root': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  />
-                </Box>
-              )}
-            </DialogContent>
-            <Box sx={{ position: 'relative' }}>
-              {editableRestaurant && user && (
-                <IconButton
-                  onClick={async () => {
-                    if (!editableRestaurant || !user) return;
-                    
-                    try {
-                      const hideRestaurantPath = `food-resv/hideRestaurant/${user.uid}`;
-                      const isCurrentlyHidden = hiddenRestaurantIds.includes(editableRestaurant.id);
-                      
-                      let updatedIds: string[];
-                      if (isCurrentlyHidden) {
-                        // hideRestaurant에서 제거
-                        updatedIds = hiddenRestaurantIds.filter(id => id !== editableRestaurant.id);
-                      } else {
-                        // hideRestaurant에 추가
-                        updatedIds = [...hiddenRestaurantIds, editableRestaurant.id];
-                      }
-                      
-                      await set(ref(database, hideRestaurantPath), updatedIds);
-                    } catch (error) {
-                      console.error('Error toggling hide:', error);
-                      alert('상태 변경 중 오류가 발생했습니다.');
-                    }
-                  }}
-                  sx={{
-                    position: 'absolute',
-                    left: { xs: 16, sm: 24 },
-                    bottom: 16,
-                    color: hiddenRestaurantIds.includes(editableRestaurant.id) ? '#f44336' : (currentTheme === 'black' ? '#c0c0c0' : '#666666'),
-                    '&:hover': {
-                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                    },
-                  }}
-                >
-                  <VisibilityOffIcon fontSize="small" />
-                </IconButton>
-              )}
-              <DialogActions 
-                sx={{ 
-                  justifyContent: 'flex-end', 
-                  gap: 1, 
-                  p: { xs: 1.5, sm: 3 },
-                  borderTop: 'none',
-                }}
-              >
-                <Button
-                  onClick={() => setRestaurantEditDialogOpen(false)}
-                  sx={{
-                    color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                    '&:hover': {
-                      backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                    },
-                  }}
-                >
-                  닫기
+              </div>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-5 w-5" />
                 </Button>
-              <Button
-                onClick={async () => {
-                  if (!editableRestaurant) return;
-                  
-                  try {
-                    const restaurantPath = `food-resv/restaurant/${editableRestaurant.id}`;
-                    const savedRestaurantId = editableRestaurant.id;
-                    await set(ref(database, restaurantPath), {
-                      name: editableRestaurant.name,
-                      telNo: editableRestaurant.telNo || '',
-                      kind: editableRestaurant.kind || '',
-                      menuImgId: editableRestaurant.menuImgId || '',
-                      menuUrl: editableRestaurant.menuUrl || '',
-                      naviUrl: editableRestaurant.naviUrl || '',
-                    });
-                    setRestaurantEditDialogOpen(false);
-                    setEditableRestaurant(null);
-                    // 다이얼로그가 완전히 닫힌 후 alert 표시 및 식당 상세 팝업창 다시 열기
-                    setTimeout(() => {
-                      setSnackbarMessage('저장되었습니다.');
-                      setSnackbarOpen(true);
-                      // 저장 후 최신 데이터로 selectedRestaurant 업데이트하여 식당 상세 팝업창 유지
-                      // Firebase에서 데이터가 업데이트되기를 기다린 후 최신 데이터 가져오기
-                      const restaurantRef = ref(database, `food-resv/restaurant/${savedRestaurantId}`);
-                      get(restaurantRef).then((snapshot) => {
-                        if (snapshot.exists()) {
-                          const restaurantData = snapshot.val();
-                          // 최신 restaurants 리스트에서 찾기
-                          const updatedRestaurant = restaurants.find(r => r.id === savedRestaurantId);
-                          if (updatedRestaurant) {
-                            // 기존 예약 정보는 유지하고 restaurant 데이터만 업데이트
-                            setSelectedRestaurant({
-                              ...updatedRestaurant,
-                              name: restaurantData.name || updatedRestaurant.name,
-                              telNo: restaurantData.telNo || updatedRestaurant.telNo,
-                              kind: restaurantData.kind || updatedRestaurant.kind,
-                              menuImgId: restaurantData.menuImgId || updatedRestaurant.menuImgId,
-                              menuUrl: restaurantData.menuUrl || updatedRestaurant.menuUrl,
-                              naviUrl: restaurantData.naviUrl || updatedRestaurant.naviUrl,
-                            });
-                            setDialogOpen(true);
-                          }
-                        }
-                      }).catch((error) => {
-                        console.error('Error fetching updated restaurant:', error);
-                      });
-                    }, 200);
-                  } catch (error) {
-                    console.error('Error saving restaurant:', error);
-                    alert('저장 중 오류가 발생했습니다.');
-                  }
-                }}
-                variant="contained"
-                sx={{
-                  backgroundColor: '#000000',
-                  color: '#ffffff',
-                  '&:hover': {
-                    backgroundColor: '#333333',
-                  },
-                }}
-              >
-                저장
-              </Button>
-            </DialogActions>
-            </Box>
-          </Dialog>
-          
-          {/* 식당 등록 팝업 */}
-          <Dialog
-            open={restaurantAddDialogOpen}
-            onClose={() => setRestaurantAddDialogOpen(false)}
-            maxWidth="sm"
-            fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                m: { xs: 0.5, sm: 2 },
-                width: { xs: 'calc(100% - 8px)', sm: 'auto' },
-                maxHeight: { xs: '95vh', sm: '80vh' },
-                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
-              },
-            }}
-          >
-            <DialogTitle 
-              sx={{ 
-                pb: 2, 
-                pt: 2,
-                px: { xs: 1.5, sm: 3 },
-                borderBottom: 'none',
-                fontSize: 16,
-                fontWeight: 600,
-                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-              }}
-            >
-              식당 등록
-            </DialogTitle>
-            <DialogContent 
-              sx={{ 
-                px: { xs: 2, sm: 4 }, 
-                py: 2,
-              }}
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                  label="식당 ID"
-                  value={newRestaurant.id}
-                  onChange={(e) => {
-                    // 영어대문자와 숫자만 허용
-                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    setNewRestaurant(prev => ({ ...prev, id: value }));
-                  }}
-                  fullWidth
-                  size="small"
-                  required
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-                <TextField
-                  label="식당명"
-                  value={newRestaurant.name}
-                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, name: e.target.value }))}
-                  fullWidth
-                  size="small"
-                  required
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-                <TextField
-                  label="종류"
-                  value={newRestaurant.kind}
-                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, kind: e.target.value }))}
-                  fullWidth
-                  size="small"
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-                <TextField
-                  label="전화번호"
-                  value={newRestaurant.telNo}
-                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, telNo: e.target.value }))}
-                  fullWidth
-                  size="small"
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-                <TextField
-                  label="메뉴 URL"
-                  value={newRestaurant.menuUrl}
-                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, menuUrl: e.target.value }))}
-                  fullWidth
-                  size="small"
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-                <TextField
-                  label="메뉴 이미지 ID"
-                  value={newRestaurant.menuImgId}
-                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, menuImgId: e.target.value }))}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            if (uploadWidget) {
-                              uploadWidget.open();
-                            }
-                          }}
-                          sx={{
-                            color: '#666666',
-                            '&:hover': {
-                              backgroundColor: '#f5f5f5',
-                              color: '#0a0a0a',
-                            },
-                          }}
-                        >
-                          <CameraAltIcon fontSize="small" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-                <TextField
-                  label="식당위치"
-                  value={newRestaurant.naviUrl}
-                  onChange={(e) => setNewRestaurant(prev => ({ ...prev, naviUrl: e.target.value }))}
-                  fullWidth
-                  size="small"
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiInputLabel-root': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-              </Box>
-            </DialogContent>
-            <DialogActions 
-              sx={{ 
-                justifyContent: 'flex-end', 
-                gap: 1, 
-                p: { xs: 1.5, sm: 3 },
-                borderTop: 'none',
-              }}
-            >
-              <Button
-                onClick={() => setRestaurantAddDialogOpen(false)}
-                sx={{
-                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                  '&:hover': {
-                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                  },
-                }}
-              >
-                닫기
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!newRestaurant.id || !newRestaurant.name) {
-                    alert('식당 ID와 식당명을 입력해주세요.');
-                    return;
-                  }
-                  
-                  try {
-                    const restaurantPath = `food-resv/restaurant/${newRestaurant.id}`;
-                    // 기존 식당이 있는지 확인
-                    const restaurantRef = ref(database, restaurantPath);
-                    const snapshot = await get(restaurantRef);
-                    
-                    if (snapshot.exists()) {
-                      setSnackbarMessage('이미 존재하는 식당 ID입니다.');
-                      setSnackbarOpen(true);
-                      return;
-                    }
-                    
-                    await set(ref(database, restaurantPath), {
-                      name: newRestaurant.name,
-                      telNo: newRestaurant.telNo || '',
-                      kind: newRestaurant.kind || '',
-                      menuImgId: newRestaurant.menuImgId || '',
-                      menuUrl: newRestaurant.menuUrl || '',
-                      naviUrl: newRestaurant.naviUrl || '',
-                    });
-                    setRestaurantAddDialogOpen(false);
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onSelect={() => {
                     setNewRestaurant({
                       id: '',
                       name: '',
@@ -2851,347 +1890,140 @@ export default function Home() {
                       menuUrl: '',
                       naviUrl: '',
                     });
-                    // 다이얼로그가 완전히 닫힌 후 Snackbar 표시
-                    setTimeout(() => {
-                      setSnackbarMessage('저장되었습니다.');
-                      setSnackbarOpen(true);
-                    }, 100);
-                  } catch (error) {
-                    console.error('Error saving restaurant:', error);
-                    alert('저장 중 오류가 발생했습니다.');
-                  }
-                }}
-                variant="contained"
-                sx={{
-                  backgroundColor: '#000000',
-                  color: '#ffffff',
-                  '&:hover': {
-                    backgroundColor: '#333333',
-                  },
-                }}
-              >
-                저장
-              </Button>
-            </DialogActions>
-          </Dialog>
-          
-          {/* 삭제 확인 Dialog */}
-          <Dialog
-            open={deleteConfirmDialogOpen}
-            onClose={() => {
-              setDeleteConfirmDialogOpen(false);
-              setDeleteType(null);
-            }}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                p: 2,
-              },
-            }}
-          >
-            <DialogTitle sx={{ fontSize: 16, fontWeight: 600, pb: 1 }}>
-              삭제 확인
-            </DialogTitle>
-            <DialogContent>
-              <Typography sx={{ fontSize: '0.875rem' }}>
-                {deleteType === 'reservation' 
-                  ? '예약 정보를 삭제하시겠습니까?' 
-                  : '선결제 정보를 삭제하시겠습니까?'}
-              </Typography>
-            </DialogContent>
-            <DialogActions sx={{ gap: 1, px: 2, pb: 2 }}>
-              <Button
-                onClick={() => {
-                  setDeleteConfirmDialogOpen(false);
-                  setDeleteType(null);
-                }}
-                sx={{
-                  color: '#666666',
-                  '&:hover': {
-                    backgroundColor: '#f5f5f5',
-                  },
-                }}
-              >
-                취소
-              </Button>
-              <Button
-                onClick={handleConfirmDelete}
-                variant="contained"
-                sx={{
-                  backgroundColor: '#dc2626',
-                  color: '#ffffff',
-                  '&:hover': {
-                    backgroundColor: '#b91c1c',
-                  },
-                }}
-              >
-                삭제
-              </Button>
-            </DialogActions>
-          </Dialog>
-          
-          {/* 메뉴 이력 선택 Dialog */}
-          <Dialog
-            open={menuHistoryDialogOpen}
-            onClose={() => setMenuHistoryDialogOpen(false)}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                m: { xs: 0.5, sm: 2 },
-                maxHeight: { xs: '80vh', sm: '70vh' },
-                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
-              },
-            }}
-          >
-            <DialogTitle 
-              sx={{ 
-                fontSize: 16, 
-                fontWeight: 600, 
-                pb: 1,
-                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-              }}
-            >
-              메뉴 선택
-            </DialogTitle>
-            <DialogContent sx={{ p: 0 }}>
-              <TableContainer sx={{ maxHeight: { xs: '60vh', sm: '50vh' }, overflow: 'auto' }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell 
-                        sx={{ 
-                          fontWeight: 'bold', 
-                          fontSize: '0.875rem',
-                          backgroundColor: currentTheme === 'black' ? '#2a2a2a' : 'rgb(246, 246, 246)',
-                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                        }}
-                      >
-                        메뉴
-                      </TableCell>
-                      <TableCell 
-                        align="right" 
-                        sx={{ 
-                          fontWeight: 'bold', 
-                          fontSize: '0.875rem',
-                          backgroundColor: currentTheme === 'black' ? '#2a2a2a' : 'rgb(246, 246, 246)',
-                          color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                        }}
-                      >
-                        가격
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {menuHistoryList.length === 0 ? (
-                      <TableRow>
-                        <TableCell 
-                          colSpan={2} 
-                          align="center" 
-                          sx={{ 
-                            py: 3, 
-                            color: currentTheme === 'black' ? '#808080' : '#999999',
-                          }}
-                        >
-                          등록된 메뉴가 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      menuHistoryList.map((menuItem, index) => (
-                        <TableRow
-                          key={`${menuItem.menu}-${menuItem.cost}-${index}`}
-                          onClick={() => {
-                            // 첫 행이 비어있으면 첫 행에 반영, 아니면 새 행 추가
-                            setEditableMenus(prev => {
-                              if (prev.length > 0 && prev[0].menu.trim() === '' && prev[0].cost === 0) {
-                                // 첫 행이 비어있으면 첫 행에 반영
-                                return [
-                                  {
-                                    ...prev[0],
-                                    menu: menuItem.menu,
-                                    cost: menuItem.cost,
-                                  },
-                                  ...prev.slice(1),
-                                ];
-                              } else {
-                                // 새 행 추가
-                                const newMenu: EditableMenuItem = {
-                                  id: `menu-${Date.now()}-${index}`,
-                                  menu: menuItem.menu,
-                                  cost: menuItem.cost,
-                                };
-                                return [...prev, newMenu];
-                              }
-                            });
-                            setMenuHistoryDialogOpen(false);
-                          }}
-                          sx={{
-                            cursor: 'pointer',
-                            '&:hover': {
-                              backgroundColor: currentTheme === 'black' ? '#1a1a1a' : '#f5f5f5',
-                            },
-                          }}
-                        >
-                          <TableCell 
-                            sx={{ 
-                              fontSize: '0.875rem',
-                              color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                            }}
-                          >
-                            {menuItem.menu}
-                          </TableCell>
-                          <TableCell 
-                            align="right" 
-                            sx={{ 
-                              fontSize: '0.875rem',
-                              color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                            }}
-                          >
-                            {menuItem.cost.toLocaleString()}원
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </DialogContent>
-            <DialogActions sx={{ p: 2 }}>
-              <Button
-                onClick={() => setMenuHistoryDialogOpen(false)}
-                sx={{
-                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                  '&:hover': {
-                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                  },
-                }}
-              >
-                닫기
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {/* 테마 선택 다이얼로그 */}
-          <Dialog
-            open={themeDialogOpen}
-            onClose={() => setThemeDialogOpen(false)}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                m: { xs: 0.5, sm: 2 },
-                width: { xs: 'calc(100% - 8px)', sm: 'auto' },
-                border: currentTheme === 'black' ? '1px solid #333333' : '1px solid #e5e5e5',
-              },
-            }}
-          >
-            <DialogTitle 
-              sx={{ 
-                pb: 2, 
-                pt: 2,
-                px: { xs: 1.5, sm: 3 },
-                borderBottom: 'none',
-                fontSize: 16,
-                fontWeight: 600,
-                color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-              }}
-            >
-              테마 선택
-            </DialogTitle>
-            <DialogContent 
-              sx={{ 
-                px: { xs: 2, sm: 3 }, 
-                py: 2,
-              }}
-            >
-              <FormControl component="fieldset" fullWidth>
-                <RadioGroup
-                  value={selectedTheme}
-                  onChange={(e) => setSelectedTheme(e.target.value as 'white' | 'black')}
+                    setCreateDialogOpen(true);
+                  }}
+                  className="flex items-center gap-2"
                 >
-                  <FormControlLabel
-                    value="white"
-                    control={<Radio />}
-                    label="화이트"
-                    sx={{
-                      color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                      '& .MuiRadio-root': {
-                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                        '&.Mui-checked': {
-                          color: currentTheme === 'black' ? '#ffffff' : '#000000',
-                        },
-                      },
-                    }}
-                  />
-                  <FormControlLabel
-                    value="black"
-                    control={<Radio />}
-                    label="블랙"
-                    sx={{
-                      color: currentTheme === 'black' ? '#c0c0c0' : '#0a0a0a',
-                      '& .MuiRadio-root': {
-                        color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                        '&.Mui-checked': {
-                          color: currentTheme === 'black' ? '#ffffff' : '#000000',
-                        },
-                      },
-                    }}
-                  />
-                </RadioGroup>
-              </FormControl>
-            </DialogContent>
-            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2, pt: 1 }}>
-              <Button
-                onClick={() => setThemeDialogOpen(false)}
-                sx={{
-                  textTransform: 'none',
-                  color: currentTheme === 'black' ? '#c0c0c0' : '#666666',
-                  '&:hover': {
-                    backgroundColor: currentTheme === 'black' ? '#2a2a2a' : '#f5f5f5',
-                  },
-                }}
-              >
-                닫기
-              </Button>
-              <Button
-                onClick={saveTheme}
-                variant="contained"
-                sx={{
-                  textTransform: 'none',
-                  backgroundColor: currentTheme === 'black' ? '#ffffff' : '#000000',
-                  color: currentTheme === 'black' ? '#000000' : '#ffffff',
-                  '&:hover': {
-                    backgroundColor: currentTheme === 'black' ? '#e0e0e0' : '#333333',
-                  },
-                }}
-              >
-                확인
-              </Button>
-            </DialogActions>
-          </Dialog>
+                  <PlusCircle className="h-4 w-4" />
+                  식당 등록
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={handleShareThemeDialog}
+                  className="flex items-center gap-2"
+                >
+                  <Palette className="h-4 w-4" />
+                  테마
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
 
-          {/* Snackbar */}
-          <Snackbar
-            open={snackbarOpen}
-            autoHideDuration={1000}
-            onClose={() => setSnackbarOpen(false)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-          >
-            <Alert 
-              onClose={() => setSnackbarOpen(false)} 
-              severity="success" 
-              sx={{ width: '100%' }}
-            >
-              {snackbarMessage}
-            </Alert>
-          </Snackbar>
-        </Container>
-      </ProtectedRoute>
-    </ThemeProvider>
-    </LocalizationProvider>
+        <main className="mx-auto w-full max-w-xl px-3 pb-28">
+          <RestaurantList
+            restaurants={restaurants}
+            hiddenIds={hiddenRestaurantIds}
+            showHidden={showHidden}
+            onShowHidden={() => setShowHidden(true)}
+            onSelect={handleRestaurantClick}
+            loading={loading}
+            error={error}
+            currentTheme={currentTheme}
+          />
+        </main>
+
+        <RestaurantDetailDialog
+          open={detailOpen}
+          restaurant={selectedRestaurant}
+          menuRows={menuRows}
+          onMenuChange={handleMenuChange}
+          onAddMenuRow={handleAddMenuRow}
+          onRemoveMenuRow={handleRemoveMenuRow}
+          reservationDate={reservationDate}
+          onReservationDateChange={handleReservationDateChange}
+          prepaymentRows={prepaymentRows}
+          onPrepaymentAmountChange={handlePrepaymentAmountChange}
+          onPrepaymentDateChange={handlePrepaymentDateChange}
+          onAddPrepaymentRow={handleAddPrepaymentRow}
+          onRemovePrepaymentRow={handleRemovePrepaymentRow}
+          onShare={handleShare}
+          onReceipt={handleReceipt}
+          onSaveMenus={handleSaveMenus}
+          onDeleteMenus={handleDeleteMenus}
+          onSavePrepayments={handleSavePrepayments}
+          onDeletePrepayments={handleDeletePrepayments}
+          onClose={handleCloseDetail}
+          onOpenMenuHistory={handleMenuHistoryOpen}
+          onOpenRestaurantEditor={handleOpenRestaurantEditor}
+          onOpenMenuResource={handleMenuImageOpen}
+          currentTab={currentTab}
+          onTabChange={setCurrentTab}
+          savingMenus={savingMenus}
+          savingPrepayments={savingPrepayments}
+          isReceipt={selectedRestaurant?.reservation?.isReceipt === true}
+          summary={{
+            total: sumMenuAmount(menuRows),
+            prepayment: sumPrepaymentAmount(prepaymentRows),
+            remaining: Math.max(
+              sumMenuAmount(menuRows) - sumPrepaymentAmount(prepaymentRows),
+              0
+            ),
+          }}
+        />
+
+        <MenuHistoryDialog
+          open={menuHistoryOpen}
+          menus={menuHistoryList}
+          onClose={() => setMenuHistoryOpen(false)}
+          onSelect={handleMenuHistorySelect}
+        />
+
+        {editableRestaurant && (
+          <RestaurantFormDialog
+            open={editDialogOpen}
+            mode="edit"
+            restaurant={editableRestaurant}
+            onChange={(updates) =>
+              setEditableRestaurant((prev) => (prev ? { ...prev, ...updates } : prev))
+            }
+            onClose={() => setEditDialogOpen(false)}
+            onSave={handleRestaurantUpdate}
+            saving={savingRestaurant}
+            onToggleHide={() => handleToggleHide(editableRestaurant.id)}
+            isHidden={hiddenRestaurantIds.includes(editableRestaurant.id)}
+            onOpenUpload={() => {
+              if (uploadWidget) {
+                uploadWidget.open();
+              } else {
+                toast.error('이미지 업로더를 준비 중입니다.');
+              }
+            }}
+          />
+        )}
+
+        <RestaurantFormDialog
+          open={createDialogOpen}
+          mode="create"
+          restaurant={newRestaurant}
+          onChange={(updates) => setNewRestaurant((prev) => ({ ...prev, ...updates }))}
+          onClose={() => setCreateDialogOpen(false)}
+          onSave={handleRestaurantCreate}
+          saving={creatingRestaurant}
+          onOpenUpload={() => {
+            if (uploadWidget) {
+              uploadWidget.open();
+            } else {
+              toast.error('이미지 업로더를 준비 중입니다.');
+            }
+          }}
+        />
+
+        <ThemeDialog
+          open={themeDialogOpen}
+          selectedTheme={selectedTheme}
+          onChange={setSelectedTheme}
+          onClose={() => setThemeDialogOpen(false)}
+          onSave={handleThemeSave}
+          saving={savingTheme}
+        />
+
+        <DeleteConfirmDialog
+          open={deleteState.open}
+          target={deleteState.target}
+          onCancel={() => setDeleteState({ open: false, target: null })}
+          onConfirm={handleConfirmDelete}
+        />
+      </div>
+    </ProtectedRoute>
   );
 }

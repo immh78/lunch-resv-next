@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
 import { useAuth } from '@/contexts/AuthContext';
-import { Box, CircularProgress } from '@mui/material';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -18,16 +19,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-        }}
-      >
-        <CircularProgress />
-      </Box>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Spinner size="lg" />
+      </div>
     );
   }
 
@@ -37,4 +31,3 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   return <>{children}</>;
 }
-
