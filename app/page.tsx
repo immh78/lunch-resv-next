@@ -1502,7 +1502,9 @@ export default function Home() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (restaurant.naviUrl) {
-                                        window.open(restaurant.naviUrl, '_blank');
+                                        const baseNaverMapUrl = 'https://map.naver.com/v5/search/';
+                                        const encodedNaviUrl = encodeURIComponent(restaurant.naviUrl);
+                                        window.open(`${baseNaverMapUrl}${encodedNaviUrl}`, '_blank');
                                       }
                                     }}
                                     sx={{
