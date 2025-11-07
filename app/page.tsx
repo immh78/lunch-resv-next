@@ -431,10 +431,10 @@ type RestaurantDetailDialogProps = {
   onAddMenuRow: () => void;
   onRemoveMenuRow: (id: string) => void;
   reservationDate: string;
-  onReservationDateChange: (date: Date | null) => void;
+  onReservationDateChange: (date: Date | undefined) => void;
   prepaymentRows: EditablePrepaymentItem[];
   onPrepaymentAmountChange: (id: string, amount: number) => void;
-  onPrepaymentDateChange: (id: string, date: Date | null) => void;
+  onPrepaymentDateChange: (id: string, date: Date | undefined) => void;
   onAddPrepaymentRow: () => void;
   onRemovePrepaymentRow: (id: string) => void;
   onShare: () => void;
@@ -653,14 +653,14 @@ function RestaurantDetailDialog({
                                 {item.date ? compactToDisplay(item.date) : '날짜'}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={item.dateValue ?? compactToDate(item.date) ?? undefined}
-                                onSelect={(date) => onPrepaymentDateChange(item.id, date ?? null)}
-                                initialFocus
-                              />
-                            </PopoverContent>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={item.dateValue ?? compactToDate(item.date) ?? undefined}
+                                  onSelect={(date) => onPrepaymentDateChange(item.id, date)}
+                                  initialFocus
+                                />
+                              </PopoverContent>
                           </Popover>
                           <Input
                             type="number"
