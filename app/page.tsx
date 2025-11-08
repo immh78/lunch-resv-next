@@ -1621,20 +1621,40 @@ export default function Home() {
       return;
     }
 
-    try {
-      setSavingMenus(true);
-      const reservationKey = displayToCompact(reservationDate);
-      const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationKey}`;
-      const data: ReservationData = {
-        isReceipt: false,
-        menus: validMenus.map((menu) => ({
-          menu: menu.menu.trim(),
-          cost: menu.cost,
-        })),
-      };
-      await set(ref(database, reservationPath), data);
-      toast.success('예약 정보를 저장했습니다.');
-      handleCloseDetail();
+      try {
+        setSavingMenus(true);
+        const reservationKey = displayToCompact(reservationDate);
+        const restaurantId = selectedRestaurant.id;
+        const reservationPath = `food-resv/reservation/${user.uid}/${restaurantId}/${reservationKey}`;
+        const data: ReservationData = {
+          isReceipt: false,
+          menus: validMenus.map((menu) => ({
+            menu: menu.menu.trim(),
+            cost: menu.cost,
+          })),
+        };
+        await set(ref(database, reservationPath), data);
+        toast.success('예약 정보를 저장했습니다.');
+        setSelectedRestaurant((prev) =>
+          prev && prev.id === restaurantId
+            ? {
+                ...prev,
+                reservationDate: reservationKey,
+                reservation: data,
+              }
+            : prev
+        );
+        setRestaurants((prev) =>
+          prev.map((restaurant) =>
+            restaurant.id === restaurantId
+              ? {
+                  ...restaurant,
+                  reservationDate: reservationKey,
+                  reservation: data,
+                }
+              : restaurant
+          )
+        );
     } catch (error) {
       console.error('Error saving reservation', error);
       toast.error('예약 저장 중 오류가 발생했습니다.');
