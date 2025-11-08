@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { ref, onValue, set, remove, get } from 'firebase/database';
 import { toast } from 'sonner';
@@ -73,33 +73,7 @@ import {
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
-
-interface CloudinaryWindow extends Window {
-  cloudinary?: {
-    createUploadWidget: (
-      options: {
-        cloudName: string;
-        uploadPreset: string;
-        sources: string[];
-        multiple: boolean;
-        folder: string;
-        maxFileSize: number;
-        cropping: boolean;
-        clientAllowedFormats: string[];
-        showAdvancedOptions: boolean;
-        showPoweredBy: boolean;
-        styles: { palette: { windowBorder: string } };
-      },
-      callback: (error: Error | null, result: { event?: string; info?: { public_id: string } }) => void
-    ) => {
-      open: () => void;
-    };
-  };
-}
-
-interface CloudinaryUploadWidget {
-  open: () => void;
-}
+type UploadContext = 'edit' | 'create';
 
 interface Restaurant {
   id: string;
@@ -912,6 +886,247 @@ function MenuHistoryDialog({ open, menus, onClose, onSelect }: MenuHistoryDialog
   );
 }
 
+type ImageUploadDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onUploaded: (publicId: string) => void;
+  cloudName: string;
+  uploadPreset: string;
+  initialPublicId?: string | null;
+};
+
+function ImageUploadDialog({
+  open,
+  onClose,
+  onUploaded,
+  cloudName,
+  uploadPreset,
+  initialPublicId,
+}: ImageUploadDialogProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const cleanupPreview = useCallback(() => {
+    setPreviewUrl((prev) => {
+      if (prev) {
+        URL.revokeObjectURL(prev);
+      }
+      return null;
+    });
+  }, []);
+
+  useEffect(() => {
+    cleanupPreview();
+    setFile(null);
+    setErrorMessage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [open, cleanupPreview]);
+
+  const validateAndSetFile = useCallback(
+    (nextFile: File) => {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(nextFile.type)) {
+        const message = 'JPG, PNG, WEBP 형식의 이미지 파일만 업로드할 수 있어요.';
+        setErrorMessage(message);
+        toast.error(message);
+        return;
+      }
+
+      if (nextFile.size > 5_000_000) {
+        const message = '파일 용량은 5MB 이하로 제한돼요.';
+        setErrorMessage(message);
+        toast.error(message);
+        return;
+      }
+
+      cleanupPreview();
+      setFile(nextFile);
+      setErrorMessage(null);
+      const objectUrl = URL.createObjectURL(nextFile);
+      setPreviewUrl(objectUrl);
+    },
+    [cleanupPreview]
+  );
+
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const nextFile = event.target.files?.[0];
+      if (!nextFile || uploading) return;
+      validateAndSetFile(nextFile);
+    },
+    [uploading, validateAndSetFile]
+  );
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      if (uploading) return;
+      const nextFile = event.dataTransfer.files?.[0];
+      if (!nextFile) return;
+      validateAndSetFile(nextFile);
+    },
+    [uploading, validateAndSetFile]
+  );
+
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  }, []);
+
+  const handleUpload = useCallback(async () => {
+    if (!file) {
+      const message = '업로드할 이미지를 먼저 선택하세요.';
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
+
+    setUploading(true);
+    setErrorMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', uploadPreset);
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.public_id) {
+        throw new Error(data?.error?.message ?? '이미지 업로드에 실패했습니다.');
+      }
+
+      onUploaded(data.public_id as string);
+
+      cleanupPreview();
+      setFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Cloudinary 업로드 오류:', error);
+      const message =
+        error instanceof Error ? error.message : '이미지 업로드 중 문제가 발생했습니다.';
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setUploading(false);
+    }
+  }, [cleanupPreview, cloudName, file, onUploaded, uploadPreset]);
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !uploading) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="flex max-w-lg flex-col gap-0 p-0">
+        <DialogHeader className="border-b border-border/50 px-5 py-4">
+          <DialogTitle>메뉴 이미지 업로드</DialogTitle>
+          <DialogDescription>
+            Cloudinary에 이미지를 업로드하여 메뉴 이미지 ID를 자동으로 채워요.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 px-5 py-4">
+          <div
+            className={cn(
+              'group relative flex cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed border-border/70 bg-muted/40 px-4 py-10 text-center transition hover:border-border hover:bg-muted',
+              uploading && 'pointer-events-none opacity-70'
+            )}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+          >
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt="선택한 이미지 미리보기"
+                className="h-48 w-full rounded-sm object-cover shadow-sm"
+              />
+            ) : (
+              <>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-background/80 shadow-sm ring-1 ring-border/60">
+                  <Camera className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="mt-4 text-sm font-medium text-foreground">
+                  이미지를 드래그하거나 클릭해서 선택하세요
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  지원 형식: JPG, PNG, WEBP · 최대 5MB
+                </p>
+              </>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
+            {uploading && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-sm bg-background/80">
+                <Spinner size="md" />
+              </div>
+            )}
+          </div>
+
+          {errorMessage && (
+            <Alert variant="destructive">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          {initialPublicId && (
+            <div className="rounded-sm border border-border/60 bg-muted/30 p-3">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>현재 적용된 이미지</span>
+                <span className="font-mono text-[11px]">{initialPublicId}</span>
+              </div>
+              <div className="mt-3 overflow-hidden rounded-sm border border-border/60 bg-background">
+                <img
+                  src={`https://res.cloudinary.com/${cloudName}/image/upload/c_fill,w_480,q_auto,f_auto/${initialPublicId}`}
+                  alt="현재 메뉴 이미지 미리보기"
+                  className="h-40 w-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="border-t border-border/50 px-5 py-4">
+          <Button variant="ghost" onClick={onClose} disabled={uploading}>
+            취소
+          </Button>
+          <Button onClick={handleUpload} disabled={uploading || !file}>
+            {uploading ? <Spinner size="sm" /> : '업로드'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 type RestaurantFormDialogProps = {
   open: boolean;
   mode: 'edit' | 'create';
@@ -1209,8 +1424,8 @@ export default function Home() {
 
   const [hiddenRestaurantIds, setHiddenRestaurantIds] = useState<string[]>([]);
   const [showHidden, setShowHidden] = useState(false);
-
-  const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadContext, setUploadContext] = useState<UploadContext | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -1222,66 +1437,34 @@ export default function Home() {
     }
   }, [hiddenRestaurantIds]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
 
-    const cloudinaryWindow = window as unknown as CloudinaryWindow;
+  const handleUploadDialogClose = useCallback(() => {
+    setUploadDialogOpen(false);
+    setUploadContext(null);
+  }, []);
 
-    const setup = () => {
-      if (!cloudinaryWindow.cloudinary) return;
+  const handleOpenUploadDialog = useCallback((context: UploadContext) => {
+    setUploadContext(context);
+    setUploadDialogOpen(true);
+  }, []);
 
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
-      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
+  const handleUploadSuccess = useCallback(
+    (publicId: string) => {
+      const context = uploadContext;
 
-      const widget = cloudinaryWindow.cloudinary.createUploadWidget(
-        {
-          cloudName,
-          uploadPreset,
-          sources: ['local', 'url', 'camera'],
-          multiple: false,
-          folder: 'images',
-          maxFileSize: 5_000_000,
-          cropping: false,
-          clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-          showAdvancedOptions: false,
-          showPoweredBy: false,
-          styles: { palette: { windowBorder: '#ddd' } },
-        },
-        (error: Error | null, result: { event?: string; info?: { public_id: string } }) => {
-          if (!error && result && result.event === 'success' && result.info) {
-            const publicId = result.info.public_id;
-            setEditableRestaurant((prev) =>
-              prev && editDialogOpen ? { ...prev, menuImgId: publicId } : prev
-            );
-            setNewRestaurant((prev) =>
-              createDialogOpen ? { ...prev, menuImgId: publicId } : prev
-            );
-          }
-        }
-      );
-
-      setUploadWidget(widget);
-    };
-
-    if (cloudinaryWindow.cloudinary) {
-      setup();
-      return;
-    }
-
-    const interval = setInterval(() => {
-      if (cloudinaryWindow.cloudinary) {
-        setup();
-        clearInterval(interval);
+      if (context === 'edit') {
+        setEditableRestaurant((prev) => (prev ? { ...prev, menuImgId: publicId } : prev));
+      } else if (context === 'create') {
+        setNewRestaurant((prev) => ({ ...prev, menuImgId: publicId }));
       }
-    }, 150);
 
-    const timeout = setTimeout(() => clearInterval(interval), 10_000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [editDialogOpen, createDialogOpen]);
+      toast.success('이미지를 업로드했습니다.');
+      handleUploadDialogClose();
+    },
+    [handleUploadDialogClose, uploadContext]
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -2121,52 +2304,55 @@ export default function Home() {
           }}
         />
 
-        <MenuHistoryDialog
-          open={menuHistoryOpen}
-          menus={menuHistoryList}
-          onClose={() => setMenuHistoryOpen(false)}
-          onSelect={handleMenuHistorySelect}
-        />
-
-        {editableRestaurant && (
-          <RestaurantFormDialog
-            open={editDialogOpen}
-            mode="edit"
-            restaurant={editableRestaurant}
-            onChange={(updates) =>
-              setEditableRestaurant((prev) => (prev ? { ...prev, ...updates } : prev))
-            }
-            onClose={() => setEditDialogOpen(false)}
-            onSave={handleRestaurantUpdate}
-            saving={savingRestaurant}
-            onToggleHide={() => handleToggleHide(editableRestaurant.id)}
-            isHidden={hiddenRestaurantIds.includes(editableRestaurant.id)}
-            onOpenUpload={() => {
-              if (uploadWidget) {
-                uploadWidget.open();
-              } else {
-                toast.error('이미지 업로더를 준비 중입니다.');
-              }
-            }}
+          <MenuHistoryDialog
+            open={menuHistoryOpen}
+            menus={menuHistoryList}
+            onClose={() => setMenuHistoryOpen(false)}
+            onSelect={handleMenuHistorySelect}
           />
-        )}
 
-        <RestaurantFormDialog
-          open={createDialogOpen}
-          mode="create"
-          restaurant={newRestaurant}
-          onChange={(updates) => setNewRestaurant((prev) => ({ ...prev, ...updates }))}
-          onClose={() => setCreateDialogOpen(false)}
-          onSave={handleRestaurantCreate}
-          saving={creatingRestaurant}
-          onOpenUpload={() => {
-            if (uploadWidget) {
-              uploadWidget.open();
-            } else {
-              toast.error('이미지 업로더를 준비 중입니다.');
+          {editableRestaurant && (
+            <RestaurantFormDialog
+              open={editDialogOpen}
+              mode="edit"
+              restaurant={editableRestaurant}
+              onChange={(updates) =>
+                setEditableRestaurant((prev) => (prev ? { ...prev, ...updates } : prev))
+              }
+              onClose={() => setEditDialogOpen(false)}
+              onSave={handleRestaurantUpdate}
+              saving={savingRestaurant}
+              onToggleHide={() => handleToggleHide(editableRestaurant.id)}
+              isHidden={hiddenRestaurantIds.includes(editableRestaurant.id)}
+              onOpenUpload={() => handleOpenUploadDialog('edit')}
+            />
+          )}
+
+          <RestaurantFormDialog
+            open={createDialogOpen}
+            mode="create"
+            restaurant={newRestaurant}
+            onChange={(updates) => setNewRestaurant((prev) => ({ ...prev, ...updates }))}
+            onClose={() => setCreateDialogOpen(false)}
+            onSave={handleRestaurantCreate}
+            saving={creatingRestaurant}
+            onOpenUpload={() => handleOpenUploadDialog('create')}
+          />
+
+          <ImageUploadDialog
+            open={uploadDialogOpen}
+            onClose={handleUploadDialogClose}
+            onUploaded={handleUploadSuccess}
+            cloudName={cloudName}
+            uploadPreset={uploadPreset}
+            initialPublicId={
+              uploadContext === 'edit'
+                ? editableRestaurant?.menuImgId || null
+                : uploadContext === 'create'
+                  ? newRestaurant.menuImgId || null
+                  : null
             }
-          }}
-        />
+          />
 
         <ThemeDialog
           open={themeDialogOpen}
