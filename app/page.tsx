@@ -315,96 +315,106 @@ function RestaurantList({
           const remaining = Math.max(totalAmount - prepaymentTotal, 0);
           const amountColor = getAmountColor(totalAmount, prepaymentTotal, !!isReceipt);
 
-          return (
-            <TableRow
-              key={restaurant.id}
-              onClick={() => onSelect(restaurant)}
-              className={cn(
-                'cursor-pointer border-border/30 transition hover:bg-muted/70',
-                isReceipt && 'opacity-60'
-              )}
-            >
-              <TableCell className="align-middle">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    'w-full justify-start truncate',
-                    !isReceipt && 'font-semibold text-foreground'
-                  )}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelect(restaurant);
-                  }}
-                >
-                  {restaurant.name}
-                </Button>
-              </TableCell>
-              <TableCell className="align-middle">
-                <div className="flex flex-col gap-1">
-                  {menuText ? (
-                    <span className={cn('text-xs', amountColor)}>{menuText}</span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">예약 없음</span>
-                  )}
-                  {!isReceipt && (
-                    <>
-                      {prepaymentTotal === 0 ? (
-                        <span className="text-xs text-muted-foreground">
-                          ({formatCurrency(totalAmount)})
-                        </span>
-                      ) : (
-                        remaining > 0 &&
-                        remaining !== totalAmount && (
-                          <span className="text-xs text-muted-foreground">
-                            ({formatCurrency(remaining)})
-                          </span>
-                        )
-                      )}
-                    </>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="align-middle">
-                <div className="flex items-center justify-end gap-2">
-                  <a
-                    href={`tel:${restaurant.telNo}`}
-                    onClick={(event) => event.stopPropagation()}
-                    className={cn(
-                      'rounded-full p-1 transition',
-                      currentTheme === 'white' ? 'text-black hover:text-black/80' : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    <Phone className="h-4 w-4" />
-                  </a>
+            return (
+              <TableRow
+                key={restaurant.id}
+                onClick={() => onSelect(restaurant)}
+                className={cn(
+                  'cursor-pointer border-border/30 transition hover:bg-muted/70',
+                  isReceipt && 'opacity-60'
+                )}
+              >
+                <TableCell className="align-middle">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={!restaurant.naviUrl}
+                    variant="outline"
+                    size="sm"
                     className={cn(
-                      'h-8 w-8',
-                      !restaurant.naviUrl && 'pointer-events-none'
+                      'w-full justify-start truncate',
+                      !isReceipt && 'font-semibold text-foreground'
                     )}
                     onClick={(event) => {
                       event.stopPropagation();
-                      if (restaurant.naviUrl) {
-                        const baseUrl = 'https://map.naver.com/v5/search/';
-                        window.open(`${baseUrl}${encodeURIComponent(restaurant.naviUrl)}`, '_blank');
-                      }
+                      onSelect(restaurant);
                     }}
                   >
-                    <Navigation
-                      className={cn(
-                        'h-4 w-4',
-                        !restaurant.naviUrl && currentTheme === 'white' && 'text-gray-400',
-                        !restaurant.naviUrl && currentTheme === 'black' && 'text-gray-600'
-                      )}
-                    />
+                    {restaurant.name}
                   </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          );
+                </TableCell>
+                <TableCell className="align-middle">
+                  <div
+                    className="flex flex-col gap-1"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {menuText ? (
+                      <span className={cn('text-xs', amountColor)}>{menuText}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">예약 없음</span>
+                    )}
+                    {!isReceipt && (
+                      <>
+                        {prepaymentTotal === 0 ? (
+                          <span className="text-xs text-muted-foreground">
+                            ({formatCurrency(totalAmount)})
+                          </span>
+                        ) : (
+                          remaining > 0 &&
+                          remaining !== totalAmount && (
+                            <span className="text-xs text-muted-foreground">
+                              ({formatCurrency(remaining)})
+                            </span>
+                          )
+                        )}
+                      </>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="align-middle">
+                  <div className="flex items-center justify-end gap-2">
+                    <a
+                      href={`tel:${restaurant.telNo}`}
+                      onClick={(event) => event.stopPropagation()}
+                      className={cn(
+                        'rounded-full p-1 transition',
+                        currentTheme === 'white'
+                          ? 'text-black hover:text-black/80'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <Phone className="h-4 w-4" />
+                    </a>
+                    <div
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={!restaurant.naviUrl}
+                        className="h-8 w-8"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (restaurant.naviUrl) {
+                            const baseUrl = 'https://map.naver.com/v5/search/';
+                            window.open(
+                              `${baseUrl}${encodeURIComponent(restaurant.naviUrl)}`,
+                              '_blank'
+                            );
+                          }
+                        }}
+                      >
+                        <Navigation
+                          className={cn(
+                            'h-4 w-4',
+                            !restaurant.naviUrl && currentTheme === 'white' && 'text-gray-400',
+                            !restaurant.naviUrl && currentTheme === 'black' && 'text-gray-600'
+                          )}
+                        />
+                      </Button>
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
         })}
 
         {!rows.length && (
