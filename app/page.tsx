@@ -19,14 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,7 +42,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 
 import {
@@ -71,6 +63,7 @@ import {
   Camera,
   EyeOff,
   Palette,
+  Check,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -1078,33 +1071,46 @@ type ThemeDialogProps = {
   saving: boolean;
 };
 
+const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
+  { value: 'white', label: '화이트' },
+  { value: 'black', label: '블랙' },
+];
+
 function ThemeDialog({ open, selectedTheme, onChange, onClose, onSave, saving }: ThemeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-sm">
-        <DialogHeader>
+        <DialogHeader className="border-b-0 pb-2 pt-5">
           <DialogTitle>테마 설정</DialogTitle>
           <DialogDescription>선호하는 테마를 선택해주세요.</DialogDescription>
         </DialogHeader>
-        <RadioGroup
-          value={selectedTheme}
-          onValueChange={(value) => onChange(value as ThemeMode)}
-          className="space-y-3"
-        >
-          <div className="flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-sm">
-            <RadioGroupItem value="white" id="theme-white" />
-            <Label htmlFor="theme-white" className="cursor-pointer">
-              화이트
-            </Label>
-          </div>
-          <div className="flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-sm">
-            <RadioGroupItem value="black" id="theme-black" />
-            <Label htmlFor="theme-black" className="cursor-pointer">
-              블랙
-            </Label>
-          </div>
-        </RadioGroup>
-        <DialogFooter>
+        <div className="space-y-3 px-5">
+          {THEME_OPTIONS.map((option) => {
+            const isSelected = selectedTheme === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onChange(option.value)}
+                className={cn(
+                  'relative w-full rounded-sm border px-4 py-3 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                  isSelected
+                    ? 'border-primary text-primary'
+                    : 'border-border hover:border-primary/50'
+                )}
+              >
+                <span className="font-medium">{option.label}</span>
+                <Check
+                  className={cn(
+                    'absolute bottom-2 right-2 h-4 w-4 text-primary transition-opacity',
+                    isSelected ? 'opacity-100' : 'opacity-0'
+                  )}
+                />
+              </button>
+            );
+          })}
+        </div>
+        <DialogFooter className="border-t-0 px-5 pt-3">
           <Button variant="outline" onClick={onClose}>
             닫기
           </Button>
