@@ -11,20 +11,21 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function PageViewLogger() {
   const { user } = useAuth();
   const pathname = usePathname();
-  const lastLoggedSignatureRef = useRef<string>();
+  const lastLoggedSignatureRef = useRef<string | null>(null);
+  const uid = user?.uid ?? null;
 
   useEffect(() => {
-    if (!user || !pathname) {
+    if (!uid || !pathname) {
       return;
     }
 
-    const signature = `${user.uid}:${pathname}`;
+    const signature = `${uid}:${pathname}`;
     if (lastLoggedSignatureRef.current === signature) {
       return;
     }
 
     const logEntry = {
-      uid: user.uid,
+      uid,
       datetime: dayjs().format('YYYYMMDDHHmmss'),
     };
 
@@ -39,7 +40,7 @@ export default function PageViewLogger() {
         console.error('페이지 로그 기록 중 오류가 발생했습니다.', error);
       }
     })();
-  }, [user?.uid, pathname]);
+  }, [uid, pathname]);
 
   return null;
 }
