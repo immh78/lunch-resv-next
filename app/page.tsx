@@ -1851,7 +1851,6 @@ export default function Home() {
       return [...prev, { id: `menu-${Date.now()}`, menu: item.menu, cost: item.cost }];
     });
     setMenuHistoryOpen(false);
-    toast.success('메뉴가 추가되었습니다.');
   };
 
   const handleOpenRestaurantEditor = () => {
