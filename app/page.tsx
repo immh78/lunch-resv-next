@@ -9,7 +9,7 @@ import { database } from '@/lib/firebase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import {
   Table,
@@ -498,6 +498,9 @@ function RestaurantDetailDialog({
   isReceipt,
   summary,
 }: RestaurantDetailDialogProps) {
+  const [reservationDateOpen, setReservationDateOpen] = useState(false);
+  const [prepaymentDateOpens, setPrepaymentDateOpens] = useState<Record<string, boolean>>({});
+  
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="mx-auto flex h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] flex-col items-start justify-center px-1 pt-[5vh] [&>div]:max-w-full [&>div]:w-full [&>div]:rounded-sm">
@@ -549,7 +552,7 @@ function RestaurantDetailDialog({
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label className="text-xs font-medium text-muted-foreground">예약일</Label>
-                      <Popover>
+                      <Popover open={reservationDateOpen} onOpenChange={setReservationDateOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -565,14 +568,41 @@ function RestaurantDetailDialog({
                             )}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-2" align="start">
                           <Calendar
                             mode="single"
                             selected={displayToDate(reservationDate) ?? undefined}
                             onSelect={(date) => {
                               if (date) {
                                 onReservationDateChange(date);
+                                setReservationDateOpen(false);
                               }
+                            }}
+                            showOutsideDays={false}
+                            className="p-0"
+                            classNames={{
+                              months: "flex flex-col space-y-0",
+                              month: "space-y-2",
+                              caption: "flex justify-center pt-1 relative items-center",
+                              caption_label: "text-sm font-medium",
+                              nav: "space-x-1 flex items-center",
+                              nav_button: cn(
+                                buttonVariants({ variant: "outline" }),
+                                "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100"
+                              ),
+                              nav_button_previous: "absolute left-1",
+                              nav_button_next: "absolute right-1",
+                              table: "w-full border-collapse space-y-1",
+                              head_row: "flex",
+                              head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.75rem]",
+                              row: "flex w-full mt-1",
+                              cell: "h-8 w-8 text-center text-sm p-0 relative",
+                              day: cn(
+                                buttonVariants({ variant: "ghost" }),
+                                "h-8 w-8 p-0 font-normal aria-selected:opacity-100"
+                              ),
+                              day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                              day_today: "bg-accent text-accent-foreground",
                             }}
                             initialFocus
                           />
@@ -665,7 +695,10 @@ function RestaurantDetailDialog({
                           key={item.id}
                           className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
                         >
-                          <Popover>
+                          <Popover 
+                            open={prepaymentDateOpens[item.id] || false} 
+                            onOpenChange={(open) => setPrepaymentDateOpens(prev => ({ ...prev, [item.id]: open }))}
+                          >
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
@@ -683,14 +716,41 @@ function RestaurantDetailDialog({
                                 )}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="w-auto p-2" align="start">
                               <Calendar
                                 mode="single"
                                 selected={item.dateValue ?? compactToDate(item.date) ?? undefined}
                                 onSelect={(date) => {
                                   if (date) {
                                     onPrepaymentDateChange(item.id, date);
+                                    setPrepaymentDateOpens(prev => ({ ...prev, [item.id]: false }));
                                   }
+                                }}
+                                showOutsideDays={false}
+                                className="p-0"
+                                classNames={{
+                                  months: "flex flex-col space-y-0",
+                                  month: "space-y-2",
+                                  caption: "flex justify-center pt-1 relative items-center",
+                                  caption_label: "text-sm font-medium",
+                                  nav: "space-x-1 flex items-center",
+                                  nav_button: cn(
+                                    buttonVariants({ variant: "outline" }),
+                                    "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100"
+                                  ),
+                                  nav_button_previous: "absolute left-1",
+                                  nav_button_next: "absolute right-1",
+                                  table: "w-full border-collapse space-y-1",
+                                  head_row: "flex",
+                                  head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.75rem]",
+                                  row: "flex w-full mt-1",
+                                  cell: "h-8 w-8 text-center text-sm p-0 relative",
+                                  day: cn(
+                                    buttonVariants({ variant: "ghost" }),
+                                    "h-8 w-8 p-0 font-normal aria-selected:opacity-100"
+                                  ),
+                                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                                  day_today: "bg-accent text-accent-foreground",
                                 }}
                                 initialFocus
                               />
