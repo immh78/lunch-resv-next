@@ -1582,15 +1582,17 @@ export default function Home() {
     async (restaurant: RestaurantWithReservation) => {
       if (!user) return;
 
+      const hasActiveReservation = restaurant.reservation?.isReceipt === false;
+
       setSelectedRestaurant(restaurant);
       const existingReservationDate =
-        restaurant.reservation?.isReceipt === false && restaurant.reservationDate
+        hasActiveReservation && restaurant.reservationDate
           ? compactToDisplay(restaurant.reservationDate)
           : '';
       const fallbackReservationDate = compactToDisplay(getNextFriday());
       setReservationDate(existingReservationDate || fallbackReservationDate);
 
-      if (restaurant.reservation && !restaurant.reservation.isReceipt) {
+      if (restaurant.reservation && hasActiveReservation) {
         setMenuRows(
           restaurant.reservation.menus.map((menu, index) => ({
             id: `menu-${Date.now()}-${index}`,
@@ -1603,7 +1605,7 @@ export default function Home() {
       }
 
       await loadPrepayments(user.uid, restaurant.id);
-      setCurrentTab('menu');
+      setCurrentTab(hasActiveReservation ? 'prepayment' : 'menu');
       setDetailOpen(true);
     },
     [loadPrepayments, user]
