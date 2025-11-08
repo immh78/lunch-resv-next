@@ -71,6 +71,7 @@ import {
   Camera,
   EyeOff,
   Palette,
+  Check,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -1091,26 +1092,22 @@ function ThemeDialog({ open, selectedTheme, onChange, onClose, onSave, saving }:
           onValueChange={(value) => onChange(value as ThemeMode)}
           className="space-y-3"
         >
-          <div className="flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-sm">
+          <div className="flex items-center gap-2 px-3 py-2 text-sm">
             <RadioGroupItem value="white" id="theme-white" />
             <Label htmlFor="theme-white" className="cursor-pointer">
               화이트
             </Label>
           </div>
-          <div className="flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-sm">
+          <div className="flex items-center gap-2 px-3 py-2 text-sm">
             <RadioGroupItem value="black" id="theme-black" />
             <Label htmlFor="theme-black" className="cursor-pointer">
               블랙
             </Label>
           </div>
         </RadioGroup>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            닫기
-          </Button>
-          <Button onClick={onSave} disabled={saving}>
-            {saving && <Spinner size="sm" className="mr-2" />}
-            확인
+        <DialogFooter className="justify-end">
+          <Button onClick={onSave} disabled={saving} size="icon" aria-label="선택한 테마 저장">
+            {saving ? <Spinner size="sm" /> : <Check className="h-4 w-4" />}
           </Button>
         </DialogFooter>
       </DialogContent>
