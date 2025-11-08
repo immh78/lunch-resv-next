@@ -1704,56 +1704,72 @@ export default function Home() {
     }
   };
 
-  const handleDeletePrepayments = () => {
-    setDeleteState({ open: true, target: 'prepayment' });
-  };
-
-  const handleReceipt = async () => {
-    if (!user || !selectedRestaurant) return;
-    if (!reservationDate) {
-      toast.error('예약일이 필요합니다.');
-      return;
-    }
-
-    try {
-      const reservationKey = displayToCompact(reservationDate);
-      const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationKey}`;
-      const snapshot = await get(ref(database, reservationPath));
-
-      if (snapshot.exists()) {
-        const existing = snapshot.val() as ReservationData;
-        await set(ref(database, reservationPath), { ...existing, isReceipt: true });
+    const handleDeletePrepayments = () => {
+      setDeleteState({ open: true, target: 'prepayment' });
+    };
+  
+    const handleReceipt = async () => {
+      if (!user || !selectedRestaurant) return;
+      if (!reservationDate) {
+        toast.error('예약일이 필요합니다.');
+        return;
       }
-
-      await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
-      toast.success('수령 처리되었습니다.');
-      handleCloseDetail();
-    } catch (error) {
-      console.error('Error processing receipt', error);
-      toast.error('수령 처리 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!user || !selectedRestaurant || !deleteState.target) return;
-
-    try {
-      if (deleteState.target === 'reservation') {
-        await remove(ref(database, `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`));
-        toast.success('예약 정보를 삭제했습니다.');
-        handleCloseDetail();
-      } else {
+  
+      try {
+        const reservationKey = displayToCompact(reservationDate);
+        const reservationPath = `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationKey}`;
+        const snapshot = await get(ref(database, reservationPath));
+  
+        if (snapshot.exists()) {
+          const existing = snapshot.val() as ReservationData;
+          await set(ref(database, reservationPath), { ...existing, isReceipt: true });
+        }
+  
         await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
-        toast.success('선결제를 삭제했습니다.');
-        await loadPrepayments(user.uid, selectedRestaurant.id);
+        toast.success('수령 처리되었습니다.');
+        handleCloseDetail();
+      } catch (error) {
+        console.error('Error processing receipt', error);
+        toast.error('수령 처리 중 오류가 발생했습니다.');
       }
-    } catch (error) {
-      console.error('Error deleting data', error);
-      toast.error('삭제 중 오류가 발생했습니다.');
-    } finally {
-      setDeleteState({ open: false, target: null });
-    }
-  };
+    };
+  
+    const handleConfirmDelete = async () => {
+      if (!user || !selectedRestaurant || !deleteState.target) return;
+  
+      const reservationKey =
+        deleteState.target === 'reservation' ? displayToCompact(reservationDate) : '';
+  
+      if (deleteState.target === 'reservation') {
+        if (!reservationDate || reservationKey.length !== 8) {
+          toast.error('예약일을 확인해주세요.');
+          setDeleteState({ open: false, target: null });
+          return;
+        }
+      }
+  
+      try {
+        if (deleteState.target === 'reservation') {
+          await remove(
+            ref(
+              database,
+              `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationKey}`
+            )
+          );
+          toast.success('예약 정보를 삭제했습니다.');
+          handleCloseDetail();
+        } else {
+          await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
+          toast.success('선결제를 삭제했습니다.');
+          await loadPrepayments(user.uid, selectedRestaurant.id);
+        }
+      } catch (error) {
+        console.error('Error deleting data', error);
+        toast.error('삭제 중 오류가 발생했습니다.');
+      } finally {
+        setDeleteState({ open: false, target: null });
+      }
+    };
 
   const handleShare = () => {
     if (!selectedRestaurant) return;
