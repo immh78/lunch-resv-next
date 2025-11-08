@@ -49,7 +49,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 
 import {
@@ -71,7 +70,6 @@ import {
   Camera,
   EyeOff,
   Palette,
-  Check,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -1073,45 +1071,45 @@ function RestaurantFormDialog({
 type ThemeDialogProps = {
   open: boolean;
   selectedTheme: ThemeMode;
-  onChange: (theme: ThemeMode) => void;
   onClose: () => void;
-  onSave: () => void;
+  onSelect: (theme: ThemeMode) => void;
   saving: boolean;
 };
 
-function ThemeDialog({ open, selectedTheme, onChange, onClose, onSave, saving }: ThemeDialogProps) {
+function ThemeDialog({ open, selectedTheme, onClose, onSelect, saving }: ThemeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-sm space-y-5 px-4 py-6">
-        <DialogTitle className="text-base font-semibold">테마 선택</DialogTitle>
-        <RadioGroup
-          value={selectedTheme}
-          onValueChange={(value) => onChange(value as ThemeMode)}
-          className="space-y-3"
-        >
-          <div className="flex items-center gap-2 px-3 py-2 text-sm">
-            <RadioGroupItem value="white" id="theme-white" />
-            <Label htmlFor="theme-white" className="cursor-pointer">
-              화이트
-            </Label>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-2 text-sm">
-            <RadioGroupItem value="black" id="theme-black" />
-            <Label htmlFor="theme-black" className="cursor-pointer">
-              블랙
-            </Label>
-          </div>
-        </RadioGroup>
-        <div className="flex justify-end">
+      <DialogContent className="max-w-sm space-y-3 px-4 py-6">
+        <div className="flex flex-col gap-2">
           <Button
-            onClick={onSave}
-            disabled={saving}
-            size="icon"
+            type="button"
             variant="ghost"
-            className="h-8 w-8 p-0 text-primary hover:bg-transparent focus-visible:ring-0 disabled:text-muted-foreground"
-            aria-label="선택한 테마 저장"
+            disabled={saving}
+            onClick={() => onSelect('white')}
+            className={cn(
+              'h-12 justify-between rounded-lg px-4 text-sm font-medium',
+              selectedTheme === 'white'
+                ? 'bg-muted text-foreground'
+                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            )}
           >
-            {saving ? <Spinner size="sm" /> : <Check className="h-4 w-4" />}
+            <span>화이트</span>
+            {saving && selectedTheme === 'white' ? <Spinner size="sm" /> : null}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={saving}
+            onClick={() => onSelect('black')}
+            className={cn(
+              'h-12 justify-between rounded-lg px-4 text-sm font-medium',
+              selectedTheme === 'black'
+                ? 'bg-muted text-foreground'
+                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            )}
+          >
+            <span>블랙</span>
+            {saving && selectedTheme === 'black' ? <Spinner size="sm" /> : null}
           </Button>
         </div>
       </DialogContent>
@@ -1791,17 +1789,28 @@ export default function Home() {
     })();
   };
 
-  const handleThemeSave = async () => {
-    if (!user) return;
+  const handleThemeSelect = async (theme: ThemeMode) => {
+    const themeLabel = theme === 'white' ? '화이트' : '블랙';
+    const previousTheme = currentTheme;
+
+    setSelectedTheme(theme);
+    setCurrentTheme(theme);
+
+    if (!user) {
+      toast.success(`${themeLabel} 테마로 전환했습니다.`);
+      setThemeDialogOpen(false);
+      return;
+    }
 
     try {
       setSavingTheme(true);
-      await set(ref(database, `food-resv/theme/${user.uid}`), { theme: selectedTheme });
-      setCurrentTheme(selectedTheme);
-      toast.success('테마를 저장했습니다.');
+      await set(ref(database, `food-resv/theme/${user.uid}`), { theme });
+      toast.success(`${themeLabel} 테마로 전환했습니다.`);
       setThemeDialogOpen(false);
     } catch (error) {
       console.error('Error saving theme', error);
+      setCurrentTheme(previousTheme);
+      setSelectedTheme(previousTheme);
       toast.error('테마 저장 중 오류가 발생했습니다.');
     } finally {
       setSavingTheme(false);
@@ -2129,9 +2138,8 @@ export default function Home() {
         <ThemeDialog
           open={themeDialogOpen}
           selectedTheme={selectedTheme}
-          onChange={setSelectedTheme}
           onClose={() => setThemeDialogOpen(false)}
-          onSave={handleThemeSave}
+          onSelect={handleThemeSelect}
           saving={savingTheme}
         />
 
