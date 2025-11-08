@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { ref, onValue, set, remove, get } from 'firebase/database';
 import { toast } from 'sonner';
@@ -74,33 +74,6 @@ import {
 
 type ThemeMode = 'white' | 'black';
 
-interface CloudinaryWindow extends Window {
-  cloudinary?: {
-    createUploadWidget: (
-      options: {
-        cloudName: string;
-        uploadPreset: string;
-        sources: string[];
-        multiple: boolean;
-        folder: string;
-        maxFileSize: number;
-        cropping: boolean;
-        clientAllowedFormats: string[];
-        showAdvancedOptions: boolean;
-        showPoweredBy: boolean;
-        styles: { palette: { windowBorder: string } };
-      },
-      callback: (error: Error | null, result: { event?: string; info?: { public_id: string } }) => void
-    ) => {
-      open: () => void;
-    };
-  };
-}
-
-interface CloudinaryUploadWidget {
-  open: () => void;
-}
-
 interface Restaurant {
   id: string;
   name: string;
@@ -154,7 +127,22 @@ type DeleteTarget = 'reservation' | 'prepayment';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
+const IMAGEKIT_ENDPOINT = (process.env.NEXT_PUBLIC_IMAGEKIT || '').replace(/\/$/, '');
+
 const formatCurrency = (value: number) => value.toLocaleString('ko-KR');
+
+const resolveMenuImageUrl = (menuImgId?: string, fallback?: string) => {
+  if (menuImgId && /^https?:\/\//i.test(menuImgId)) {
+    return menuImgId;
+  }
+
+  if (menuImgId && IMAGEKIT_ENDPOINT) {
+    const sanitized = menuImgId.replace(/^\//, '');
+    return `${IMAGEKIT_ENDPOINT}/${sanitized}`;
+  }
+
+  return fallback ?? '';
+};
 
 const getNextFriday = (): string => {
   const today = new Date();
@@ -923,6 +911,7 @@ type RestaurantFormDialogProps = {
   onToggleHide?: () => void;
   isHidden?: boolean;
   onOpenUpload: () => void;
+  uploadingImage: boolean;
 };
 
 function RestaurantFormDialog({
@@ -936,6 +925,7 @@ function RestaurantFormDialog({
   onToggleHide,
   isHidden = false,
   onOpenUpload,
+  uploadingImage,
 }: RestaurantFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -1001,20 +991,21 @@ function RestaurantFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">메뉴 이미지 ID</Label>
+            <Label className="text-xs font-medium text-muted-foreground">메뉴 이미지 경로</Label>
             <div className="flex items-center gap-2">
               <Input
                 value={restaurant.menuImgId ?? ''}
                 onChange={(event) => onChange({ menuImgId: event.target.value })}
-                placeholder="Cloudinary 이미지 ID"
+                placeholder="예: restaurants/menu.jpg 또는 전체 URL"
               />
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 text-muted-foreground"
                 onClick={onOpenUpload}
+                disabled={uploadingImage}
               >
-                <Camera className="h-4 w-4" />
+                {uploadingImage ? <Spinner size="sm" /> : <Camera className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -1210,7 +1201,8 @@ export default function Home() {
   const [hiddenRestaurantIds, setHiddenRestaurantIds] = useState<string[]>([]);
   const [showHidden, setShowHidden] = useState(false);
 
-  const [uploadWidget, setUploadWidget] = useState<CloudinaryUploadWidget | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -1221,67 +1213,6 @@ export default function Home() {
       setShowHidden(false);
     }
   }, [hiddenRestaurantIds]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const cloudinaryWindow = window as unknown as CloudinaryWindow;
-
-    const setup = () => {
-      if (!cloudinaryWindow.cloudinary) return;
-
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
-      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
-
-      const widget = cloudinaryWindow.cloudinary.createUploadWidget(
-        {
-          cloudName,
-          uploadPreset,
-          sources: ['local', 'url', 'camera'],
-          multiple: false,
-          folder: 'images',
-          maxFileSize: 5_000_000,
-          cropping: false,
-          clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-          showAdvancedOptions: false,
-          showPoweredBy: false,
-          styles: { palette: { windowBorder: '#ddd' } },
-        },
-        (error: Error | null, result: { event?: string; info?: { public_id: string } }) => {
-          if (!error && result && result.event === 'success' && result.info) {
-            const publicId = result.info.public_id;
-            setEditableRestaurant((prev) =>
-              prev && editDialogOpen ? { ...prev, menuImgId: publicId } : prev
-            );
-            setNewRestaurant((prev) =>
-              createDialogOpen ? { ...prev, menuImgId: publicId } : prev
-            );
-          }
-        }
-      );
-
-      setUploadWidget(widget);
-    };
-
-    if (cloudinaryWindow.cloudinary) {
-      setup();
-      return;
-    }
-
-    const interval = setInterval(() => {
-      if (cloudinaryWindow.cloudinary) {
-        setup();
-        clearInterval(interval);
-      }
-    }, 150);
-
-    const timeout = setTimeout(() => clearInterval(interval), 10_000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [editDialogOpen, createDialogOpen]);
 
   useEffect(() => {
     if (!user) return;
@@ -1891,6 +1822,68 @@ export default function Home() {
     setMenuHistoryOpen(false);
   };
 
+  const handleOpenImagePicker = () => {
+    if (uploadingImage) {
+      toast.info('이미지를 업로드 중입니다.');
+      return;
+    }
+
+    if (!editDialogOpen && !createDialogOpen) {
+      toast.info('이미지를 첨부할 식당을 먼저 선택해주세요.');
+      return;
+    }
+
+    fileInputRef.current?.click();
+  };
+
+  const handleImageFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/imagekit/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const message =
+          typeof payload?.error === 'string'
+            ? payload.error
+            : '이미지 업로드에 실패했습니다.';
+        throw new Error(message);
+      }
+
+      const filePath =
+        typeof payload?.filePath === 'string' ? payload.filePath.replace(/^\//, '') : '';
+      const imageUrl = typeof payload?.url === 'string' ? payload.url : '';
+      const menuImgId = filePath || imageUrl;
+
+      setEditableRestaurant((prev) =>
+        prev && editDialogOpen ? { ...prev, menuImgId } : prev
+      );
+      setNewRestaurant((prev) =>
+        createDialogOpen ? { ...prev, menuImgId } : prev
+      );
+
+      toast.success('이미지를 업로드했습니다.');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '이미지 업로드 중 오류가 발생했습니다.';
+      toast.error(message);
+    } finally {
+      setUploadingImage(false);
+      event.target.value = '';
+    }
+  };
+
   const handleOpenRestaurantEditor = () => {
     if (!selectedRestaurant) return;
     const latest =
@@ -1909,13 +1902,14 @@ export default function Home() {
 
   const handleMenuImageOpen = () => {
     if (!selectedRestaurant) return;
-    if (selectedRestaurant.menuImgId) {
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
-      const url = `https://res.cloudinary.com/${cloudName}/image/upload/${selectedRestaurant.menuImgId}`;
-      window.open(url, '_blank', 'noopener');
-    } else if (selectedRestaurant.menuUrl) {
-      window.open(selectedRestaurant.menuUrl, '_blank', 'noopener');
+    const url = resolveMenuImageUrl(selectedRestaurant.menuImgId, selectedRestaurant.menuUrl);
+
+    if (!url) {
+      toast.error('이미지 주소를 확인할 수 없습니다.');
+      return;
     }
+
+    window.open(url, '_blank', 'noopener');
   };
 
   const handleRestaurantUpdate = async () => {
@@ -2121,6 +2115,14 @@ export default function Home() {
           }}
         />
 
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageFileChange}
+        />
+
         <MenuHistoryDialog
           open={menuHistoryOpen}
           menus={menuHistoryList}
@@ -2141,13 +2143,8 @@ export default function Home() {
             saving={savingRestaurant}
             onToggleHide={() => handleToggleHide(editableRestaurant.id)}
             isHidden={hiddenRestaurantIds.includes(editableRestaurant.id)}
-            onOpenUpload={() => {
-              if (uploadWidget) {
-                uploadWidget.open();
-              } else {
-                toast.error('이미지 업로더를 준비 중입니다.');
-              }
-            }}
+            onOpenUpload={handleOpenImagePicker}
+            uploadingImage={uploadingImage}
           />
         )}
 
@@ -2159,13 +2156,8 @@ export default function Home() {
           onClose={() => setCreateDialogOpen(false)}
           onSave={handleRestaurantCreate}
           saving={creatingRestaurant}
-          onOpenUpload={() => {
-            if (uploadWidget) {
-              uploadWidget.open();
-            } else {
-              toast.error('이미지 업로더를 준비 중입니다.');
-            }
-          }}
+          onOpenUpload={handleOpenImagePicker}
+          uploadingImage={uploadingImage}
         />
 
         <ThemeDialog

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
@@ -47,14 +46,10 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body
+        <body
         className={`${inter.variable} antialiased`}
         style={{ fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
       >
-        <Script
-          src="https://upload-widget.cloudinary.com/global/all.js"
-          strategy="afterInteractive"
-        />
         <AuthProvider>
           {children}
         </AuthProvider>
