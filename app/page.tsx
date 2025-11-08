@@ -1077,43 +1077,40 @@ type ThemeDialogProps = {
 };
 
 function ThemeDialog({ open, selectedTheme, onClose, onSelect, saving }: ThemeDialogProps) {
+  const renderThemeButton = (theme: ThemeMode, label: string) => {
+    const isActive = selectedTheme === theme;
+    return (
+      <Button
+        type="button"
+        variant={isActive ? 'default' : 'outline'}
+        disabled={saving}
+        onClick={() => onSelect(theme)}
+        className="h-10 justify-between px-4 text-sm font-medium"
+      >
+        <span>{label}</span>
+        {saving && isActive ? <Spinner size="sm" /> : null}
+      </Button>
+    );
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-sm space-y-3 px-4 py-6">
+    <AlertDialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <AlertDialogContent className="space-y-4">
+        <AlertDialogHeader>
+          <AlertDialogTitle>테마 설정</AlertDialogTitle>
+          <AlertDialogDescription>사용할 테마를 선택하세요.</AlertDialogDescription>
+        </AlertDialogHeader>
         <div className="flex flex-col gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={saving}
-            onClick={() => onSelect('white')}
-            className={cn(
-              'h-12 justify-between rounded-lg px-4 text-sm font-medium',
-              selectedTheme === 'white'
-                ? 'bg-muted text-foreground'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-            )}
-          >
-            <span>화이트</span>
-            {saving && selectedTheme === 'white' ? <Spinner size="sm" /> : null}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={saving}
-            onClick={() => onSelect('black')}
-            className={cn(
-              'h-12 justify-between rounded-lg px-4 text-sm font-medium',
-              selectedTheme === 'black'
-                ? 'bg-muted text-foreground'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-            )}
-          >
-            <span>블랙</span>
-            {saving && selectedTheme === 'black' ? <Spinner size="sm" /> : null}
-          </Button>
+          {renderThemeButton('white', '화이트')}
+          {renderThemeButton('black', '블랙')}
         </div>
-      </DialogContent>
-    </Dialog>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onClose} disabled={saving}>
+            닫기
+          </AlertDialogCancel>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -1572,10 +1569,12 @@ export default function Home() {
       if (!user) return;
 
       setSelectedRestaurant(restaurant);
-      const nextReservationDate =
-        compactToDisplay(restaurant.reservationDate) ||
-        dateToDisplay(compactToDate(getNextFriday()));
-      setReservationDate(nextReservationDate);
+      const existingReservationDate =
+        restaurant.reservation?.isReceipt === false && restaurant.reservationDate
+          ? compactToDisplay(restaurant.reservationDate)
+          : '';
+      const fallbackReservationDate = compactToDisplay(getNextFriday());
+      setReservationDate(existingReservationDate || fallbackReservationDate);
 
       if (restaurant.reservation && !restaurant.reservation.isReceipt) {
         setMenuRows(
