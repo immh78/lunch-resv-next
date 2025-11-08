@@ -1082,7 +1082,8 @@ type ThemeDialogProps = {
 function ThemeDialog({ open, selectedTheme, onChange, onClose, onSave, saving }: ThemeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-sm space-y-6 px-4 py-6">
+      <DialogContent className="max-w-sm space-y-5 px-4 py-6">
+        <DialogTitle className="text-base font-semibold">테마 선택</DialogTitle>
         <RadioGroup
           value={selectedTheme}
           onValueChange={(value) => onChange(value as ThemeMode)}
