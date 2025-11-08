@@ -328,8 +328,14 @@ function RestaurantList({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'w-full justify-start truncate bg-[rgb(250,250,250)]',
-                    !isReceipt && 'font-semibold text-foreground'
+                    'w-full justify-start truncate transition-colors',
+                    currentTheme === 'white'
+                      ? 'bg-[rgb(250,250,250)] hover:bg-[rgb(240,240,240)]'
+                      : 'bg-neutral-900 text-neutral-100 border-neutral-700 hover:bg-neutral-800',
+                    !isReceipt &&
+                      (currentTheme === 'white'
+                        ? 'font-semibold text-foreground'
+                        : 'font-semibold text-white')
                   )}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -1082,10 +1088,18 @@ function ThemeDialog({ open, selectedTheme, onClose, onSelect, saving }: ThemeDi
     return (
       <Button
         type="button"
-        variant={isActive ? 'default' : 'outline'}
+        variant="outline"
         disabled={saving}
         onClick={() => onSelect(theme)}
-        className="h-10 justify-between px-4 text-sm font-medium"
+        className={cn(
+          'h-10 justify-between px-4 text-sm font-medium transition-colors border',
+          theme === 'white'
+            ? 'bg-white text-black hover:bg-white/90'
+            : 'bg-black text-white hover:bg-black/80',
+          isActive
+            ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
+            : 'border-border/80'
+        )}
       >
         <span>{label}</span>
         {saving && isActive ? <Spinner size="sm" /> : null}
@@ -1978,7 +1992,12 @@ export default function Home() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground">
-        <header className="sticky top-0 z-30 border-b border-border/40 bg-[rgb(245,245,245)] backdrop-blur">
+        <header
+          className={cn(
+            'sticky top-0 z-30 border-b border-border/40 backdrop-blur',
+            currentTheme === 'white' ? 'bg-[rgb(245,245,245)]' : 'bg-neutral-900/95'
+          )}
+        >
           <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <Button
