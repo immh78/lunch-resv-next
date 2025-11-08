@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { ref, onValue, set, remove, get } from 'firebase/database';
 import { toast } from 'sonner';
@@ -466,6 +466,7 @@ type RestaurantDetailDialogProps = {
   summary: { total: number; prepayment: number; remaining: number };
 };
 
+
 function RestaurantDetailDialog({
   open,
   restaurant,
@@ -552,16 +553,27 @@ function RestaurantDetailDialog({
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
-                            className="w-full justify-between font-normal"
+                            className={cn(
+                              "h-10 w-full justify-start text-left font-normal",
+                              !reservationDate && "text-muted-foreground"
+                            )}
                           >
-                            {reservationDate || '예약일을 선택하세요'}
+                            {reservationDate ? (
+                              dateToDisplay(displayToDate(reservationDate))
+                            ) : (
+                              <span>예약일을 선택하세요</span>
+                            )}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
                             selected={displayToDate(reservationDate) ?? undefined}
-                            onSelect={onReservationDateChange}
+                            onSelect={(date) => {
+                              if (date) {
+                                onReservationDateChange(date);
+                              }
+                            }}
                             initialFocus
                           />
                         </PopoverContent>
@@ -657,19 +669,32 @@ function RestaurantDetailDialog({
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="justify-start text-left font-normal"
+                                className={cn(
+                                  "h-10 w-full justify-start text-left font-normal",
+                                  !item.dateValue && !item.date && "text-muted-foreground"
+                                )}
                               >
-                                {item.date ? compactToDisplay(item.date) : '날짜'}
+                                {item.dateValue ? (
+                                  dateToDisplay(item.dateValue)
+                                ) : item.date ? (
+                                  compactToDisplay(item.date)
+                                ) : (
+                                  <span>날짜</span>
+                                )}
                               </Button>
                             </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={item.dateValue ?? compactToDate(item.date) ?? undefined}
-                                  onSelect={(date) => onPrepaymentDateChange(item.id, date)}
-                                  initialFocus
-                                />
-                              </PopoverContent>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={item.dateValue ?? compactToDate(item.date) ?? undefined}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    onPrepaymentDateChange(item.id, date);
+                                  }
+                                }}
+                                initialFocus
+                              />
+                            </PopoverContent>
                           </Popover>
                           <Input
                             type="number"
@@ -839,7 +864,10 @@ function RestaurantFormDialog({
 }: RestaurantFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex max-h-[85vh] max-w-md flex-col p-0">
+      <DialogContent className={cn(
+        "flex max-h-[85vh] max-w-md flex-col p-0",
+        mode === 'create' && "mt-8"
+      )}>
         <DialogHeader className="border-b border-border/50 px-5 py-4">
           <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
         </DialogHeader>
