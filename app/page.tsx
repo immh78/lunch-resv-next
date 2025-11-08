@@ -314,36 +314,42 @@ function RestaurantList({
           const remaining = Math.max(totalAmount - prepaymentTotal, 0);
           const amountColor = getAmountColor(totalAmount, prepaymentTotal, !!isReceipt);
 
-            return (
-              <TableRow
-                key={restaurant.id}
-                onClick={() => onSelect(restaurant)}
-                className={cn(
-                  'cursor-pointer border-border/30 transition hover:bg-muted/70',
-                  isReceipt && 'opacity-60'
-                )}
-              >
-                <TableCell className="align-middle">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      'w-full justify-start truncate',
-                      !isReceipt && 'font-semibold text-foreground'
-                    )}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onSelect(restaurant);
-                    }}
-                  >
-                    {restaurant.name}
-                  </Button>
-                </TableCell>
-                <TableCell className="align-middle">
-                  <div
-                    className="flex flex-col gap-1"
-                    onClick={(event) => event.stopPropagation()}
-                  >
+          return (
+            <TableRow
+              key={restaurant.id}
+              onClick={() => onSelect(restaurant)}
+              className={cn(
+                'cursor-pointer border-border/30 transition hover:bg-muted/70',
+                isReceipt && 'opacity-60'
+              )}
+            >
+              <TableCell className="align-middle">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'w-full justify-start truncate transition-colors',
+                    currentTheme === 'white'
+                      ? 'bg-[rgb(250,250,250)] hover:bg-[rgb(240,240,240)]'
+                      : 'bg-neutral-900 text-neutral-100 border-neutral-700 hover:bg-neutral-800',
+                    !isReceipt &&
+                      (currentTheme === 'white'
+                        ? 'font-semibold text-foreground'
+                        : 'font-semibold text-white')
+                  )}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(restaurant);
+                  }}
+                >
+                  {restaurant.name}
+                </Button>
+              </TableCell>
+              <TableCell className="align-middle">
+                <div
+                  className="flex flex-col gap-1"
+                  onClick={(event) => event.stopPropagation()}
+                >
                     {menuText ? (
                       <span className={cn('text-xs', amountColor)}>{menuText}</span>
                     ) : (
@@ -1082,10 +1088,18 @@ function ThemeDialog({ open, selectedTheme, onClose, onSelect, saving }: ThemeDi
     return (
       <Button
         type="button"
-        variant={isActive ? 'default' : 'outline'}
+        variant="outline"
         disabled={saving}
         onClick={() => onSelect(theme)}
-        className="h-10 justify-between px-4 text-sm font-medium"
+        className={cn(
+          'h-10 justify-between px-4 text-sm font-medium transition-colors border',
+          theme === 'white'
+            ? 'bg-white text-black hover:bg-white/90'
+            : 'bg-black text-white hover:bg-black/80',
+          isActive
+            ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
+            : 'border-border/80'
+        )}
       >
         <span>{label}</span>
         {saving && isActive ? <Spinner size="sm" /> : null}
@@ -1568,15 +1582,17 @@ export default function Home() {
     async (restaurant: RestaurantWithReservation) => {
       if (!user) return;
 
+      const hasActiveReservation = restaurant.reservation?.isReceipt === false;
+
       setSelectedRestaurant(restaurant);
       const existingReservationDate =
-        restaurant.reservation?.isReceipt === false && restaurant.reservationDate
+        hasActiveReservation && restaurant.reservationDate
           ? compactToDisplay(restaurant.reservationDate)
           : '';
       const fallbackReservationDate = compactToDisplay(getNextFriday());
       setReservationDate(existingReservationDate || fallbackReservationDate);
 
-      if (restaurant.reservation && !restaurant.reservation.isReceipt) {
+      if (restaurant.reservation && hasActiveReservation) {
         setMenuRows(
           restaurant.reservation.menus.map((menu, index) => ({
             id: `menu-${Date.now()}-${index}`,
@@ -1589,7 +1605,7 @@ export default function Home() {
       }
 
       await loadPrepayments(user.uid, restaurant.id);
-      setCurrentTab('menu');
+      setCurrentTab(hasActiveReservation ? 'prepayment' : 'menu');
       setDetailOpen(true);
     },
     [loadPrepayments, user]
@@ -1789,14 +1805,12 @@ export default function Home() {
   };
 
   const handleThemeSelect = async (theme: ThemeMode) => {
-    const themeLabel = theme === 'white' ? '화이트' : '블랙';
     const previousTheme = currentTheme;
 
     setSelectedTheme(theme);
     setCurrentTheme(theme);
 
     if (!user) {
-      toast.success(`${themeLabel} 테마로 전환했습니다.`);
       setThemeDialogOpen(false);
       return;
     }
@@ -1804,7 +1818,6 @@ export default function Home() {
     try {
       setSavingTheme(true);
       await set(ref(database, `food-resv/theme/${user.uid}`), { theme });
-      toast.success(`${themeLabel} 테마로 전환했습니다.`);
       setThemeDialogOpen(false);
     } catch (error) {
       console.error('Error saving theme', error);
@@ -1978,7 +1991,12 @@ export default function Home() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground">
-        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur">
+        <header
+          className={cn(
+            'sticky top-0 z-30 border-b border-border/40 backdrop-blur',
+            currentTheme === 'white' ? 'bg-[rgb(245,245,245)]' : 'bg-neutral-900/95'
+          )}
+        >
           <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <Button

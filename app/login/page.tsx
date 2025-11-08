@@ -3,7 +3,6 @@
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
 
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -36,7 +35,6 @@ function LoginForm() {
 
     try {
       await login(email, password);
-      toast.success('로그인에 성공했어요.');
       router.push(returnUrl);
     } catch (err) {
       const error = err as Error;
@@ -55,7 +53,6 @@ function LoginForm() {
     try {
       await resetPassword(email);
       setError('');
-      toast.success('비밀번호 재설정 이메일을 전송했습니다.');
     } catch (err) {
       const error = err as Error;
       setError(error.message || '비밀번호 재설정 이메일 전송에 실패했습니다.');
