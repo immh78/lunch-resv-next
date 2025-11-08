@@ -314,36 +314,36 @@ function RestaurantList({
           const remaining = Math.max(totalAmount - prepaymentTotal, 0);
           const amountColor = getAmountColor(totalAmount, prepaymentTotal, !!isReceipt);
 
-            return (
-              <TableRow
-                key={restaurant.id}
-                onClick={() => onSelect(restaurant)}
-                className={cn(
-                  'cursor-pointer border-border/30 transition hover:bg-muted/70',
-                  isReceipt && 'opacity-60'
-                )}
-              >
-                <TableCell className="align-middle">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      'w-full justify-start truncate',
-                      !isReceipt && 'font-semibold text-foreground'
-                    )}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onSelect(restaurant);
-                    }}
-                  >
-                    {restaurant.name}
-                  </Button>
-                </TableCell>
-                <TableCell className="align-middle">
-                  <div
-                    className="flex flex-col gap-1"
-                    onClick={(event) => event.stopPropagation()}
-                  >
+          return (
+            <TableRow
+              key={restaurant.id}
+              onClick={() => onSelect(restaurant)}
+              className={cn(
+                'cursor-pointer border-border/30 transition hover:bg-muted/70',
+                isReceipt && 'opacity-60'
+              )}
+            >
+              <TableCell className="align-middle">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'w-full justify-start truncate bg-[rgb(250,250,250)]',
+                    !isReceipt && 'font-semibold text-foreground'
+                  )}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(restaurant);
+                  }}
+                >
+                  {restaurant.name}
+                </Button>
+              </TableCell>
+              <TableCell className="align-middle">
+                <div
+                  className="flex flex-col gap-1"
+                  onClick={(event) => event.stopPropagation()}
+                >
                     {menuText ? (
                       <span className={cn('text-xs', amountColor)}>{menuText}</span>
                     ) : (
@@ -1978,7 +1978,7 @@ export default function Home() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground">
-        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur">
+        <header className="sticky top-0 z-30 border-b border-border/40 bg-[rgb(245,245,245)] backdrop-blur">
           <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <Button
