@@ -1803,14 +1803,12 @@ export default function Home() {
   };
 
   const handleThemeSelect = async (theme: ThemeMode) => {
-    const themeLabel = theme === 'white' ? '화이트' : '블랙';
     const previousTheme = currentTheme;
 
     setSelectedTheme(theme);
     setCurrentTheme(theme);
 
     if (!user) {
-      toast.success(`${themeLabel} 테마로 전환했습니다.`);
       setThemeDialogOpen(false);
       return;
     }
@@ -1818,7 +1816,6 @@ export default function Home() {
     try {
       setSavingTheme(true);
       await set(ref(database, `food-resv/theme/${user.uid}`), { theme });
-      toast.success(`${themeLabel} 테마로 전환했습니다.`);
       setThemeDialogOpen(false);
     } catch (error) {
       console.error('Error saving theme', error);
