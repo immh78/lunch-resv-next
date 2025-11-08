@@ -1082,11 +1082,7 @@ type ThemeDialogProps = {
 function ThemeDialog({ open, selectedTheme, onChange, onClose, onSave, saving }: ThemeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>테마 설정</DialogTitle>
-          <DialogDescription>선호하는 테마를 선택해주세요.</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-sm space-y-6 px-4 py-6">
         <RadioGroup
           value={selectedTheme}
           onValueChange={(value) => onChange(value as ThemeMode)}
@@ -1105,11 +1101,18 @@ function ThemeDialog({ open, selectedTheme, onChange, onClose, onSave, saving }:
             </Label>
           </div>
         </RadioGroup>
-        <DialogFooter className="justify-end">
-          <Button onClick={onSave} disabled={saving} size="icon" aria-label="선택한 테마 저장">
+        <div className="flex justify-end">
+          <Button
+            onClick={onSave}
+            disabled={saving}
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 p-0 text-primary hover:bg-transparent focus-visible:ring-0 disabled:text-muted-foreground"
+            aria-label="선택한 테마 저장"
+          >
             {saving ? <Spinner size="sm" /> : <Check className="h-4 w-4" />}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
