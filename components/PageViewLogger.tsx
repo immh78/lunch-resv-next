@@ -36,7 +36,7 @@ export default function PageViewLogger() {
         lastLoggedSignatureRef.current = signature;
         await push(logRef, logEntry);
       } catch (error) {
-        lastLoggedSignatureRef.current = undefined;
+          lastLoggedSignatureRef.current = null;
         console.error('페이지 로그 기록 중 오류가 발생했습니다.', error);
       }
     })();
