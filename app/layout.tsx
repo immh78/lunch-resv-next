@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import PageViewLogger from "@/components/PageViewLogger";
 import { Toaster } from "sonner";
 
 const inter = Inter({
@@ -50,9 +51,10 @@ export default function RootLayout({
         className={`${inter.variable} antialiased`}
         style={{ fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
       >
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+          <AuthProvider>
+            <PageViewLogger />
+            {children}
+          </AuthProvider>
           <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
