@@ -1805,6 +1805,7 @@ export default function Home() {
               : restaurant
           )
         );
+        handleCloseDetail();
     } catch (error) {
       console.error('Error saving reservation', error);
       toast.error('예약 저장 중 오류가 발생했습니다.');
@@ -1832,6 +1833,7 @@ export default function Home() {
       const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
       await set(ref(database, prepaymentPath), validItems);
       toast.success('선결제를 저장했습니다.');
+      handleCloseDetail();
     } catch (error) {
       console.error('Error saving prepayment', error);
       toast.error('선결제 저장 중 오류가 발생했습니다.');
