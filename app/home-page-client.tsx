@@ -9,7 +9,7 @@ import { database } from '@/lib/firebase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import {
   Table,
@@ -489,7 +489,8 @@ function RestaurantDetailDialog({
 }: RestaurantDetailDialogProps) {
   const [reservationDateOpen, setReservationDateOpen] = useState(false);
   const [prepaymentDateOpens, setPrepaymentDateOpens] = useState<Record<string, boolean>>({});
-  
+  const reservationDateValue = useMemo(() => displayToDate(reservationDate), [reservationDate]);
+
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="mx-auto flex h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] flex-col items-start justify-center px-1 pt-[5vh] [&>div]:max-w-full [&>div]:w-full [&>div]:rounded-sm">
@@ -531,249 +532,201 @@ function RestaurantDetailDialog({
               )}
             </DialogHeader>
 
-            <div className="px-5 pt-4">
-              <Tabs value={currentTab} onValueChange={(value) => onTabChange(value as 'menu' | 'prepayment')}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="menu">메뉴</TabsTrigger>
-                  <TabsTrigger value="prepayment">선결제</TabsTrigger>
-                </TabsList>
-                <TabsContent value="menu" className="pt-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium text-muted-foreground">예약일</Label>
-                      <Popover open={reservationDateOpen} onOpenChange={setReservationDateOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "h-10 w-full justify-start text-left font-normal",
-                              !reservationDate && "text-muted-foreground"
-                            )}
-                          >
-                            {reservationDate ? (
-                              dateToDisplay(displayToDate(reservationDate))
-                            ) : (
-                              <span>예약일을 선택하세요</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-2" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={displayToDate(reservationDate) ?? undefined}
-                            onSelect={(date) => {
-                              if (date) {
+              <div className="px-5 pt-4">
+                <Tabs value={currentTab} onValueChange={(value) => onTabChange(value as 'menu' | 'prepayment')}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="menu">메뉴</TabsTrigger>
+                    <TabsTrigger value="prepayment">선결제</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="menu" className="pt-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-muted-foreground">예약일</Label>
+                        <Popover open={reservationDateOpen} onOpenChange={setReservationDateOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "h-10 w-full justify-start text-left font-normal",
+                                !reservationDateValue && "text-muted-foreground"
+                              )}
+                            >
+                              {reservationDateValue ? (
+                                dateToDisplay(reservationDateValue)
+                              ) : (
+                                <span>예약일을 선택하세요</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2" align="start">
+                            <Calendar
+                              selected={reservationDateValue}
+                              defaultMonth={reservationDateValue ?? undefined}
+                              onSelect={(date) => {
                                 onReservationDateChange(date);
                                 setReservationDateOpen(false);
-                              }
-                            }}
-                            showOutsideDays={false}
-                            className="p-0"
-                            classNames={{
-                              months: "flex flex-col space-y-0",
-                              month: "space-y-2",
-                              caption: "flex justify-center pt-1 relative items-center",
-                              caption_label: "text-sm font-medium",
-                              nav: "space-x-1 flex items-center",
-                              nav_button: cn(
-                                buttonVariants({ variant: "outline" }),
-                                "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100"
-                              ),
-                              nav_button_previous: "absolute left-1",
-                              nav_button_next: "absolute right-1",
-                              table: "w-full border-collapse space-y-1",
-                              head_row: "flex",
-                              head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.75rem]",
-                              row: "flex w-full mt-1",
-                              cell: "h-8 w-8 text-center text-sm p-0 relative",
-                              day: cn(
-                                buttonVariants({ variant: "ghost" }),
-                                "h-8 w-8 p-0 font-normal aria-selected:opacity-100"
-                              ),
-                              day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                              day_today: "bg-accent text-accent-foreground",
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                              }}
+                              showOutsideDays={false}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
-                    <div className="rounded-sm border border-border">
-                      <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <span className="flex items-center gap-2">
-                          메뉴
+                      <div className="rounded-sm border border-border">
+                        <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          <span className="flex items-center gap-2">
+                            메뉴
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              onClick={onOpenMenuHistory}
+                            >
+                              <Clock3 className="h-4 w-4" />
+                            </Button>
+                          </span>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-muted-foreground"
-                            onClick={onOpenMenuHistory}
+                            onClick={onAddMenuRow}
                           >
-                            <Clock3 className="h-4 w-4" />
+                            <PlusCircle className="h-4 w-4" />
                           </Button>
-                        </span>
+                        </div>
+                        <div className="divide-y divide-border/60">
+                          {menuRows.map((menu) => (
+                            <div
+                              key={menu.id}
+                              className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
+                            >
+                              <Input
+                                value={menu.menu}
+                                onChange={(event) =>
+                                  onMenuChange(menu.id, 'menu', event.target.value)
+                                }
+                                placeholder="메뉴"
+                                className="text-sm"
+                              />
+                              <Input
+                                type="number"
+                                min={0}
+                                step={100}
+                                value={menu.cost || ''}
+                                onChange={(event) =>
+                                  onMenuChange(
+                                    menu.id,
+                                    'cost',
+                                    Number(event.target.value) || 0
+                                  )
+                                }
+                                placeholder="금액"
+                                className="w-24 text-right text-sm"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => onRemoveMenuRow(menu.id)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="prepayment" className="pt-4">
+                    <div className="rounded-sm border border-border">
+                      <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span>선결제</span>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-muted-foreground"
-                          onClick={onAddMenuRow}
+                          onClick={onAddPrepaymentRow}
                         >
                           <PlusCircle className="h-4 w-4" />
                         </Button>
                       </div>
                       <div className="divide-y divide-border/60">
-                        {menuRows.map((menu) => (
-                          <div
-                            key={menu.id}
-                            className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
-                          >
-                            <Input
-                              value={menu.menu}
-                              onChange={(event) =>
-                                onMenuChange(menu.id, 'menu', event.target.value)
-                              }
-                              placeholder="메뉴"
-                              className="text-sm"
-                            />
-                            <Input
-                              type="number"
-                              min={0}
-                              step={100}
-                              value={menu.cost || ''}
-                              onChange={(event) =>
-                                onMenuChange(
-                                  menu.id,
-                                  'cost',
-                                  Number(event.target.value) || 0
-                                )
-                              }
-                              placeholder="금액"
-                              className="w-24 text-right text-sm"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => onRemoveMenuRow(menu.id)}
+                        {prepaymentRows.map((item) => {
+                          const selectedDate = item.dateValue ?? compactToDate(item.date) ?? null;
+
+                          return (
+                            <div
+                              key={item.id}
+                              className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
                             >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
+                              <Popover
+                                open={prepaymentDateOpens[item.id] || false}
+                                onOpenChange={(open) =>
+                                  setPrepaymentDateOpens((prev) => ({ ...prev, [item.id]: open }))
+                                }
+                              >
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      "h-10 w-full justify-start text-left font-normal",
+                                      !selectedDate && "text-muted-foreground"
+                                    )}
+                                  >
+                                    {selectedDate ? (
+                                      dateToDisplay(selectedDate)
+                                    ) : (
+                                      <span>날짜</span>
+                                    )}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2" align="start">
+                                  <Calendar
+                                    selected={selectedDate}
+                                    defaultMonth={selectedDate ?? undefined}
+                                    onSelect={(date) => {
+                                      onPrepaymentDateChange(item.id, date);
+                                      setPrepaymentDateOpens((prev) => ({
+                                        ...prev,
+                                        [item.id]: false,
+                                      }));
+                                    }}
+                                    showOutsideDays={false}
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={100}
+                                value={item.amount || ''}
+                                onChange={(event) =>
+                                  onPrepaymentAmountChange(
+                                    item.id,
+                                    Number(event.target.value) || 0
+                                  )
+                                }
+                                placeholder="금액"
+                                className="w-24 text-right text-sm"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => onRemovePrepaymentRow(item.id)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="prepayment" className="pt-4">
-                  <div className="rounded-sm border border-border">
-                    <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      <span>선결제</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground"
-                        onClick={onAddPrepaymentRow}
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="divide-y divide-border/60">
-                      {prepaymentRows.map((item) => (
-                        <div
-                          key={item.id}
-                          className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
-                        >
-                          <Popover 
-                            open={prepaymentDateOpens[item.id] || false} 
-                            onOpenChange={(open) => setPrepaymentDateOpens(prev => ({ ...prev, [item.id]: open }))}
-                          >
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "h-10 w-full justify-start text-left font-normal",
-                                  !item.dateValue && !item.date && "text-muted-foreground"
-                                )}
-                              >
-                                {item.dateValue ? (
-                                  dateToDisplay(item.dateValue)
-                                ) : item.date ? (
-                                  compactToDisplay(item.date)
-                                ) : (
-                                  <span>날짜</span>
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-2" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={item.dateValue ?? compactToDate(item.date) ?? undefined}
-                                onSelect={(date) => {
-                                  if (date) {
-                                    onPrepaymentDateChange(item.id, date);
-                                    setPrepaymentDateOpens(prev => ({ ...prev, [item.id]: false }));
-                                  }
-                                }}
-                                showOutsideDays={false}
-                                className="p-0"
-                                classNames={{
-                                  months: "flex flex-col space-y-0",
-                                  month: "space-y-2",
-                                  caption: "flex justify-center pt-1 relative items-center",
-                                  caption_label: "text-sm font-medium",
-                                  nav: "space-x-1 flex items-center",
-                                  nav_button: cn(
-                                    buttonVariants({ variant: "outline" }),
-                                    "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100"
-                                  ),
-                                  nav_button_previous: "absolute left-1",
-                                  nav_button_next: "absolute right-1",
-                                  table: "w-full border-collapse space-y-1",
-                                  head_row: "flex",
-                                  head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.75rem]",
-                                  row: "flex w-full mt-1",
-                                  cell: "h-8 w-8 text-center text-sm p-0 relative",
-                                  day: cn(
-                                    buttonVariants({ variant: "ghost" }),
-                                    "h-8 w-8 p-0 font-normal aria-selected:opacity-100"
-                                  ),
-                                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                                  day_today: "bg-accent text-accent-foreground",
-                                }}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={100}
-                            value={item.amount || ''}
-                            onChange={(event) =>
-                              onPrepaymentAmountChange(
-                                item.id,
-                                Number(event.target.value) || 0
-                              )
-                            }
-                            placeholder="금액"
-                            className="w-24 text-right text-sm"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => onRemovePrepaymentRow(item.id)}
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
 
             <DialogFooter className="mt-auto border-t border-border/50 px-5 py-4">
               <div className="flex w-full flex-wrap items-center justify-center gap-2">
