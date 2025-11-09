@@ -81,6 +81,8 @@ const Calendar: React.FC<CalendarProps> = ({
   locale = 'ko-KR',
 }) => {
   const normalizedSelected = selected ? normalizeDate(selected) : null;
+  const normalizedSelectedYear = normalizedSelected?.getFullYear() ?? null;
+  const normalizedSelectedMonth = normalizedSelected?.getMonth() ?? null;
   const normalizedMin = minDate ? normalizeDate(minDate) : null;
   const normalizedMax = maxDate ? normalizeDate(maxDate) : null;
 
@@ -91,15 +93,20 @@ const Calendar: React.FC<CalendarProps> = ({
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
 
-  const selectedMonthKey = normalizedSelected
-    ? normalizedSelected.getFullYear() * 12 + normalizedSelected.getMonth()
-    : null;
-  const defaultMonthKey = defaultMonth
-    ? defaultMonth.getFullYear() * 12 + defaultMonth.getMonth()
-    : null;
+  const selectedMonthKey =
+    normalizedSelectedYear !== null && normalizedSelectedMonth !== null
+      ? normalizedSelectedYear * 12 + normalizedSelectedMonth
+      : null;
+
+  const defaultMonthYear = defaultMonth?.getFullYear() ?? null;
+  const defaultMonthMonth = defaultMonth?.getMonth() ?? null;
+  const defaultMonthKey =
+    defaultMonthYear !== null && defaultMonthMonth !== null
+      ? defaultMonthYear * 12 + defaultMonthMonth
+      : null;
 
   useEffect(() => {
-    if (!normalizedSelected) return;
+    if (selectedMonthKey === null || !normalizedSelected) return;
     setCurrentMonth((prev) => {
       if (
         prev.getFullYear() === normalizedSelected.getFullYear() &&
@@ -113,10 +120,10 @@ const Calendar: React.FC<CalendarProps> = ({
         1
       );
     });
-  }, [selectedMonthKey, normalizedSelected]);
+  }, [selectedMonthKey]);
 
   useEffect(() => {
-    if (!defaultMonth) return;
+    if (defaultMonthKey === null || !defaultMonth) return;
     setCurrentMonth((prev) => {
       if (
         prev.getFullYear() === defaultMonth.getFullYear() &&
@@ -126,7 +133,7 @@ const Calendar: React.FC<CalendarProps> = ({
       }
       return new Date(defaultMonth.getFullYear(), defaultMonth.getMonth(), 1);
     });
-  }, [defaultMonthKey, defaultMonth]);
+  }, [defaultMonthKey]);
 
   const today = useMemo(() => normalizeDate(new Date()), []);
   const weekdayLabels = useMemo(() => rotateWeekdays(weekStartsOn), [weekStartsOn]);
