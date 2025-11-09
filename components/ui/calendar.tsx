@@ -1,66 +1,253 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+'use client';
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui/button';
 
-function Calendar({
+const DEFAULT_WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+type CalendarProps = {
+  selected?: Date | null;
+  onSelect?: (date: Date) => void;
+  defaultMonth?: Date;
+  className?: string;
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  showOutsideDays?: boolean;
+  minDate?: Date;
+  maxDate?: Date;
+  disabled?: (date: Date) => boolean;
+  locale?: string;
+};
+
+type CalendarCell = {
+  date: Date;
+  inCurrentMonth: boolean;
+};
+
+const normalizeDate = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+const rotateWeekdays = (weekStartsOn: number) => {
+  const normalized = ((weekStartsOn % 7) + 7) % 7;
+  return [
+    ...DEFAULT_WEEKDAY_LABELS.slice(normalized),
+    ...DEFAULT_WEEKDAY_LABELS.slice(0, normalized),
+  ];
+};
+
+const createCalendarMatrix = (month: Date, weekStartsOn: number): CalendarCell[][] => {
+  const matrix: CalendarCell[][] = [];
+  const firstOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
+  const offset = (firstOfMonth.getDay() - weekStartsOn + 7) % 7;
+
+  const cursor = new Date(firstOfMonth);
+  cursor.setDate(cursor.getDate() - offset);
+
+  for (let week = 0; week < 6; week += 1) {
+    const days: CalendarCell[] = [];
+    for (let day = 0; day < 7; day += 1) {
+      days.push({
+        date: new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()),
+        inCurrentMonth: cursor.getMonth() === month.getMonth(),
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    matrix.push(days);
+  }
+
+  return matrix;
+};
+
+const getMonthLabel = (date: Date, locale: string) =>
+  new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long' }).format(date);
+
+const Calendar: React.FC<CalendarProps> = ({
+  selected,
+  onSelect,
+  defaultMonth,
   className,
-  classNames,
+  weekStartsOn = 0,
   showOutsideDays = true,
-  ...props
-}: CalendarProps) {
-  return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
-      classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
-        nav: "space-x-1 flex items-center",
-        nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
-        ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell:
-          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
-        ),
-        day_range_end: "day-range-end",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
-        ...classNames,
-      }}
-      components={{
-        Chevron: ({ orientation, ...props }) => {
-          const Icon = orientation === "left" ? ChevronLeft : ChevronRight
-          return <Icon className="h-4 w-4" {...props} />
-        },
-      }}
-      {...props}
-    />
-  )
-}
-Calendar.displayName = "Calendar"
+  minDate,
+  maxDate,
+  disabled,
+  locale = 'ko-KR',
+}) => {
+  const normalizedSelected = selected ? normalizeDate(selected) : null;
+  const normalizedMin = minDate ? normalizeDate(minDate) : null;
+  const normalizedMax = maxDate ? normalizeDate(maxDate) : null;
 
-export { Calendar }
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => {
+    const base =
+      normalizedSelected ??
+      (defaultMonth ? normalizeDate(defaultMonth) : normalizeDate(new Date()));
+    return new Date(base.getFullYear(), base.getMonth(), 1);
+  });
+
+  const selectedMonthKey = normalizedSelected
+    ? normalizedSelected.getFullYear() * 12 + normalizedSelected.getMonth()
+    : null;
+  const defaultMonthKey = defaultMonth
+    ? defaultMonth.getFullYear() * 12 + defaultMonth.getMonth()
+    : null;
+
+  useEffect(() => {
+    if (!normalizedSelected) return;
+    setCurrentMonth((prev) => {
+      if (
+        prev.getFullYear() === normalizedSelected.getFullYear() &&
+        prev.getMonth() === normalizedSelected.getMonth()
+      ) {
+        return prev;
+      }
+      return new Date(
+        normalizedSelected.getFullYear(),
+        normalizedSelected.getMonth(),
+        1
+      );
+    });
+  }, [selectedMonthKey, normalizedSelected]);
+
+  useEffect(() => {
+    if (!defaultMonth) return;
+    setCurrentMonth((prev) => {
+      if (
+        prev.getFullYear() === defaultMonth.getFullYear() &&
+        prev.getMonth() === defaultMonth.getMonth()
+      ) {
+        return prev;
+      }
+      return new Date(defaultMonth.getFullYear(), defaultMonth.getMonth(), 1);
+    });
+  }, [defaultMonthKey, defaultMonth]);
+
+  const today = useMemo(() => normalizeDate(new Date()), []);
+  const weekdayLabels = useMemo(() => rotateWeekdays(weekStartsOn), [weekStartsOn]);
+  const monthMatrix = useMemo(
+    () => createCalendarMatrix(currentMonth, weekStartsOn),
+    [currentMonth, weekStartsOn]
+  );
+
+  const isDayDisabled = (date: Date) => {
+    const normalized = normalizeDate(date);
+    if (normalizedMin && normalized.getTime() < normalizedMin.getTime()) {
+      return true;
+    }
+    if (normalizedMax && normalized.getTime() > normalizedMax.getTime()) {
+      return true;
+    }
+    if (disabled && disabled(normalized)) {
+      return true;
+    }
+    return false;
+  };
+
+  const handleSelect = (date: Date) => {
+    if (isDayDisabled(date)) return;
+    onSelect?.(normalizeDate(date));
+  };
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  return (
+    <div className={cn('w-full rounded-md border border-border bg-background p-3', className)}>
+      <div className="mb-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={goToPreviousMonth}
+          className={cn(
+            buttonVariants({ variant: 'ghost', size: 'icon' }),
+            'h-8 w-8 p-0 text-muted-foreground hover:text-foreground'
+          )}
+          aria-label="이전 달"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-semibold">{getMonthLabel(currentMonth, locale)}</span>
+        <button
+          type="button"
+          onClick={goToNextMonth}
+          className={cn(
+            buttonVariants({ variant: 'ghost', size: 'icon' }),
+            'h-8 w-8 p-0 text-muted-foreground hover:text-foreground'
+          )}
+          aria-label="다음 달"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="mb-1 grid grid-cols-7 gap-1">
+        {weekdayLabels.map((label) => (
+          <div
+            key={label}
+            className="flex h-8 items-center justify-center text-xs font-medium text-muted-foreground"
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {monthMatrix.map((week, weekIndex) =>
+          week.map((cell, dayIndex) => {
+            const key = `${weekIndex}-${dayIndex}-${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`;
+              if (!cell.inCurrentMonth && !showOutsideDays) {
+                return (
+                  <div
+                    key={key}
+                    className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-muted-foreground opacity-40"
+                    aria-hidden="true"
+                  >
+                    &nbsp;
+                  </div>
+                );
+              }
+
+            const disabledDay = isDayDisabled(cell.date);
+            const isSelected =
+              normalizedSelected && isSameDay(cell.date, normalizedSelected);
+            const isToday = isSameDay(cell.date, today);
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleSelect(cell.date)}
+                disabled={disabledDay}
+                className={cn(
+                  'flex h-9 w-9 items-center justify-center rounded-md text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  'hover:bg-accent hover:text-accent-foreground',
+                  isSelected &&
+                    'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
+                  isToday && !isSelected && 'border border-primary/60 text-primary',
+                  !cell.inCurrentMonth && 'text-muted-foreground opacity-70',
+                  disabledDay && 'pointer-events-none text-muted-foreground opacity-40'
+                )}
+              >
+                {cell.date.getDate()}
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+};
+
+Calendar.displayName = 'Calendar';
+
+export { Calendar };
