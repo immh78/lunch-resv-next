@@ -1091,6 +1091,79 @@ function ImageUploadDialog({
   );
 }
 
+type RestaurantKindSelectDialogProps = {
+  open: boolean;
+  selectedKind: string | undefined;
+  restaurantKinds: Record<string, { icon?: string; name?: string }>;
+  restaurantIcons: Record<string, string>;
+  onClose: () => void;
+  onSelect: (kind: string) => void;
+};
+
+function RestaurantKindSelectDialog({
+  open,
+  selectedKind,
+  restaurantKinds,
+  restaurantIcons,
+  onClose,
+  onSelect,
+}: RestaurantKindSelectDialogProps) {
+  const kindEntries = Object.entries(restaurantKinds).sort(([a], [b]) => {
+    const nameA = restaurantKinds[a]?.name || a;
+    const nameB = restaurantKinds[b]?.name || b;
+    return nameA.localeCompare(nameB);
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>종류 선택</DialogTitle>
+          <DialogDescription>식당 종류를 선택하세요.</DialogDescription>
+        </DialogHeader>
+        <div className="max-h-80 space-y-2 overflow-y-auto">
+          <button
+            type="button"
+            className={cn(
+              'flex w-full items-center gap-2 rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted',
+              !selectedKind && 'border-border bg-muted'
+            )}
+            onClick={() => {
+              onSelect('');
+              onClose();
+            }}
+          >
+            <span className="text-muted-foreground">선택 안 함</span>
+          </button>
+          {kindEntries.map(([kind, data]) => {
+            const IconComponent = data?.icon ? getLucideIcon(data.icon) : null;
+            const kindName = data?.name || kind;
+            const isSelected = selectedKind === kind;
+
+            return (
+              <button
+                key={kind}
+                type="button"
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted',
+                  isSelected && 'border-border bg-muted'
+                )}
+                onClick={() => {
+                  onSelect(kind);
+                  onClose();
+                }}
+              >
+                {IconComponent && <IconComponent className="h-4 w-4 shrink-0" />}
+                <span>{kindName}</span>
+              </button>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 type RestaurantFormDialogProps = {
   open: boolean;
   mode: 'edit' | 'create';
@@ -1102,6 +1175,8 @@ type RestaurantFormDialogProps = {
   onToggleHide?: () => void;
   isHidden?: boolean;
   onOpenUpload: () => void;
+  restaurantKinds: Record<string, { icon?: string; name?: string }>;
+  restaurantIcons: Record<string, string>;
 };
 
 function RestaurantFormDialog({
@@ -1115,51 +1190,68 @@ function RestaurantFormDialog({
   onToggleHide,
   isHidden = false,
   onOpenUpload,
+  restaurantKinds,
+  restaurantIcons,
 }: RestaurantFormDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className={cn(
-        "flex max-h-[85vh] max-w-md flex-col p-0",
-        mode === 'create' && "mt-8"
-      )}>
-        <DialogHeader className="border-b border-border/50 px-5 py-4">
-          <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
-        </DialogHeader>
+  const [kindSelectOpen, setKindSelectOpen] = useState(false);
+  const selectedKindData = restaurant.kind ? restaurantKinds[restaurant.kind] : null;
+  const selectedKindName = selectedKindData?.name || restaurant.kind || '';
+  const selectedKindIcon = selectedKindData?.icon || (restaurant.kind ? restaurantIcons[restaurant.kind] : undefined);
+  const SelectedIconComponent = selectedKindIcon ? getLucideIcon(selectedKindIcon) : null;
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          <div className="space-y-4">
-          {mode === 'create' && (
+  return (
+    <>
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent className={cn(
+          "flex max-h-[85vh] max-w-md flex-col p-0",
+          mode === 'create' && "mt-8"
+        )}>
+          <DialogHeader className="border-b border-border/50 px-5 py-4">
+            <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            <div className="space-y-4">
+            {mode === 'create' && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">식당 ID</Label>
+                <Input
+                  value={restaurant.id}
+                  onChange={(event) =>
+                    onChange({
+                      id: event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                    })
+                  }
+                  placeholder="영문 대문자와 숫자 조합"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">식당 ID</Label>
+              <Label className="text-xs font-medium text-muted-foreground">식당명</Label>
               <Input
-                value={restaurant.id}
-                onChange={(event) =>
-                  onChange({
-                    id: event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
-                  })
-                }
-                placeholder="영문 대문자와 숫자 조합"
+                value={restaurant.name}
+                onChange={(event) => onChange({ name: event.target.value })}
+                placeholder="식당명을 입력하세요"
               />
             </div>
-          )}
 
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">식당명</Label>
-            <Input
-              value={restaurant.name}
-              onChange={(event) => onChange({ name: event.target.value })}
-              placeholder="식당명을 입력하세요"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">종류</Label>
-            <Input
-              value={restaurant.kind ?? ''}
-              onChange={(event) => onChange({ kind: event.target.value })}
-              placeholder="식당 종류"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">종류</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setKindSelectOpen(true)}
+              >
+                {SelectedIconComponent && (
+                  <SelectedIconComponent className="mr-2 h-4 w-4 shrink-0" />
+                )}
+                <span className={cn(!selectedKindName && 'text-muted-foreground')}>
+                  {selectedKindName || '종류를 선택하세요'}
+                </span>
+              </Button>
+            </div>
 
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">전화번호</Label>
@@ -1250,6 +1342,16 @@ function RestaurantFormDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    <RestaurantKindSelectDialog
+      open={kindSelectOpen}
+      selectedKind={restaurant.kind}
+      restaurantKinds={restaurantKinds}
+      restaurantIcons={restaurantIcons}
+      onClose={() => setKindSelectOpen(false)}
+      onSelect={(kind) => onChange({ kind })}
+    />
+    </>
   );
 }
 
@@ -1391,6 +1493,7 @@ export default function Home() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadContext, setUploadContext] = useState<UploadContext | null>(null);
   const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>({});
+  const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>({});
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -1460,7 +1563,7 @@ export default function Home() {
       restaurantKindRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          const kindData = snapshot.val() as Record<string, { icon?: string }>;
+          const kindData = snapshot.val() as Record<string, { icon?: string; name?: string }>;
           const icons: Record<string, string> = {};
           Object.entries(kindData).forEach(([kind, data]) => {
             if (data?.icon) {
@@ -1468,8 +1571,10 @@ export default function Home() {
             }
           });
           setRestaurantIcons(icons);
+          setRestaurantKinds(kindData);
         } else {
           setRestaurantIcons({});
+          setRestaurantKinds({});
         }
       },
       (err) => {
@@ -2317,6 +2422,8 @@ export default function Home() {
               onToggleHide={() => handleToggleHide(editableRestaurant.id)}
               isHidden={hiddenRestaurantIds.includes(editableRestaurant.id)}
               onOpenUpload={() => handleOpenUploadDialog('edit')}
+              restaurantKinds={restaurantKinds}
+              restaurantIcons={restaurantIcons}
             />
           )}
 
@@ -2329,6 +2436,8 @@ export default function Home() {
             onSave={handleRestaurantCreate}
             saving={creatingRestaurant}
             onOpenUpload={() => handleOpenUploadDialog('create')}
+            restaurantKinds={restaurantKinds}
+            restaurantIcons={restaurantIcons}
           />
 
           <ImageUploadDialog
