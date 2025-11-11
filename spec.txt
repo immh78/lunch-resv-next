@@ -826,5 +826,4 @@ const IconComponent = getLucideIcon({식당종류별 icon})
 - 종류를 누르면 종류를 선택할 수 있는 팝업창이 오픈된다.
 
 
-
-
+Lucide icon에 Hamburger의 버전은 v0.504.0이다. Hamburger icon출력이 가능하도록 package.json을 수정
