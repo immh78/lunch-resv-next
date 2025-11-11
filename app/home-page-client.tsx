@@ -50,6 +50,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { getLucideIcon } from '@/lib/icon-utils';
 
 import {
   UtensilsCrossed,
@@ -228,6 +229,7 @@ type RestaurantListProps = {
   loading: boolean;
   error: string;
   currentTheme: ThemeMode;
+  restaurantIcons: Record<string, string>;
 };
 
 function RestaurantList({
@@ -239,6 +241,7 @@ function RestaurantList({
   loading,
   error,
   currentTheme,
+  restaurantIcons,
 }: RestaurantListProps) {
   if (loading) {
     return (
@@ -302,7 +305,7 @@ function RestaurantList({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'w-full justify-start truncate transition-colors',
+                    'w-[140px] max-w-[140px] justify-start transition-colors overflow-hidden',
                     currentTheme === 'white'
                       ? 'bg-[rgb(250,250,250)] hover:bg-[rgb(240,240,240)]'
                       : 'bg-neutral-900 text-neutral-100 border-neutral-700 hover:bg-neutral-800',
@@ -316,7 +319,15 @@ function RestaurantList({
                     onSelect(restaurant);
                   }}
                 >
-                  {restaurant.name}
+                  {restaurant.kind && restaurantIcons[restaurant.kind] && (() => {
+                    const IconComponent = getLucideIcon(restaurantIcons[restaurant.kind]);
+                    return IconComponent ? (
+                      <IconComponent className="mr-2 h-4 w-4 shrink-0" />
+                    ) : null;
+                  })()}
+                  <span className="truncate min-w-0">
+                    {restaurant.name}
+                  </span>
                 </Button>
               </TableCell>
               <TableCell className="align-middle">
@@ -1379,6 +1390,7 @@ export default function Home() {
   const [showHidden, setShowHidden] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadContext, setUploadContext] = useState<UploadContext | null>(null);
+  const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>({});
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -1441,6 +1453,32 @@ export default function Home() {
 
     return () => unsubscribe();
   }, [user]);
+
+  useEffect(() => {
+    const restaurantKindRef = ref(database, 'food-resv/restaurant-kind');
+    const unsubscribe = onValue(
+      restaurantKindRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const kindData = snapshot.val() as Record<string, { icon?: string }>;
+          const icons: Record<string, string> = {};
+          Object.entries(kindData).forEach(([kind, data]) => {
+            if (data?.icon) {
+              icons[kind] = data.icon;
+            }
+          });
+          setRestaurantIcons(icons);
+        } else {
+          setRestaurantIcons({});
+        }
+      },
+      (err) => {
+        console.error('Error fetching restaurant kinds:', err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -2215,6 +2253,7 @@ export default function Home() {
             loading={loading}
             error={error}
             currentTheme={currentTheme}
+            restaurantIcons={restaurantIcons}
           />
         </main>
 
