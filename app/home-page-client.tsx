@@ -423,7 +423,14 @@ function RestaurantList({
             <TableCell colSpan={3} className="px-0">
               <div className="flex justify-center py-2">
                 <Button variant="ghost" size="icon" onClick={onShowHidden}>
-                  <MoreHorizontal className="h-5 w-5" />
+                  <MoreHorizontal
+                    className={cn(
+                      'h-5 w-5',
+                      currentTheme === 'white'
+                        ? 'text-[rgb(181,181,181)]'
+                        : 'text-[rgb(80,80,80)]'
+                    )}
+                  />
                 </Button>
               </div>
             </TableCell>

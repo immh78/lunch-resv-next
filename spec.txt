@@ -827,3 +827,8 @@ const IconComponent = getLucideIcon({식당종류별 icon})
 
 
 Lucide icon에 Hamburger의 버전은 v0.504.0이다. Hamburger icon출력이 가능하도록 package.json을 수정
+
+
+하단의 ... 버튼의 색깔을 테마에 따라 다르게 적용
+화이트 : rgb(181, 181, 181)
+블랙 : rgb(80, 80, 80)
