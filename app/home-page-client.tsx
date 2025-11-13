@@ -1069,7 +1069,7 @@ function ImageUploadDialog({
               </div>
               <div className="mt-3 overflow-hidden rounded-sm border border-border/60 bg-background">
                 <img
-                  src={`https://res.cloudinary.com/${cloudName}/image/upload/c_fill,w_480,q_auto,f_auto/${initialPublicId}`}
+                  src={`https://res.cloudinary.com/${cloudName}/image/upload/c_fill,w_800,h_600,q_auto,f_auto/${initialPublicId}`}
                   alt="현재 메뉴 이미지 미리보기"
                   className="h-40 w-full object-cover"
                 />
@@ -1506,7 +1506,7 @@ export default function Home() {
   }, [hiddenRestaurantIds]);
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'images';
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_MOBILE || 'menu-mobile';
 
   const handleUploadDialogClose = useCallback(() => {
     setUploadDialogOpen(false);

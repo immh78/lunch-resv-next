@@ -827,3 +827,10 @@ const IconComponent = getLucideIcon({식당종류별 icon})
 
 
 Lucide icon에 Hamburger의 버전은 v0.504.0이다. Hamburger icon출력이 가능하도록 package.json을 수정
+
+
+식당별로 메뉴를 관리하는 기능을 만들려고 한다.
+메뉴명, 가격과 함께 사진을 등록할 것이다.
+Cloudinary에 사진을 저장하여 활용한다.
+사진을 올리거나 저장시 모바일 크기의 사진과 썸네일용 사진을 각각 저장하여 활용하고 싶다. 
+저장시 두 사이즈로 저장하는게 가능한가?
