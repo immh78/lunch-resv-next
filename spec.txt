@@ -827,3 +827,18 @@ const IconComponent = getLucideIcon({식당종류별 icon})
 
 
 Lucide icon에 Hamburger의 버전은 v0.504.0이다. Hamburger icon출력이 가능하도록 package.json을 수정
+
+# 목적
+식당별 메뉴를 관리
+
+# 구현
+## 식당 등록/수정 팝업
+- 메뉴 이미지 ID 아래에 `메뉴 관리`를 추가하고 내용으로 등록되어 있는 메뉴명을 ,로 구분하여 출력한다.
+- 식당 메뉴 저장 장소
+  / food-resv / restaurant / {식당ID} / menu /
+     "name" : string (메뉴명)
+     "img" : string (Cloudinary 이미지 ID(mobile용))
+     "thumbnail" : string (Cloudinary 이미지 ID(thumbnail용))
+     "cost" : number (가격)
+     "remark" : string (비고)
+ -      
