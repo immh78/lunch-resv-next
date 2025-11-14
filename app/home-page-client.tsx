@@ -890,7 +890,9 @@ function ImageUploadDialog({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showSourceMenu, setShowSourceMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
   const cleanupPreview = useCallback(() => {
     setPreviewUrl((prev) => {
@@ -905,8 +907,12 @@ function ImageUploadDialog({
     cleanupPreview();
     setFile(null);
     setErrorMessage(null);
+    setShowSourceMenu(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
     }
   }, [open, cleanupPreview]);
 
@@ -1067,7 +1073,11 @@ function ImageUploadDialog({
               'group relative flex cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed border-border/70 bg-muted/40 px-4 py-10 text-center transition hover:border-border hover:bg-muted',
               uploading && 'pointer-events-none opacity-70'
             )}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (!previewUrl) {
+                setShowSourceMenu(true);
+              }
+            }}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             role="button"
@@ -1075,7 +1085,9 @@ function ImageUploadDialog({
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                fileInputRef.current?.click();
+                if (!previewUrl) {
+                  setShowSourceMenu(true);
+                }
               }
             }}
           >
@@ -1099,8 +1111,55 @@ function ImageUploadDialog({
               </>
             )}
 
+            {showSourceMenu && !previewUrl && (
+              <div 
+                className="absolute inset-0 z-10 flex items-center justify-center rounded-sm bg-background/95"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setShowSourceMenu(false);
+                  }
+                }}
+              >
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSourceMenu(false);
+                      cameraInputRef.current?.click();
+                    }}
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    사진 촬영
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSourceMenu(false);
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    파일 선택
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowSourceMenu(false)}
+                    className="mt-2"
+                  >
+                    취소
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <input
               ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <input
+              ref={cameraInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
               capture="environment"
@@ -1124,13 +1183,13 @@ function ImageUploadDialog({
           {initialPublicId && (
             <div className="rounded-sm border border-border/60 bg-muted/30 p-3">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>등록된 이미지 (mobile용)</span>
+                <span>등록된 이미지</span>
                 <span className="font-mono text-[11px]">{initialPublicId}</span>
               </div>
               <div className="mt-3 overflow-hidden rounded-sm border border-border/60 bg-background">
                 <img
                   src={`https://res.cloudinary.com/${cloudName}/image/upload/c_fill,w_600,h_400,q_auto,f_auto/${initialPublicId}`}
-                  alt="등록된 메뉴 이미지 미리보기 (mobile용)"
+                  alt="등록된 메뉴 이미지 미리보기"
                   className="h-40 w-full object-cover"
                 />
               </div>
@@ -1308,6 +1367,7 @@ function MenuEditDialog({
         uploadPreset={mobilePreset}
         uploadBoth={true}
         onBothUploaded={handleImageUpload}
+        initialPublicId={img || null}
       />
     </>
   );
