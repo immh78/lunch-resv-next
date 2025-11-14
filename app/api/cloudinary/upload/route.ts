@@ -4,6 +4,19 @@ import crypto from 'crypto';
 // Vercel 배포를 위해 Node.js runtime 명시
 export const runtime = 'nodejs';
 
+// Cloudinary 응답 타입 정의
+interface CloudinaryResponse {
+  public_id: string;
+  secure_url: string;
+  url: string;
+  eager?: Array<{ url: string; secure_url: string }>;
+  width?: number;
+  height?: number;
+  error?: {
+    message: string;
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -113,9 +126,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let data: any;
+    let data: CloudinaryResponse;
     try {
-      data = await response.json();
+      data = await response.json() as CloudinaryResponse;
     } catch (jsonError) {
       console.error('Cloudinary 응답 JSON 파싱 오류:', jsonError);
       const responseText = await response.text().catch(() => '응답을 읽을 수 없습니다');
@@ -137,7 +150,7 @@ export async function POST(request: NextRequest) {
       });
       
       // 오류 메시지를 더 구체적으로 반환
-      const errorMessage = data.error?.message || data.error || `업로드 실패 (${response.status})`;
+      const errorMessage = data.error?.message || (typeof data.error === 'string' ? data.error : `업로드 실패 (${response.status})`);
       return NextResponse.json(
         { error: errorMessage },
         { status: response.status }

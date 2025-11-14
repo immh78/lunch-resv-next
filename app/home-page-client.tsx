@@ -76,6 +76,17 @@ import {
 type ThemeMode = 'white' | 'black';
 type UploadContext = 'edit' | 'create';
 
+// Cloudinary 업로드 응답 타입
+interface CloudinaryUploadResponse {
+  public_id: string;
+  secure_url?: string;
+  url?: string;
+  eager?: Array<{ url: string; secure_url: string }>;
+  width?: number;
+  height?: number;
+  error?: string;
+}
+
 interface Restaurant {
   id: string;
   name: string;
@@ -995,9 +1006,9 @@ function ImageUploadDialog({
         throw new Error('서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.');
       }
 
-      let data: any;
+      let data: CloudinaryUploadResponse;
       try {
-        data = await response.json();
+        data = await response.json() as CloudinaryUploadResponse;
       } catch (jsonError) {
         console.error('JSON 파싱 오류:', jsonError);
         throw new Error(`서버 응답을 처리할 수 없습니다. (${response.status})`);
@@ -1014,7 +1025,7 @@ function ImageUploadDialog({
         throw new Error(errorMessage);
       }
 
-      const publicId = data.public_id as string;
+      const publicId = data.public_id;
       
       // 업로드 성공시 바로 DB에 저장
       if (autoSave && onAutoSave) {
