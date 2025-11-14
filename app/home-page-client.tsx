@@ -1240,10 +1240,9 @@ function MenuEditDialog({
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>메뉴 관리</DialogTitle>
-            <DialogDescription>메뉴 정보를 입력하세요.</DialogDescription>
+            <DialogTitle>{menu ? '메뉴 수정' : '메뉴 등록'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 px-[15px] pb-[15px]">
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground">메뉴명</Label>
               <Input
@@ -1264,15 +1263,6 @@ function MenuEditDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">비고</Label>
-              <Input
-                value={remark}
-                onChange={(event) => setRemark(event.target.value)}
-                placeholder="비고"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground">사진</Label>
               <Button
                 type="button"
@@ -1284,14 +1274,26 @@ function MenuEditDialog({
                 {img ? '이미지 업로드됨' : '이미지 업로드'}
               </Button>
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">비고</Label>
+              <Input
+                value={remark}
+                onChange={(event) => setRemark(event.target.value)}
+                placeholder="비고"
+              />
+            </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={onClose} disabled={saving}>
-              취소
-            </Button>
-            <Button onClick={handleSave} disabled={saving || !menuName.trim()}>
-              {saving ? <Spinner size="sm" /> : '저장'}
+          <DialogFooter className="flex flex-row justify-end border-t-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSave}
+              disabled={saving || !menuName.trim()}
+              className="h-8 w-8"
+            >
+              {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             </Button>
           </DialogFooter>
         </DialogContent>
