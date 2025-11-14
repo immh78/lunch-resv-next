@@ -1124,13 +1124,13 @@ function ImageUploadDialog({
           {initialPublicId && (
             <div className="rounded-sm border border-border/60 bg-muted/30 p-3">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>현재 적용된 이미지</span>
+                <span>등록된 이미지 (mobile용)</span>
                 <span className="font-mono text-[11px]">{initialPublicId}</span>
               </div>
               <div className="mt-3 overflow-hidden rounded-sm border border-border/60 bg-background">
                 <img
-                  src={`https://res.cloudinary.com/${cloudName}/image/upload/c_fill,w_800,h_600,q_auto,f_auto/${initialPublicId}`}
-                  alt="현재 메뉴 이미지 미리보기"
+                  src={`https://res.cloudinary.com/${cloudName}/image/upload/c_fill,w_600,h_400,q_auto,f_auto/${initialPublicId}`}
+                  alt="등록된 메뉴 이미지 미리보기 (mobile용)"
                   className="h-40 w-full object-cover"
                 />
               </div>
