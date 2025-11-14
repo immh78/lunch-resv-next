@@ -1562,7 +1562,7 @@ function RestaurantFormDialog({
         <DialogContent className={cn(
           "flex max-h-[80vh] max-w-md flex-col p-0",
           mode === 'create' && "mt-8",
-          mode === 'edit' && "mt-4"
+          mode === 'edit' && "mt-[60px] !items-start"
         )}>
           <DialogHeader className="border-b border-border/50 px-5 py-4">
             <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
