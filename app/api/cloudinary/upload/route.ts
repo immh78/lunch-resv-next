@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const uploadPreset = formData.get('upload_preset') as string;
-    const eager = formData.get('eager') as string | null;
 
     if (!file) {
       return NextResponse.json(
@@ -29,15 +28,9 @@ export async function POST(request: NextRequest) {
 
     // 서명된 업로드를 위한 파라미터 준비
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const params: Record<string, string> = {};
-
-    // eager 변환 추가
-    if (eager) {
-      params.eager = eager;
-    }
-
-    // timestamp 추가
-    params.timestamp = timestamp.toString();
+    const params: Record<string, string> = {
+      timestamp: timestamp.toString(),
+    };
 
     // upload_preset이 제공된 경우 추가 (signed 프리셋인 경우)
     if (uploadPreset) {
@@ -74,10 +67,6 @@ export async function POST(request: NextRequest) {
     
     if (uploadPreset) {
       uploadFormData.append('upload_preset', uploadPreset);
-    }
-    
-    if (eager) {
-      uploadFormData.append('eager', eager);
     }
 
     // Cloudinary API에 업로드

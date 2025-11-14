@@ -981,8 +981,7 @@ function ImageUploadDialog({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
-      // Eager 변환: 원본과 변환된 이미지 모두 저장 (프리셋에서 설정된 변환 적용)
-      formData.append('eager', 'c_limit,w_800,h_600');
+      // Eager 변환은 프리셋 설정에서 자동 적용됨
 
       // 서버 API를 통해 업로드 (signed 업로드)
       const response = await fetch('/api/cloudinary/upload', {
