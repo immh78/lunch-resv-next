@@ -86,6 +86,14 @@ interface Restaurant {
   naviUrl?: string;
 }
 
+interface RestaurantMenu {
+  name: string;
+  img: string;        // Cloudinary 이미지 ID (mobile용)
+  thumbnail: string;  // Cloudinary 이미지 ID (thumbnail용)
+  cost: number;
+  remark: string;
+}
+
 interface MenuItem {
   cost: number;
   menu: string;
@@ -864,6 +872,8 @@ type ImageUploadDialogProps = {
   cloudName: string;
   uploadPreset: string;
   initialPublicId?: string | null;
+  uploadBoth?: boolean; // mobile용과 thumbnail용 두 개 업로드 여부
+  onBothUploaded?: (mobileId: string, thumbnailId: string) => void;
 };
 
 function ImageUploadDialog({
@@ -873,6 +883,8 @@ function ImageUploadDialog({
   cloudName,
   uploadPreset,
   initialPublicId,
+  uploadBoth = false,
+  onBothUploaded,
 }: ImageUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -959,22 +971,62 @@ function ImageUploadDialog({
     setErrorMessage(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', uploadPreset);
+      if (uploadBoth && onBothUploaded) {
+        // mobile용과 thumbnail용 두 개 업로드
+        const thumbnailPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_THUMBNAIL || uploadPreset;
+        
+        // mobile용 업로드
+        const mobileFormData = new FormData();
+        mobileFormData.append('file', file);
+        mobileFormData.append('upload_preset', uploadPreset);
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+        const mobileResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: 'POST',
+          body: mobileFormData,
+        });
 
-      const data = await response.json();
+        const mobileData = await mobileResponse.json();
 
-      if (!response.ok || !data?.public_id) {
-        throw new Error(data?.error?.message ?? '이미지 업로드에 실패했습니다.');
+        if (!mobileResponse.ok || !mobileData?.public_id) {
+          throw new Error(mobileData?.error?.message ?? 'mobile용 이미지 업로드에 실패했습니다.');
+        }
+
+        // thumbnail용 업로드
+        const thumbnailFormData = new FormData();
+        thumbnailFormData.append('file', file);
+        thumbnailFormData.append('upload_preset', thumbnailPreset);
+
+        const thumbnailResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: 'POST',
+          body: thumbnailFormData,
+        });
+
+        const thumbnailData = await thumbnailResponse.json();
+
+        if (!thumbnailResponse.ok || !thumbnailData?.public_id) {
+          throw new Error(thumbnailData?.error?.message ?? 'thumbnail용 이미지 업로드에 실패했습니다.');
+        }
+
+        onBothUploaded(mobileData.public_id as string, thumbnailData.public_id as string);
+      } else {
+        // 기존 단일 업로드
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', uploadPreset);
+
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data?.public_id) {
+          throw new Error(data?.error?.message ?? '이미지 업로드에 실패했습니다.');
+        }
+
+        onUploaded(data.public_id as string);
       }
-
-      onUploaded(data.public_id as string);
 
       cleanupPreview();
       setFile(null);
@@ -990,7 +1042,7 @@ function ImageUploadDialog({
     } finally {
       setUploading(false);
     }
-  }, [cleanupPreview, cloudName, file, onUploaded, uploadPreset]);
+  }, [cleanupPreview, cloudName, file, onUploaded, onBothUploaded, uploadBoth, uploadPreset]);
 
   return (
     <Dialog
@@ -1098,6 +1150,230 @@ function ImageUploadDialog({
   );
 }
 
+type MenuEditDialogProps = {
+  open: boolean;
+  menu: RestaurantMenu | null;
+  menuKey: string | null;
+  restaurantId: string;
+  cloudName: string;
+  mobilePreset: string;
+  thumbnailPreset: string;
+  onClose: () => void;
+  onSave: (menuKey: string, menu: RestaurantMenu) => void;
+};
+
+function MenuEditDialog({
+  open,
+  menu,
+  menuKey,
+  restaurantId,
+  cloudName,
+  mobilePreset,
+  thumbnailPreset,
+  onClose,
+  onSave,
+}: MenuEditDialogProps) {
+  const [menuName, setMenuName] = useState('');
+  const [cost, setCost] = useState<number>(0);
+  const [remark, setRemark] = useState('');
+  const [img, setImg] = useState('');
+  const [thumbnail, setThumbnail] = useState('');
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (menu) {
+      setMenuName(menu.name || '');
+      setCost(menu.cost || 0);
+      setRemark(menu.remark || '');
+      setImg(menu.img || '');
+      setThumbnail(menu.thumbnail || '');
+    } else {
+      setMenuName('');
+      setCost(0);
+      setRemark('');
+      setImg('');
+      setThumbnail('');
+    }
+  }, [menu, open]);
+
+  const handleSave = useCallback(async () => {
+    if (!menuName.trim()) {
+      toast.error('메뉴명을 입력해주세요.');
+      return;
+    }
+
+    if (!menuKey) {
+      toast.error('메뉴 키가 없습니다.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const menuData: RestaurantMenu = {
+        name: menuName.trim(),
+        cost: cost || 0,
+        remark: remark.trim(),
+        img: img,
+        thumbnail: thumbnail,
+      };
+      onSave(menuKey, menuData);
+      toast.success('메뉴를 저장했습니다.');
+      onClose();
+    } catch (error) {
+      console.error('Error saving menu:', error);
+      toast.error('메뉴 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }, [menuName, cost, remark, img, thumbnail, menuKey, onSave, onClose]);
+
+  const handleImageUpload = useCallback((mobileId: string, thumbnailId: string) => {
+    setImg(mobileId);
+    setThumbnail(thumbnailId);
+    setUploadDialogOpen(false);
+    toast.success('이미지를 업로드했습니다.');
+  }, []);
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>메뉴 관리</DialogTitle>
+            <DialogDescription>메뉴 정보를 입력하세요.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">메뉴명</Label>
+              <Input
+                value={menuName}
+                onChange={(event) => setMenuName(event.target.value)}
+                placeholder="메뉴명"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">가격</Label>
+              <Input
+                type="number"
+                value={cost || ''}
+                onChange={(event) => setCost(Number(event.target.value) || 0)}
+                placeholder="가격"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">비고</Label>
+              <Input
+                value={remark}
+                onChange={(event) => setRemark(event.target.value)}
+                placeholder="비고"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">사진</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setUploadDialogOpen(true)}
+              >
+                <Camera className={cn("mr-2 h-4 w-4", img && "text-green-500")} />
+                {img ? '이미지 업로드됨' : '이미지 업로드'}
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={onClose} disabled={saving}>
+              취소
+            </Button>
+            <Button onClick={handleSave} disabled={saving || !menuName.trim()}>
+              {saving ? <Spinner size="sm" /> : '저장'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ImageUploadDialog
+        open={uploadDialogOpen}
+        onClose={() => setUploadDialogOpen(false)}
+        onUploaded={() => {}}
+        cloudName={cloudName}
+        uploadPreset={mobilePreset}
+        uploadBoth={true}
+        onBothUploaded={handleImageUpload}
+      />
+    </>
+  );
+}
+
+type MenuListDialogProps = {
+  open: boolean;
+  restaurantName: string;
+  menus: Record<string, RestaurantMenu>;
+  onClose: () => void;
+  onMenuClick: (menuKey: string) => void;
+  onAddNewMenu: () => void;
+};
+
+function MenuListDialog({
+  open,
+  restaurantName,
+  menus,
+  onClose,
+  onMenuClick,
+  onAddNewMenu,
+}: MenuListDialogProps) {
+  const menuEntries = Object.entries(menus);
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader className="space-y-0">
+          <div className="flex items-center gap-2">
+            <DialogTitle>{restaurantName} 메뉴목록</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground"
+              onClick={onAddNewMenu}
+            >
+              <PlusCircle className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+        <div className="max-h-80 space-y-2 overflow-y-auto">
+          {menuEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">등록된 메뉴가 없습니다.</p>
+          ) : (
+            menuEntries.map(([key, menu]) => (
+              <button
+                key={key}
+                type="button"
+                className="flex w-full items-center justify-between rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted"
+                onClick={() => {
+                  onMenuClick(key);
+                  onClose();
+                }}
+              >
+                <span>{menu.name}</span>
+                {menu.cost > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {formatCurrency(menu.cost)}원
+                  </span>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 type RestaurantKindSelectDialogProps = {
   open: boolean;
   selectedKind: string | undefined;
@@ -1184,6 +1460,10 @@ type RestaurantFormDialogProps = {
   onOpenUpload: () => void;
   restaurantKinds: Record<string, { icon?: string; name?: string }>;
   restaurantIcons: Record<string, string>;
+  onMenuSave?: (menuKey: string, menu: RestaurantMenu) => void;
+  cloudName?: string;
+  mobilePreset?: string;
+  thumbnailPreset?: string;
 };
 
 function RestaurantFormDialog({
@@ -1199,12 +1479,80 @@ function RestaurantFormDialog({
   onOpenUpload,
   restaurantKinds,
   restaurantIcons,
+  onMenuSave,
+  cloudName,
+  mobilePreset,
+  thumbnailPreset,
 }: RestaurantFormDialogProps) {
   const [kindSelectOpen, setKindSelectOpen] = useState(false);
+  const [menuEditOpen, setMenuEditOpen] = useState(false);
+  const [menuListOpen, setMenuListOpen] = useState(false);
+  const [selectedMenuKey, setSelectedMenuKey] = useState<string | null>(null);
+  const [selectedMenu, setSelectedMenu] = useState<RestaurantMenu | null>(null);
+  const [menus, setMenus] = useState<Record<string, RestaurantMenu>>({});
   const selectedKindData = restaurant.kind ? restaurantKinds[restaurant.kind] : null;
   const selectedKindName = selectedKindData?.name || restaurant.kind || '';
   const selectedKindIcon = selectedKindData?.icon || (restaurant.kind ? restaurantIcons[restaurant.kind] : undefined);
   const SelectedIconComponent = selectedKindIcon ? getLucideIcon(selectedKindIcon) : null;
+
+  // 메뉴 목록 조회
+  useEffect(() => {
+    if (!open || mode !== 'edit' || !restaurant.id) {
+      setMenus({});
+      return;
+    }
+
+    const menuRef = ref(database, `food-resv/restaurant/${restaurant.id}/menu`);
+    const unsubscribe = onValue(
+      menuRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setMenus(snapshot.val() || {});
+        } else {
+          setMenus({});
+        }
+      },
+      (error) => {
+        console.error('Error fetching menus:', error);
+        setMenus({});
+      }
+    );
+
+    return () => unsubscribe();
+  }, [open, mode, restaurant.id]);
+
+  const handleMenuClick = useCallback((menuKey: string) => {
+    const menu = menus[menuKey];
+    setSelectedMenuKey(menuKey);
+    setSelectedMenu(menu || null);
+    setMenuEditOpen(true);
+  }, [menus]);
+
+  const handleAddNewMenu = useCallback(() => {
+    const newMenuKey = `menu-${Date.now()}`;
+    setSelectedMenuKey(newMenuKey);
+    setSelectedMenu(null);
+    setMenuEditOpen(true);
+  }, []);
+
+  const handleMenuManagementClick = useCallback(() => {
+    const menuCount = Object.keys(menus).length;
+    if (menuCount === 0) {
+      // 메뉴가 없으면 바로 메뉴 등록 팝업 열기
+      handleAddNewMenu();
+    } else {
+      // 메뉴가 있으면 메뉴 목록 팝업 열기
+      setMenuListOpen(true);
+    }
+  }, [menus, handleAddNewMenu]);
+
+  const handleMenuSave = useCallback((menuKey: string, menu: RestaurantMenu) => {
+    if (onMenuSave) {
+      onMenuSave(menuKey, menu);
+    }
+  }, [onMenuSave]);
+
+  const menuNames = Object.entries(menus).map(([key, menu]) => menu.name).filter(Boolean);
 
   return (
     <>
@@ -1297,6 +1645,29 @@ function RestaurantFormDialog({
             </div>
           </div>
 
+          {mode === 'edit' && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">메뉴 관리</Label>
+              <div 
+                className="flex flex-wrap items-center gap-2 min-h-[2.5rem] rounded-md border border-input bg-background px-3 py-2 cursor-pointer hover:bg-muted/50"
+                onClick={handleMenuManagementClick}
+              >
+                {menuNames.length > 0 ? (
+                  menuNames.map((name, index) => (
+                    <span key={index} className="text-sm">
+                      {name}
+                      {index < menuNames.length - 1 && (
+                        <span className="text-muted-foreground">, </span>
+                      )}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground">등록된 메뉴가 없습니다. 클릭하여 메뉴를 추가하세요.</span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">식당 위치</Label>
             <Input
@@ -1358,6 +1729,37 @@ function RestaurantFormDialog({
       onClose={() => setKindSelectOpen(false)}
       onSelect={(kind) => onChange({ kind })}
     />
+
+    {mode === 'edit' && cloudName && mobilePreset && thumbnailPreset && (
+      <>
+        <MenuListDialog
+          open={menuListOpen}
+          restaurantName={restaurant.name}
+          menus={menus}
+          onClose={() => setMenuListOpen(false)}
+          onMenuClick={handleMenuClick}
+          onAddNewMenu={() => {
+            setMenuListOpen(false);
+            handleAddNewMenu();
+          }}
+        />
+        <MenuEditDialog
+          open={menuEditOpen}
+          menu={selectedMenu}
+          menuKey={selectedMenuKey}
+          restaurantId={restaurant.id}
+          cloudName={cloudName}
+          mobilePreset={mobilePreset}
+          thumbnailPreset={thumbnailPreset}
+          onClose={() => {
+            setMenuEditOpen(false);
+            setSelectedMenuKey(null);
+            setSelectedMenu(null);
+          }}
+          onSave={handleMenuSave}
+        />
+      </>
+    )}
     </>
   );
 }
@@ -1514,6 +1916,7 @@ export default function Home() {
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_MOBILE || 'menu-mobile';
+  const thumbnailPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_THUMBNAIL || uploadPreset;
 
   const handleUploadDialogClose = useCallback(() => {
     setUploadDialogOpen(false);
@@ -2290,6 +2693,19 @@ export default function Home() {
     setThemeDialogOpen(true);
   };
 
+  const handleMenuSave = useCallback(async (menuKey: string, menu: RestaurantMenu) => {
+    if (!user || !editableRestaurant) return;
+
+    try {
+      const menuRef = ref(database, `food-resv/restaurant/${editableRestaurant.id}/menu/${menuKey}`);
+      await set(menuRef, menu);
+    } catch (error) {
+      console.error('Error saving menu:', error);
+      toast.error('메뉴 저장 중 오류가 발생했습니다.');
+      throw error;
+    }
+  }, [user, editableRestaurant]);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground">
@@ -2431,6 +2847,10 @@ export default function Home() {
               onOpenUpload={() => handleOpenUploadDialog('edit')}
               restaurantKinds={restaurantKinds}
               restaurantIcons={restaurantIcons}
+              onMenuSave={handleMenuSave}
+              cloudName={cloudName}
+              mobilePreset={uploadPreset}
+              thumbnailPreset={thumbnailPreset}
             />
           )}
 
