@@ -15,9 +15,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
-    const apiSecret = process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET;
+    // 서버 사이드에서는 NEXT_PUBLIC_ 접두사 없이 환경 변수 사용
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY || process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET;
 
     if (!cloudName || !apiKey || !apiSecret) {
       return NextResponse.json(
@@ -28,31 +29,41 @@ export async function POST(request: NextRequest) {
 
     // 서명된 업로드를 위한 파라미터 준비
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const params: Record<string, string> = {
-      timestamp: timestamp.toString(),
-    };
+    const params: Record<string, string> = {};
 
     // eager 변환 추가
     if (eager) {
       params.eager = eager;
     }
 
+    // timestamp 추가
+    params.timestamp = timestamp.toString();
+
     // upload_preset이 제공된 경우 추가 (signed 프리셋인 경우)
     if (uploadPreset) {
       params.upload_preset = uploadPreset;
     }
 
-    // 서명 생성: 파라미터를 정렬하여 문자열로 변환 후 SHA-1 해시
-    const sortedParams = Object.keys(params)
-      .sort()
+    // 서명 생성: 파라미터를 알파벳 순으로 정렬하여 문자열로 변환 후 SHA-1 해시
+    // Cloudinary 서명 규칙: 파라미터를 알파벳 순으로 정렬하고 key=value 형식으로 연결
+    const sortedKeys = Object.keys(params).sort();
+    const paramsToSign = sortedKeys
       .map((key) => `${key}=${params[key]}`)
       .join('&');
     
-    const signatureString = sortedParams + apiSecret;
+    // API secret을 끝에 추가하여 서명 생성
+    const signatureString = paramsToSign + apiSecret;
     const signature = crypto
       .createHash('sha1')
       .update(signatureString)
       .digest('hex');
+
+    // 디버깅용 로그 (개발 환경에서만)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Cloudinary 서명 생성:');
+      console.log('Params to sign:', paramsToSign);
+      console.log('Signature:', signature);
+    }
 
     // Cloudinary에 업로드할 FormData 생성
     const uploadFormData = new FormData();
