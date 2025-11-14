@@ -872,8 +872,8 @@ type ImageUploadDialogProps = {
   cloudName: string;
   uploadPreset: string;
   initialPublicId?: string | null;
-  uploadBoth?: boolean; // mobile용과 thumbnail용 두 개 업로드 여부
-  onBothUploaded?: (mobileId: string, thumbnailId: string) => void;
+  autoSave?: boolean; // 업로드 성공시 바로 저장할지 여부
+  onAutoSave?: (publicId: string) => Promise<void>; // 자동 저장 콜백
 };
 
 function ImageUploadDialog({
@@ -883,8 +883,8 @@ function ImageUploadDialog({
   cloudName,
   uploadPreset,
   initialPublicId,
-  uploadBoth = false,
-  onBothUploaded,
+  autoSave = false,
+  onAutoSave,
 }: ImageUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -977,67 +977,42 @@ function ImageUploadDialog({
     setErrorMessage(null);
 
     try {
-      if (uploadBoth && onBothUploaded) {
-        // mobile용과 thumbnail용 두 개 업로드
-        const thumbnailPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_THUMBNAIL || uploadPreset;
-        
-        // mobile용 업로드
-        const mobileFormData = new FormData();
-        mobileFormData.append('file', file);
-        mobileFormData.append('upload_preset', uploadPreset);
+      // mobile용 업로드 (Eager 변환 옵션 추가하여 원본과 변환된 이미지 모두 저장)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', uploadPreset);
+      // Eager 변환: 원본과 변환된 이미지 모두 저장 (프리셋에서 설정된 변환 적용)
+      formData.append('eager', 'c_limit,w_800,h_600');
 
-        const mobileResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-          method: 'POST',
-          body: mobileFormData,
-        });
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
 
-        const mobileData = await mobileResponse.json();
+      const data = await response.json();
 
-        if (!mobileResponse.ok || !mobileData?.public_id) {
-          throw new Error(mobileData?.error?.message ?? 'mobile용 이미지 업로드에 실패했습니다.');
-        }
+      if (!response.ok || !data?.public_id) {
+        throw new Error(data?.error?.message ?? '이미지 업로드에 실패했습니다.');
+      }
 
-        // thumbnail용 업로드
-        const thumbnailFormData = new FormData();
-        thumbnailFormData.append('file', file);
-        thumbnailFormData.append('upload_preset', thumbnailPreset);
-
-        const thumbnailResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-          method: 'POST',
-          body: thumbnailFormData,
-        });
-
-        const thumbnailData = await thumbnailResponse.json();
-
-        if (!thumbnailResponse.ok || !thumbnailData?.public_id) {
-          throw new Error(thumbnailData?.error?.message ?? 'thumbnail용 이미지 업로드에 실패했습니다.');
-        }
-
-        onBothUploaded(mobileData.public_id as string, thumbnailData.public_id as string);
+      const publicId = data.public_id as string;
+      
+      // 업로드 성공시 바로 DB에 저장
+      if (autoSave && onAutoSave) {
+        await onAutoSave(publicId);
       } else {
-        // 기존 단일 업로드
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', uploadPreset);
-
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data?.public_id) {
-          throw new Error(data?.error?.message ?? '이미지 업로드에 실패했습니다.');
-        }
-
-        onUploaded(data.public_id as string);
+        onUploaded(publicId);
       }
 
       cleanupPreview();
       setFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+      
+      // 자동 저장이 아닌 경우에만 팝업 닫기
+      if (!autoSave) {
+        onClose();
       }
     } catch (error) {
       console.error('Cloudinary 업로드 오류:', error);
@@ -1048,7 +1023,17 @@ function ImageUploadDialog({
     } finally {
       setUploading(false);
     }
-  }, [cleanupPreview, cloudName, file, onUploaded, onBothUploaded, uploadBoth, uploadPreset]);
+  }, [cleanupPreview, cloudName, file, onUploaded, uploadPreset, autoSave, onAutoSave, onClose]);
+
+  // autoSave가 활성화된 경우 파일 선택 또는 드래그 앤 드롭 시 자동 업로드
+  useEffect(() => {
+    if (autoSave && file && !uploading) {
+      const timer = setTimeout(() => {
+        handleUpload();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [autoSave, file, uploading, handleUpload]);
 
   return (
     <Dialog
@@ -1140,13 +1125,6 @@ function ImageUploadDialog({
                   >
                     파일 선택
                   </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowSourceMenu(false)}
-                    className="mt-2"
-                  >
-                    취소
-                  </Button>
                 </div>
               </div>
             )}
@@ -1197,14 +1175,16 @@ function ImageUploadDialog({
           )}
         </div>
 
-        <DialogFooter className="border-t border-border/50 px-5 py-4">
-          <Button variant="ghost" onClick={onClose} disabled={uploading}>
-            취소
-          </Button>
-          <Button onClick={handleUpload} disabled={uploading || !file}>
-            {uploading ? <Spinner size="sm" /> : '업로드'}
-          </Button>
-        </DialogFooter>
+        {!autoSave && (
+          <DialogFooter className="border-t border-border/50 px-5 py-4">
+            <Button variant="ghost" onClick={onClose} disabled={uploading}>
+              취소
+            </Button>
+            <Button onClick={handleUpload} disabled={uploading || !file}>
+              {uploading ? <Spinner size="sm" /> : '업로드'}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -1237,7 +1217,6 @@ function MenuEditDialog({
   const [cost, setCost] = useState<number>(0);
   const [remark, setRemark] = useState('');
   const [img, setImg] = useState('');
-  const [thumbnail, setThumbnail] = useState('');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -1247,13 +1226,11 @@ function MenuEditDialog({
       setCost(menu.cost || 0);
       setRemark(menu.remark || '');
       setImg(menu.img || '');
-      setThumbnail(menu.thumbnail || '');
     } else {
       setMenuName('');
       setCost(0);
       setRemark('');
       setImg('');
-      setThumbnail('');
     }
   }, [menu, open]);
 
@@ -1275,7 +1252,7 @@ function MenuEditDialog({
         cost: cost || 0,
         remark: remark.trim(),
         img: img,
-        thumbnail: thumbnail,
+        thumbnail: '', // thumbnail은 더 이상 사용하지 않음
       };
       onSave(menuKey, menuData);
       toast.success('메뉴를 저장했습니다.');
@@ -1286,14 +1263,34 @@ function MenuEditDialog({
     } finally {
       setSaving(false);
     }
-  }, [menuName, cost, remark, img, thumbnail, menuKey, onSave, onClose]);
+  }, [menuName, cost, remark, img, menuKey, onSave, onClose]);
 
-  const handleImageUpload = useCallback((mobileId: string, thumbnailId: string) => {
-    setImg(mobileId);
-    setThumbnail(thumbnailId);
-    setUploadDialogOpen(false);
-    toast.success('이미지를 업로드했습니다.');
-  }, []);
+  const handleAutoSave = useCallback(async (publicId: string) => {
+    if (!menuKey) {
+      toast.error('메뉴 키가 없습니다.');
+      return;
+    }
+
+    setImg(publicId);
+    
+    // 업로드 성공시 바로 DB에 저장
+    const menuData: RestaurantMenu = {
+      name: menuName.trim() || '메뉴명 없음',
+      cost: cost || 0,
+      remark: remark.trim(),
+      img: publicId,
+      thumbnail: '',
+    };
+    
+    try {
+      await onSave(menuKey, menuData);
+      toast.success('이미지를 업로드하고 저장했습니다.');
+      setUploadDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving menu:', error);
+      toast.error('메뉴 저장 중 오류가 발생했습니다.');
+    }
+  }, [menuKey, menuName, cost, remark, onSave]);
 
   return (
     <>
@@ -1365,8 +1362,8 @@ function MenuEditDialog({
         onUploaded={() => {}}
         cloudName={cloudName}
         uploadPreset={mobilePreset}
-        uploadBoth={true}
-        onBothUploaded={handleImageUpload}
+        autoSave={true}
+        onAutoSave={handleAutoSave}
         initialPublicId={img || null}
       />
     </>
@@ -1992,16 +1989,34 @@ export default function Home() {
   }, []);
 
   const handleUploadSuccess = useCallback(
-    (publicId: string) => {
+    async (publicId: string) => {
       const context = uploadContext;
 
       if (context === 'edit') {
-        setEditableRestaurant((prev) => (prev ? { ...prev, menuImgId: publicId } : prev));
+        // 업로드 성공시 바로 DB에 저장
+        setEditableRestaurant((prev) => {
+          if (prev) {
+            // 업로드 성공시 바로 DB에 저장
+            const restaurantRef = ref(database, `food-resv/restaurant/${prev.id}`);
+            set(restaurantRef, {
+              ...prev,
+              menuImgId: publicId,
+            }).then(() => {
+              toast.success('이미지를 업로드하고 저장했습니다.');
+            }).catch((error) => {
+              console.error('Error saving restaurant:', error);
+              toast.error('식당 저장 중 오류가 발생했습니다.');
+            });
+            return { ...prev, menuImgId: publicId };
+          }
+          return prev;
+        });
       } else if (context === 'create') {
         setNewRestaurant((prev) => ({ ...prev, menuImgId: publicId }));
+        // 식당 등록의 경우, menuImgId만 업데이트하고 나머지는 사용자가 입력하도록 함
+        toast.success('이미지를 업로드했습니다.');
       }
 
-      toast.success('이미지를 업로드했습니다.');
       handleUploadDialogClose();
     },
     [handleUploadDialogClose, uploadContext]
