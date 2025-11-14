@@ -984,15 +984,34 @@ function ImageUploadDialog({
       // Eager 변환은 프리셋 설정에서 자동 적용됨
 
       // 서버 API를 통해 업로드 (signed 업로드)
-      const response = await fetch('/api/cloudinary/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      let response: Response;
+      try {
+        response = await fetch('/api/cloudinary/upload', {
+          method: 'POST',
+          body: formData,
+        });
+      } catch (fetchError) {
+        console.error('Fetch 오류:', fetchError);
+        throw new Error('서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.');
+      }
 
-      const data = await response.json();
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('JSON 파싱 오류:', jsonError);
+        throw new Error(`서버 응답을 처리할 수 없습니다. (${response.status})`);
+      }
 
       if (!response.ok || !data?.public_id) {
-        throw new Error(data?.error || '이미지 업로드에 실패했습니다.');
+        // 서버에서 반환한 오류 메시지를 더 자세히 표시
+        const errorMessage = data?.error || `이미지 업로드에 실패했습니다. (${response.status})`;
+        console.error('업로드 오류 상세:', { 
+          status: response.status, 
+          statusText: response.statusText,
+          data: data 
+        });
+        throw new Error(errorMessage);
       }
 
       const publicId = data.public_id as string;
