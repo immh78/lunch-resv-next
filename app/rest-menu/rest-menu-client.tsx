@@ -54,6 +54,7 @@ import {
   MoreVertical,
   Phone,
   Navigation,
+  X,
   PlusCircle,
   Palette,
   Camera,
