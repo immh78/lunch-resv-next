@@ -250,6 +250,7 @@ type RestaurantMenuDialogProps = {
   onEditRestaurant?: () => void;
   onDeleteMenu?: (menuKey: string) => void;
   onAddMenu?: () => void;
+  onMenuClick?: (menuKey: string) => void;
 };
 
 function RestaurantMenuDialog({
@@ -261,6 +262,7 @@ function RestaurantMenuDialog({
   onEditRestaurant,
   onDeleteMenu,
   onAddMenu,
+  onMenuClick,
 }: RestaurantMenuDialogProps) {
   const menuEntries = Object.entries(menus);
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
@@ -271,7 +273,7 @@ function RestaurantMenuDialog({
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
         <DialogContent className="flex h-[90vh] max-h-[90vh] max-w-md flex-col p-0 overflow-hidden !items-start !mt-0 [&>div]:h-full [&>div]:max-h-[90vh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden">
           <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <DialogTitle>{restaurant?.name || '식당 메뉴'}</DialogTitle>
               {onEditRestaurant && (
                 <Button
@@ -302,7 +304,8 @@ function RestaurantMenuDialog({
                       {thumbnailUrl ? (
                         <div
                           className="shrink-0 cursor-pointer"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (imageUrl) {
                               onImageClick(imageUrl);
                             }
@@ -320,25 +323,35 @@ function RestaurantMenuDialog({
                       ) : (
                         <div className="h-[60px] w-[60px] rounded bg-muted shrink-0" />
                       )}
-                      <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{menu.name}</div>
+                      <div 
+                        className="flex-1 min-w-0 flex items-center justify-between gap-2 cursor-pointer"
+                        onClick={() => {
+                          if (onMenuClick) {
+                            onMenuClick(key);
+                          }
+                        }}
+                      >
+                        <div className="text-sm font-medium truncate">{menu.name}</div>
+                        <div className="flex items-center gap-2 shrink-0">
                           {menu.cost > 0 && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground whitespace-nowrap">
                               {formatCurrency(menu.cost)}원
                             </div>
                           )}
+                          {onDeleteMenu && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteMenuKey(key);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
-                        {onDeleteMenu && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => setDeleteMenuKey(key)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
                       </div>
                     </div>
                   );
@@ -351,7 +364,7 @@ function RestaurantMenuDialog({
             <div className="absolute bottom-6 right-6">
               <Button
                 size="icon"
-                className="h-14 w-14 rounded-full shadow-lg"
+                className="h-[42px] w-[42px] rounded-full shadow-lg"
                 onClick={onAddMenu}
               >
                 <Plus className="h-6 w-6" />
@@ -778,6 +791,13 @@ export default function RestMenuPageClient() {
     }
   }, [user, selectedRestaurant]);
 
+  const handleMenuClick = useCallback((menuKey: string) => {
+    const menu = menus[menuKey];
+    setSelectedMenuKey(menuKey);
+    setSelectedMenu(menu || null);
+    setMenuEditOpen(true);
+  }, [menus]);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground">
@@ -868,6 +888,7 @@ export default function RestMenuPageClient() {
           onEditRestaurant={handleOpenRestaurantEditor}
           onDeleteMenu={handleDeleteMenu}
           onAddMenu={handleAddNewMenu}
+          onMenuClick={handleMenuClick}
         />
 
         <ImageViewDialog
