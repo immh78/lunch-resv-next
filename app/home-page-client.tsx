@@ -1140,13 +1140,6 @@ function ImageUploadDialog({
                   >
                     파일 선택
                   </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowSourceMenu(false)}
-                    className="mt-2"
-                  >
-                    취소
-                  </Button>
                 </div>
               </div>
             )}
