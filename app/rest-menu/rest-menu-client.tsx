@@ -345,23 +345,20 @@ function RestaurantMenuDialog({
                         <div className="h-[60px] w-[60px] rounded bg-muted shrink-0" />
                       )}
                       <div 
-                        className="flex-1 min-w-0 flex items-center justify-between gap-2 cursor-pointer"
+                        className="flex-1 min-w-0 cursor-pointer"
                         onClick={() => {
                           if (onMenuClick) {
                             onMenuClick(key);
                           }
                         }}
                       >
-                        <div className="text-sm font-medium truncate">{menu.name}</div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-sm font-medium truncate flex-1 min-w-0">
+                            {menu.name}
+                          </div>
                           {menu.cost > 0 && (
-                            <div className="text-sm text-muted-foreground whitespace-nowrap">
+                            <div className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
                               {formatCurrency(menu.cost)}원
-                            </div>
-                          )}
-                          {menu.remark && (
-                            <div className="text-sm text-muted-foreground whitespace-nowrap">
-                              {menu.remark}
                             </div>
                           )}
                           {onDeleteMenu && (
@@ -378,6 +375,11 @@ function RestaurantMenuDialog({
                             </Button>
                           )}
                         </div>
+                        {menu.remark && (
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {menu.remark}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -999,8 +1001,18 @@ export default function RestMenuPageClient() {
                   handleSearch();
                 }
               }}
-              className="pl-9"
+              className="pl-9 pr-9"
             />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                onClick={() => setSearchQuery('')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
