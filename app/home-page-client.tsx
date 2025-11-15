@@ -977,15 +977,14 @@ function ImageUploadDialog({
     setErrorMessage(null);
 
     try {
-      // mobile용 업로드 (서버를 통해 signed 업로드)
+      // mobile용 업로드 (Eager 변환 옵션 추가하여 원본과 변환된 이미지 모두 저장)
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
       // Eager 변환: 원본과 변환된 이미지 모두 저장 (프리셋에서 설정된 변환 적용)
       formData.append('eager', 'c_limit,w_800,h_600');
 
-      // 서버 API를 통해 업로드 (signed 업로드)
-      const response = await fetch('/api/cloudinary/upload', {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -993,7 +992,7 @@ function ImageUploadDialog({
       const data = await response.json();
 
       if (!response.ok || !data?.public_id) {
-        throw new Error(data?.error || '이미지 업로드에 실패했습니다.');
+        throw new Error(data?.error?.message ?? '이미지 업로드에 실패했습니다.');
       }
 
       const publicId = data.public_id as string;
