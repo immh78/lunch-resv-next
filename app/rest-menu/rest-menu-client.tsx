@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ref, onValue, set, get } from 'firebase/database';
+import { ref, onValue, set, get, remove, update } from 'firebase/database';
 import { toast } from 'sonner';
 
 import { database } from '@/lib/firebase';
@@ -23,6 +23,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -47,6 +48,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
+import { ImageUploadDialog, MenuEditDialog, RestaurantEditDialog, MenuListDialog } from './components';
 
 import {
   UtensilsCrossed,
@@ -58,6 +60,9 @@ import {
   Palette,
   Camera,
   Save,
+  Pencil,
+  Trash2,
+  Plus,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -242,6 +247,9 @@ type RestaurantMenuDialogProps = {
   menus: Record<string, RestaurantMenu>;
   onClose: () => void;
   onImageClick: (imageUrl: string) => void;
+  onEditRestaurant?: () => void;
+  onDeleteMenu?: (menuKey: string) => void;
+  onAddMenu?: () => void;
 };
 
 function RestaurantMenuDialog({
@@ -250,32 +258,48 @@ function RestaurantMenuDialog({
   menus,
   onClose,
   onImageClick,
+  onEditRestaurant,
+  onDeleteMenu,
+  onAddMenu,
 }: RestaurantMenuDialogProps) {
   const menuEntries = Object.entries(menus);
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+  const [deleteMenuKey, setDeleteMenuKey] = useState<string | null>(null);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex h-[90vh] max-h-[90vh] max-w-md flex-col p-0 overflow-hidden !items-start !mt-0 [&>div]:h-full [&>div]:max-h-[90vh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden">
-        <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
-          <DialogTitle>{restaurant?.name || '식당 메뉴'}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent className="flex h-[90vh] max-h-[90vh] max-w-md flex-col p-0 overflow-hidden !items-start !mt-0 [&>div]:h-full [&>div]:max-h-[90vh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden">
+          <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle>{restaurant?.name || '식당 메뉴'}</DialogTitle>
+              {onEditRestaurant && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={onEditRestaurant}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 min-h-0">
-          <div className="space-y-4">
-            {menuEntries.length === 0 ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">
-                등록된 메뉴가 없습니다.
-              </div>
-            ) : (
-              menuEntries.map(([key, menu]) => {
-                const thumbnailUrl = menu.thumbnail ? getCloudinaryImageUrl(menu.thumbnail, true) : '';
-                const imageUrl = menu.img ? getCloudinaryImageUrl(menu.img, false) : '';
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 min-h-0 relative">
+            <div className="space-y-2 pb-16">
+              {menuEntries.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  등록된 메뉴가 없습니다.
+                </div>
+              ) : (
+                menuEntries.map(([key, menu]) => {
+                  const thumbnailUrl = menu.thumbnail ? getCloudinaryImageUrl(menu.thumbnail, true) : '';
+                  const imageUrl = menu.img ? getCloudinaryImageUrl(menu.img, false) : '';
 
-                return (
-                  <div key={key} className="space-y-2 border-b border-border/30 pb-4 last:border-0">
-                    <div className="flex items-start gap-3">
-                      {thumbnailUrl && (
+                  return (
+                    <div key={key} className="flex items-center gap-3 border-b border-border/30 pb-3 last:border-0">
+                      {thumbnailUrl ? (
                         <div
                           className="shrink-0 cursor-pointer"
                           onClick={() => {
@@ -287,35 +311,81 @@ function RestaurantMenuDialog({
                           <img
                             src={thumbnailUrl}
                             alt={menu.name}
-                            className="h-20 w-20 rounded object-cover"
+                            className="h-[60px] w-[60px] rounded object-cover"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         </div>
+                      ) : (
+                        <div className="h-[60px] w-[60px] rounded bg-muted shrink-0" />
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium">{menu.name}</div>
-                        {menu.cost > 0 && (
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {formatCurrency(menu.cost)}원
-                          </div>
-                        )}
-                        {menu.remark && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {menu.remark}
-                          </div>
+                      <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{menu.name}</div>
+                          {menu.cost > 0 && (
+                            <div className="text-sm text-muted-foreground">
+                              {formatCurrency(menu.cost)}원
+                            </div>
+                          )}
+                        </div>
+                        {onDeleteMenu && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => setDeleteMenuKey(key)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         )}
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+
+          {onAddMenu && (
+            <div className="absolute bottom-6 right-6">
+              <Button
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg"
+                onClick={onAddMenu}
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteMenuKey !== null} onOpenChange={(open) => !open && setDeleteMenuKey(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>메뉴 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말로 이 메뉴를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteMenuKey(null)}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteMenuKey && onDeleteMenu) {
+                  onDeleteMenu(deleteMenuKey);
+                  setDeleteMenuKey(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -388,6 +458,18 @@ export default function RestMenuPageClient() {
     naviUrl: '',
   });
   const [creatingRestaurant, setCreatingRestaurant] = useState(false);
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editableRestaurant, setEditableRestaurant] = useState<Restaurant | null>(null);
+  const [savingRestaurant, setSavingRestaurant] = useState(false);
+
+  const [menuEditOpen, setMenuEditOpen] = useState(false);
+  const [selectedMenuKey, setSelectedMenuKey] = useState<string | null>(null);
+  const [selectedMenu, setSelectedMenu] = useState<RestaurantMenu | null>(null);
+
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_MOBILE || 'menu-mobile';
+  const thumbnailPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_THUMBNAIL || uploadPreset;
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -609,6 +691,93 @@ export default function RestMenuPageClient() {
     }
   };
 
+  const handleOpenRestaurantEditor = useCallback(() => {
+    if (!selectedRestaurant) return;
+    const latest = restaurants.find((item) => item.id === selectedRestaurant.id) ?? selectedRestaurant;
+    setEditableRestaurant({
+      id: latest.id,
+      name: latest.name,
+      telNo: latest.telNo ?? '',
+      kind: latest.kind ?? '',
+      menuImgId: latest.menuImgId ?? '',
+      menuUrl: latest.menuUrl ?? '',
+      naviUrl: latest.naviUrl ?? '',
+    });
+    setEditDialogOpen(true);
+  }, [selectedRestaurant, restaurants]);
+
+  const handleRestaurantUpdate = async () => {
+    if (!user || !editableRestaurant) return;
+    const { id, name, telNo, kind, menuImgId, menuUrl, naviUrl } = editableRestaurant;
+    if (!name.trim()) {
+      toast.error('식당명을 입력해주세요.');
+      return;
+    }
+    try {
+      setSavingRestaurant(true);
+      await set(ref(database, `food-resv/restaurant/${id}`), {
+        name: name.trim(),
+        telNo: telNo || '',
+        kind: kind || '',
+        menuImgId: menuImgId || '',
+        menuUrl: menuUrl || '',
+        naviUrl: naviUrl || '',
+      });
+      toast.success('식당 정보를 저장했습니다.');
+      setEditDialogOpen(false);
+      // 식당 목록 업데이트
+      const updated = restaurants.map((r) =>
+        r.id === id ? { ...r, name: name.trim(), telNo, kind, menuImgId, menuUrl, naviUrl } : r
+      );
+      setRestaurants(updated);
+      if (selectedRestaurant?.id === id) {
+        setSelectedRestaurant({ ...selectedRestaurant, name: name.trim(), telNo, kind, menuImgId, menuUrl, naviUrl });
+      }
+    } catch (error) {
+      console.error('Error saving restaurant', error);
+      toast.error('식당 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingRestaurant(false);
+    }
+  };
+
+  const handleAddNewMenu = useCallback(() => {
+    const newMenuKey = `menu-${Date.now()}`;
+    setSelectedMenuKey(newMenuKey);
+    setSelectedMenu(null);
+    setMenuEditOpen(true);
+  }, []);
+
+  const handleMenuSave = useCallback(async (menuKey: string, menu: RestaurantMenu) => {
+    if (!user || !selectedRestaurant) return;
+
+    try {
+      const menuRef = ref(database, `food-resv/restaurant/${selectedRestaurant.id}/menu/${menuKey}`);
+      await set(menuRef, menu);
+      toast.success('메뉴를 저장했습니다.');
+      setMenuEditOpen(false);
+      setSelectedMenuKey(null);
+      setSelectedMenu(null);
+    } catch (error) {
+      console.error('Error saving menu:', error);
+      toast.error('메뉴 저장 중 오류가 발생했습니다.');
+      throw error;
+    }
+  }, [user, selectedRestaurant]);
+
+  const handleDeleteMenu = useCallback(async (menuKey: string) => {
+    if (!user || !selectedRestaurant) return;
+
+    try {
+      const menuRef = ref(database, `food-resv/restaurant/${selectedRestaurant.id}/menu/${menuKey}`);
+      await remove(menuRef);
+      toast.success('메뉴를 삭제했습니다.');
+    } catch (error) {
+      console.error('Error deleting menu:', error);
+      toast.error('메뉴 삭제 중 오류가 발생했습니다.');
+    }
+  }, [user, selectedRestaurant]);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground">
@@ -696,6 +865,9 @@ export default function RestMenuPageClient() {
             setSelectedRestaurant(null);
           }}
           onImageClick={handleImageClick}
+          onEditRestaurant={handleOpenRestaurantEditor}
+          onDeleteMenu={handleDeleteMenu}
+          onAddMenu={handleAddNewMenu}
         />
 
         <ImageViewDialog
@@ -722,6 +894,43 @@ export default function RestMenuPageClient() {
           restaurantKinds={restaurantKinds}
           restaurantIcons={restaurantIcons}
         />
+
+        {editableRestaurant && (
+          <RestaurantEditDialog
+            open={editDialogOpen}
+            restaurant={editableRestaurant}
+            onChange={(updates) =>
+              setEditableRestaurant((prev) => (prev ? { ...prev, ...updates } : prev))
+            }
+            onClose={() => setEditDialogOpen(false)}
+            onSave={handleRestaurantUpdate}
+            saving={savingRestaurant}
+            restaurantKinds={restaurantKinds}
+            restaurantIcons={restaurantIcons}
+            cloudName={cloudName}
+            uploadPreset={uploadPreset}
+            thumbnailPreset={thumbnailPreset}
+            onMenuSave={handleMenuSave}
+          />
+        )}
+
+        {selectedRestaurant && (
+          <MenuEditDialog
+            open={menuEditOpen}
+            menu={selectedMenu}
+            menuKey={selectedMenuKey}
+            restaurantId={selectedRestaurant.id}
+            cloudName={cloudName}
+            mobilePreset={uploadPreset}
+            thumbnailPreset={thumbnailPreset}
+            onClose={() => {
+              setMenuEditOpen(false);
+              setSelectedMenuKey(null);
+              setSelectedMenu(null);
+            }}
+            onSave={handleMenuSave}
+          />
+        )}
       </div>
     </ProtectedRoute>
   );
