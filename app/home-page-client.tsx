@@ -1690,7 +1690,7 @@ function RestaurantFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">메뉴 이미지 ID</Label>
+            <Label className="text-xs font-medium text-muted-foreground">메뉴 리스트 이미지</Label>
             <div className="flex items-center gap-2">
               <Input
                 value={restaurant.menuImgId ?? ''}
