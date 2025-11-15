@@ -63,6 +63,7 @@ import {
   Trash2,
   Plus,
   Search,
+  BookOpen,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -935,7 +936,7 @@ export default function RestMenuPageClient() {
                 className="shrink-0"
                 onClick={() => router.push('/')}
               >
-                <UtensilsCrossed className="h-5 w-5" />
+                <BookOpen className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-2">
                 <span className="text-base font-semibold leading-tight">식당 메뉴</span>
