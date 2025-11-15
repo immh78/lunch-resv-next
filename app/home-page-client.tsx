@@ -214,6 +214,14 @@ const sumMenuAmount = (menus: { cost: number }[]): number =>
 const sumPrepaymentAmount = (items: { amount: number }[]): number =>
   items.reduce((sum, item) => sum + (item.amount || 0), 0);
 
+const getCloudinaryImageUrl = (publicId: string, isThumbnail = false): string => {
+  if (!publicId) return '';
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+  const cleanPublicId = publicId.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
+  const transformation = isThumbnail ? ',w_300' : '';
+  return `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto${transformation}/${cleanPublicId}.jpg`;
+};
+
 const getAmountColor = (total: number, prepayment: number, isReceipt: boolean): string => {
   if (isReceipt || total === 0) {
     return 'text-muted-foreground';
@@ -474,6 +482,8 @@ type RestaurantDetailDialogProps = {
   onOpenMenuHistory: () => void;
   onOpenRestaurantEditor: () => void;
   onOpenMenuResource: () => void;
+  onOpenRegisteredMenuList: () => void;
+  hasRegisteredMenus: boolean;
   currentTab: 'menu' | 'prepayment';
   onTabChange: (tab: 'menu' | 'prepayment') => void;
   savingMenus: boolean;
@@ -507,6 +517,8 @@ function RestaurantDetailDialog({
   onOpenMenuHistory,
   onOpenRestaurantEditor,
   onOpenMenuResource,
+  onOpenRegisteredMenuList,
+  hasRegisteredMenus,
   currentTab,
   onTabChange,
   savingMenus,
@@ -612,6 +624,16 @@ function RestaurantDetailDialog({
                             >
                               <Clock3 className="h-4 w-4" />
                             </Button>
+                            {hasRegisteredMenus && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground"
+                                onClick={onOpenRegisteredMenuList}
+                              >
+                                <BookOpen className="h-4 w-4" />
+                              </Button>
+                            )}
                           </span>
                           <Button
                             variant="ghost"
@@ -859,6 +881,81 @@ function MenuHistoryDialog({ open, menus, onClose, onSelect }: MenuHistoryDialog
                 </span>
               </button>
             ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type RestaurantMenuPickerDialogProps = {
+  open: boolean;
+  restaurantName?: string;
+  menus: Record<string, RestaurantMenu>;
+  onClose: () => void;
+  onSelect: (menu: RestaurantMenu) => void;
+};
+
+function RestaurantMenuPickerDialog({
+  open,
+  restaurantName,
+  menus,
+  onClose,
+  onSelect,
+}: RestaurantMenuPickerDialogProps) {
+  const menuEntries = useMemo(() => {
+    return Object.values(menus || {})
+      .filter((menu) => menu?.name?.trim())
+      .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  }, [menus]);
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{restaurantName ? `${restaurantName} 메뉴` : '등록된 메뉴'}</DialogTitle>
+          <DialogDescription>등록된 메뉴에서 선택하여 예약에 추가하세요.</DialogDescription>
+        </DialogHeader>
+        <div className="max-h-80 space-y-2 overflow-y-auto">
+          {menuEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">등록된 메뉴가 없습니다.</p>
+          ) : (
+            menuEntries.map((menu, index) => {
+              const thumbnailUrl = menu.thumbnail
+                ? getCloudinaryImageUrl(menu.thumbnail, true)
+                : menu.img
+                ? getCloudinaryImageUrl(menu.img)
+                : '';
+              return (
+                <button
+                  key={`${menu.name}-${menu.cost}-${index}`}
+                  type="button"
+                  className="flex w-full items-center gap-3 rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted"
+                  onClick={() => onSelect(menu)}
+                >
+                  {thumbnailUrl ? (
+                    <img
+                      src={thumbnailUrl}
+                      alt={menu.name}
+                      className="h-9 w-9 rounded object-cover"
+                      onError={(event) => {
+                        (event.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="h-9 w-9 rounded bg-muted" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-sm font-medium">{menu.name}</div>
+                    {menu.cost > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        {formatCurrency(menu.cost)}원
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       </DialogContent>
@@ -2022,6 +2119,8 @@ export default function Home() {
 
   const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
   const [menuHistoryList, setMenuHistoryList] = useState<MenuHistoryItem[]>([]);
+  const [registeredMenuListOpen, setRegisteredMenuListOpen] = useState(false);
+  const [restaurantMenus, setRestaurantMenus] = useState<Record<string, RestaurantMenu>>({});
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -2059,6 +2158,38 @@ export default function Home() {
       setShowHidden(false);
     }
   }, [hiddenRestaurantIds]);
+
+  const selectedRestaurantId = selectedRestaurant?.id;
+  const hasRegisteredMenus = useMemo(
+    () => Object.values(restaurantMenus).some((menu) => menu?.name?.trim()),
+    [restaurantMenus]
+  );
+
+  useEffect(() => {
+    setRegisteredMenuListOpen(false);
+    if (!selectedRestaurantId) {
+      setRestaurantMenus({});
+      return;
+    }
+
+    const menuRef = ref(database, `food-resv/restaurant/${selectedRestaurantId}/menu`);
+    const unsubscribe = onValue(
+      menuRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setRestaurantMenus(snapshot.val() || {});
+        } else {
+          setRestaurantMenus({});
+        }
+      },
+      (error) => {
+        console.error('Error fetching restaurant menus:', error);
+        setRestaurantMenus({});
+      }
+    );
+
+    return () => unsubscribe();
+  }, [selectedRestaurantId]);
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_MOBILE || 'menu-mobile';
@@ -2473,6 +2604,8 @@ export default function Home() {
     setReservationDate('');
     setMenuHistoryList([]);
     setMenuHistoryOpen(false);
+    setRestaurantMenus({});
+    setRegisteredMenuListOpen(false);
     setCurrentTab('menu');
   };
 
@@ -2699,6 +2832,22 @@ export default function Home() {
     }
   };
 
+  const appendMenuPreset = useCallback((menuName: string, cost: number) => {
+    const name = menuName.trim();
+    if (!name) return;
+    const price = cost > 0 ? cost : 0;
+    setMenuRows((prev) => {
+      if (!prev.length) {
+        return [{ id: `menu-${Date.now()}`, menu: name, cost: price }];
+      }
+      if (prev[0].menu.trim() === '') {
+        const [first, ...rest] = prev;
+        return [{ ...first, menu: name, cost: price }, ...rest];
+      }
+      return [...prev, { id: `menu-${Date.now()}`, menu: name, cost: price }];
+    });
+  }, []);
+
   const handleMenuHistoryOpen = useCallback(async () => {
     if (!user || !selectedRestaurant) return;
 
@@ -2731,19 +2880,25 @@ export default function Home() {
     }
   }, [user, selectedRestaurant]);
 
-  const handleMenuHistorySelect = (item: MenuHistoryItem) => {
-    setMenuRows((prev) => {
-      if (!prev.length) {
-        return [{ id: `menu-${Date.now()}`, menu: item.menu, cost: item.cost }];
-      }
-      if (prev[0].menu.trim() === '') {
-        const [first, ...rest] = prev;
-        return [{ ...first, menu: item.menu, cost: item.cost }, ...rest];
-      }
-      return [...prev, { id: `menu-${Date.now()}`, menu: item.menu, cost: item.cost }];
-    });
-    setMenuHistoryOpen(false);
-  };
+  const handleMenuHistorySelect = useCallback(
+    (item: MenuHistoryItem) => {
+      appendMenuPreset(item.menu, item.cost);
+      setMenuHistoryOpen(false);
+    },
+    [appendMenuPreset]
+  );
+
+  const handleRegisteredMenuButtonClick = useCallback(() => {
+    setRegisteredMenuListOpen(true);
+  }, []);
+
+  const handleRegisteredMenuSelect = useCallback(
+    (menu: RestaurantMenu) => {
+      appendMenuPreset(menu.name, menu.cost);
+      setRegisteredMenuListOpen(false);
+    },
+    [appendMenuPreset]
+  );
 
   const handleOpenRestaurantEditor = () => {
     if (!selectedRestaurant) return;
@@ -2981,6 +3136,8 @@ export default function Home() {
           onOpenMenuHistory={handleMenuHistoryOpen}
           onOpenRestaurantEditor={handleOpenRestaurantEditor}
           onOpenMenuResource={handleMenuImageOpen}
+          onOpenRegisteredMenuList={handleRegisteredMenuButtonClick}
+          hasRegisteredMenus={hasRegisteredMenus}
           currentTab={currentTab}
           onTabChange={setCurrentTab}
           savingMenus={savingMenus}
@@ -3001,6 +3158,13 @@ export default function Home() {
             menus={menuHistoryList}
             onClose={() => setMenuHistoryOpen(false)}
             onSelect={handleMenuHistorySelect}
+          />
+          <RestaurantMenuPickerDialog
+            open={registeredMenuListOpen}
+            restaurantName={selectedRestaurant?.name}
+            menus={restaurantMenus}
+            onClose={() => setRegisteredMenuListOpen(false)}
+            onSelect={handleRegisteredMenuSelect}
           />
 
           {editableRestaurant && (
