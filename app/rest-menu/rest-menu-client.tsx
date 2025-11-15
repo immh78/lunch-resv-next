@@ -87,6 +87,27 @@ interface RestaurantMenu {
 
 const formatCurrency = (value: number) => value.toLocaleString('ko-KR');
 
+// 식당명 정렬 함수: 한글이 영문보다 우선순위가 높음
+const sortRestaurantsByName = (a: Restaurant, b: Restaurant): number => {
+  const nameA = a.name.trim();
+  const nameB = b.name.trim();
+  
+  if (!nameA && !nameB) return 0;
+  if (!nameA) return 1;
+  if (!nameB) return -1;
+  
+  // 첫 글자가 한글인지 확인 (가-힣, ㄱ-ㅎ, ㅏ-ㅣ)
+  const isHangulA = /^[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(nameA);
+  const isHangulB = /^[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(nameB);
+  
+  // 한글이 영문보다 우선순위가 높음
+  if (isHangulA && !isHangulB) return -1;
+  if (!isHangulA && isHangulB) return 1;
+  
+  // 같은 타입이면 일반 오름차순 정렬
+  return nameA.localeCompare(nameB, 'ko');
+};
+
 const getCloudinaryImageUrl = (publicId: string, isThumbnail = false): string => {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
   if (!publicId) return '';
@@ -515,6 +536,7 @@ export default function RestMenuPageClient() {
             menuUrl: restaurant?.menuUrl || '',
             naviUrl: restaurant?.naviUrl || '',
           }));
+          restaurantList.sort(sortRestaurantsByName);
           setRestaurants(restaurantList);
         } else {
           setRestaurants([]);
@@ -866,6 +888,7 @@ export default function RestMenuPageClient() {
       return false;
     });
 
+    filtered.sort(sortRestaurantsByName);
     setFilteredRestaurants(filtered);
   }, [searchQuery, restaurants, allRestaurantMenus]);
 
@@ -888,6 +911,7 @@ export default function RestMenuPageClient() {
 
         return false;
       });
+      filtered.sort(sortRestaurantsByName);
       setFilteredRestaurants(filtered);
     } else {
       setFilteredRestaurants(restaurants);
