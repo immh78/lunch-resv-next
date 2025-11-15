@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import { ref, onValue, set, remove, get, update } from 'firebase/database';
 import { toast } from 'sonner';
@@ -1999,6 +2000,7 @@ function DeleteConfirmDialog({ open, target, onCancel, onConfirm }: DeleteConfir
 
 export default function Home() {
   const { user } = useAuth();
+  const router = useRouter();
 
   const [restaurants, setRestaurants] = useState<RestaurantWithReservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2904,6 +2906,13 @@ export default function Home() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onSelect={() => router.push('/rest-menu')}
+                  className="flex items-center gap-2"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  식당 메뉴
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => {
                     setNewRestaurant({
