@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { ref, onValue, set, remove, get } from 'firebase/database';
+import { ref, onValue, set, remove, get, update } from 'firebase/database';
 import { toast } from 'sonner';
 
 import { database } from '@/lib/firebase';
@@ -1288,12 +1288,31 @@ function MenuEditDialog({
     }
   }, [menuName, cost, remark, img, thumbnail, menuKey, onSave, onClose]);
 
-  const handleImageUpload = useCallback((mobileId: string, thumbnailId: string) => {
-    setImg(mobileId);
-    setThumbnail(thumbnailId);
-    setUploadDialogOpen(false);
-    toast.success('이미지를 업로드했습니다.');
-  }, []);
+    const handleImageUpload = useCallback(
+      async (mobileId: string, thumbnailId: string) => {
+        setImg(mobileId);
+        setThumbnail(thumbnailId);
+        setUploadDialogOpen(false);
+
+        if (!menuKey) {
+          toast.success('이미지를 업로드했습니다.');
+          return;
+        }
+
+        try {
+          const menuRef = ref(database, `food-resv/restaurant/${restaurantId}/menu/${menuKey}`);
+          await update(menuRef, {
+            img: mobileId,
+            thumbnail: thumbnailId,
+          });
+          toast.success('이미지를 업로드했습니다.');
+        } catch (error) {
+          console.error('Error saving menu images:', error);
+          toast.error('이미지를 저장하는 중 오류가 발생했습니다.');
+        }
+      },
+      [restaurantId, menuKey]
+    );
 
   return (
     <>
@@ -1557,6 +1576,7 @@ function RestaurantFormDialog({
   const selectedKindName = selectedKindData?.name || restaurant.kind || '';
   const selectedKindIcon = selectedKindData?.icon || (restaurant.kind ? restaurantIcons[restaurant.kind] : undefined);
   const SelectedIconComponent = selectedKindIcon ? getLucideIcon(selectedKindIcon) : null;
+  const hasMenuListImage = Boolean(restaurant.menuImgId?.trim());
 
   // 메뉴 목록 조회
   useEffect(() => {
@@ -1690,7 +1710,23 @@ function RestaurantFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">메뉴 이미지 ID</Label>
+            <Label className="text-xs font-medium text-muted-foreground">메뉴 리스트 이미지</Label>
+            {hasMenuListImage && (
+              <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                <div className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  <span>이미지 등록됨</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-[11px] text-emerald-700 hover:text-emerald-900"
+                  onClick={() => onChange({ menuImgId: '' })}
+                >
+                  초기화
+                </Button>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <Input
                 value={restaurant.menuImgId ?? ''}
@@ -1698,12 +1734,18 @@ function RestaurantFormDialog({
                 placeholder="Cloudinary 이미지 ID"
               />
               <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-muted-foreground"
+                variant={hasMenuListImage ? 'outline' : 'ghost'}
+                size={hasMenuListImage ? 'sm' : 'icon'}
+                className={cn(
+                  'text-muted-foreground',
+                  hasMenuListImage
+                    ? 'h-9 w-full justify-center gap-2 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50'
+                    : 'h-9 w-9'
+                )}
                 onClick={onOpenUpload}
               >
-                <Camera className="h-4 w-4" />
+                <Camera className={cn('h-4 w-4', hasMenuListImage && 'text-emerald-600')} />
+                {hasMenuListImage && <span className="text-xs font-semibold">이미지 등록됨</span>}
               </Button>
             </div>
           </div>
