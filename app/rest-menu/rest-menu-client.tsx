@@ -556,18 +556,29 @@ export default function RestMenuPageClient() {
     return () => unsubscribe();
   }, [user]);
 
-  // 식당 종류 및 아이콘 조회
+  // 식당 종류 및 아이콘 조회 (포장 예약 페이지 동일 로직)
   useEffect(() => {
     if (!user) return;
 
     const kindsRef = ref(database, 'food-resv/restaurant-kind');
-    const iconsRef = ref(database, 'food-resv/restaurant-icon');
 
     const unsubscribeKinds = onValue(
       kindsRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          setRestaurantKinds(snapshot.val() || {});
+          const kindsData = (snapshot.val() ||
+            {}) as Record<string, { icon?: string; name?: string }>;
+          const icons: Record<string, string> = {};
+          Object.entries(kindsData).forEach(([kind, data]) => {
+            if (data?.icon) {
+              icons[kind] = data.icon;
+            }
+          });
+          setRestaurantKinds(kindsData);
+          setRestaurantIcons(icons);
+        } else {
+          setRestaurantKinds({});
+          setRestaurantIcons({});
         }
       },
       (error) => {
@@ -575,21 +586,8 @@ export default function RestMenuPageClient() {
       }
     );
 
-    const unsubscribeIcons = onValue(
-      iconsRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setRestaurantIcons(snapshot.val() || {});
-        }
-      },
-      (error) => {
-        console.error('Error fetching restaurant icons:', error);
-      }
-    );
-
     return () => {
       unsubscribeKinds();
-      unsubscribeIcons();
     };
   }, [user]);
 
