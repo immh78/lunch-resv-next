@@ -906,8 +906,3 @@ Lucide icon에 Hamburger의 버전은 v0.504.0이다. Hamburger icon출력이 �
  - signed저장이 가능하도록 /pages/api에 vercel API Router용 코드를 작성하라.
  - NEXT_PUBLIC_CLOUDINARY_API_KEY,NEXT_PUBLIC_CLOUDINARY_API_SECRET
 
-
-## Cloudinary 이미지 저장
- - NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_MOBILE에 정의된 프리셋은 signed로 지정되어 있어서 서버 api를 통해 처리가 되어야 한다.
- - Vercel에 배포하여 기능을 사용할것이다.
- - 이미 구현된 코드가 정상 동작하지 않는다. Cloudinary에서 제공하는 가이드를 참고하여 다시 코드를 작성하여라.
