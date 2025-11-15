@@ -495,15 +495,15 @@ export default function RestMenuPageClient() {
       restaurantsRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          const data = snapshot.val();
-          const restaurantList: Restaurant[] = Object.entries(data).map(([id, restaurant]: [string, Partial<Restaurant>]) => ({
+          const data = snapshot.val() as Record<string, Partial<Restaurant>>;
+          const restaurantList: Restaurant[] = Object.entries(data).map(([id, restaurant]) => ({
             id,
-            name: restaurant.name || '',
-            telNo: restaurant.telNo || '',
-            kind: restaurant.kind || '',
-            menuImgId: restaurant.menuImgId || '',
-            menuUrl: restaurant.menuUrl || '',
-            naviUrl: restaurant.naviUrl || '',
+            name: restaurant?.name || '',
+            telNo: restaurant?.telNo || '',
+            kind: restaurant?.kind || '',
+            menuImgId: restaurant?.menuImgId || '',
+            menuUrl: restaurant?.menuUrl || '',
+            naviUrl: restaurant?.naviUrl || '',
           }));
           setRestaurants(restaurantList);
         } else {
