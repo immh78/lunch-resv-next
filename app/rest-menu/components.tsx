@@ -504,7 +504,6 @@ export function MenuEditDialog({
         thumbnail: thumbnail,
       };
       await onSave(menuKey, menuData);
-      toast.success('메뉴를 저장했습니다.');
       onClose();
     } catch (error) {
       console.error('Error saving menu:', error);

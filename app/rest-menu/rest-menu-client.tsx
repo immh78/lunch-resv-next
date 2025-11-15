@@ -336,6 +336,11 @@ function RestaurantMenuDialog({
                               {formatCurrency(menu.cost)}원
                             </div>
                           )}
+                          {menu.remark && (
+                            <div className="text-sm text-muted-foreground whitespace-nowrap">
+                              {menu.remark}
+                            </div>
+                          )}
                           {onDeleteMenu && (
                             <Button
                               variant="ghost"
