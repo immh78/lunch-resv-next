@@ -891,6 +891,10 @@ function ImageUploadDialog({
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showSourceMenu, setShowSourceMenu] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -904,22 +908,67 @@ function ImageUploadDialog({
   }, []);
 
   useEffect(() => {
+    if (!open) {
+      // 팝업이 닫힐 때만 초기화
+      cleanupPreview();
+      setFile(null);
+      setErrorMessage(null);
+      setShowSourceMenu(false);
+      setImageLoadError(false);
+      setImageLoading(false);
+      setImageUrl(null);
+      setCurrentUrlIndex(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // 팝업이 열릴 때 초기화
     cleanupPreview();
     setFile(null);
     setErrorMessage(null);
     setShowSourceMenu(false);
+    setImageLoadError(false);
+    setImageLoading(false);
+    setCurrentUrlIndex(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     if (cameraInputRef.current) {
       cameraInputRef.current.value = '';
     }
-  }, [open, cleanupPreview]);
+
+    // initialPublicId가 있으면 Cloudinary에서 이미지 조회
+    if (initialPublicId && initialPublicId.trim()) {
+      try {
+        let publicId = initialPublicId.trim();
+        // public_id에서 확장자 제거 (이미 포함되어 있을 수 있음)
+        publicId = publicId.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
+        
+        // JPG 확장자를 붙여서 조회
+        const imageUrl = `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto/${publicId}.jpg`;
+        setImageUrl(imageUrl);
+        setImageLoading(true);
+        setImageLoadError(false);
+      } catch (error) {
+        console.error('Cloudinary 이미지 URL 생성 실패:', error);
+        setImageLoadError(true);
+        setImageLoading(false);
+        setImageUrl(null);
+      }
+    } else {
+      setImageUrl(null);
+    }
+  }, [open, cleanupPreview, initialPublicId, cloudName]);
 
   const validateAndSetFile = useCallback(
     (nextFile: File) => {
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(nextFile.type)) {
-        const message = 'JPG, PNG, WEBP 형식의 이미지 파일만 업로드할 수 있어요.';
+      if (!['image/jpeg'].includes(nextFile.type)) {
+        const message = 'JPG 형식의 이미지 파일만 업로드할 수 있어요.';
         setErrorMessage(message);
         toast.error(message);
         return;
@@ -1106,7 +1155,7 @@ function ImageUploadDialog({
                   이미지를 드래그하거나 클릭해서 선택하세요
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  지원 형식: JPG, PNG, WEBP · 최대 5MB
+                  지원 형식: JPG · 최대 5MB
                 </p>
               </>
             )}
@@ -1147,14 +1196,14 @@ function ImageUploadDialog({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg"
               className="hidden"
               onChange={handleFileChange}
             />
             <input
               ref={cameraInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg"
               capture="environment"
               className="hidden"
               onChange={handleFileChange}
@@ -1173,18 +1222,41 @@ function ImageUploadDialog({
             </Alert>
           )}
 
-          {initialPublicId && (
+          {initialPublicId && initialPublicId.trim() && imageUrl && (
             <div className="rounded-sm border border-border/60 bg-muted/30 p-3">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>등록된 이미지</span>
-                <span className="font-mono text-[11px]">{initialPublicId}</span>
+                <span className="font-mono text-[11px] break-all">{initialPublicId.trim()}</span>
               </div>
-              <div className="mt-3 overflow-hidden rounded-sm border border-border/60 bg-background">
-                <img
-                  src={`https://res.cloudinary.com/${cloudName}/image/upload/c_fill,w_600,h_400,q_auto,f_auto/${initialPublicId}`}
-                  alt="등록된 메뉴 이미지 미리보기"
-                  className="h-40 w-full object-cover"
-                />
+              <div className="mt-3 overflow-hidden rounded-sm border border-border/60 bg-background relative">
+                {imageLoading && !imageLoadError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                    <Spinner size="sm" />
+                  </div>
+                )}
+                {!imageLoadError ? (
+                  <img
+                    key={imageUrl} // key를 변경하여 이미지 재시도
+                    src={imageUrl}
+                    alt="등록된 메뉴 이미지 미리보기"
+                    className="h-40 w-full object-cover"
+                    onError={() => {
+                      const publicId = initialPublicId?.trim() || '';
+                      const cleanPublicId = publicId.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
+                      console.error('이미지 로드 실패:', publicId, 'URL:', imageUrl);
+                      setImageLoadError(true);
+                      setImageLoading(false);
+                    }}
+                    onLoad={() => {
+                      setImageLoadError(false);
+                      setImageLoading(false);
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                    <span>이미지를 불러올 수 없습니다</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1572,13 +1644,15 @@ function RestaurantFormDialog({
   const hasMenuListImage = Boolean(restaurant.menuImgId?.trim());
 
   // 메뉴 목록 조회
+  // restaurant.id만 의존성으로 사용하여 restaurant 객체가 변경되어도 메뉴 목록이 유지되도록 함
+  const restaurantId = restaurant.id;
   useEffect(() => {
-    if (!open || mode !== 'edit' || !restaurant.id) {
+    if (!open || mode !== 'edit' || !restaurantId) {
       setMenus({});
       return;
     }
 
-    const menuRef = ref(database, `food-resv/restaurant/${restaurant.id}/menu`);
+    const menuRef = ref(database, `food-resv/restaurant/${restaurantId}/menu`);
     const unsubscribe = onValue(
       menuRef,
       (snapshot) => {
@@ -1595,7 +1669,7 @@ function RestaurantFormDialog({
     );
 
     return () => unsubscribe();
-  }, [open, mode, restaurant.id]);
+  }, [open, mode, restaurantId]);
 
   const handleMenuClick = useCallback((menuKey: string) => {
     const menu = menus[menuKey];
@@ -1999,19 +2073,38 @@ export default function Home() {
   }, []);
 
   const handleUploadSuccess = useCallback(
-    (publicId: string) => {
+    async (publicId: string) => {
       const context = uploadContext;
 
       if (context === 'edit') {
-        setEditableRestaurant((prev) => (prev ? { ...prev, menuImgId: publicId } : prev));
+        // edit 모드: 바로 DB에 저장
+        const currentRestaurant = editableRestaurant;
+        if (currentRestaurant?.id) {
+          try {
+            const restaurantRef = ref(database, `food-resv/restaurant/${currentRestaurant.id}`);
+            await update(restaurantRef, {
+              menuImgId: publicId,
+            });
+            setEditableRestaurant((prev) => (prev ? { ...prev, menuImgId: publicId } : prev));
+            toast.success('이미지를 업로드하고 저장했습니다.');
+          } catch (error) {
+            console.error('Error saving menu image:', error);
+            toast.error('이미지를 저장하는 중 오류가 발생했습니다.');
+            return;
+          }
+        } else {
+          setEditableRestaurant((prev) => (prev ? { ...prev, menuImgId: publicId } : prev));
+          toast.success('이미지를 업로드했습니다.');
+        }
       } else if (context === 'create') {
+        // create 모드: state에만 저장 (식당 등록 시 함께 저장됨)
         setNewRestaurant((prev) => ({ ...prev, menuImgId: publicId }));
+        toast.success('이미지를 업로드했습니다.');
       }
 
-      toast.success('이미지를 업로드했습니다.');
       handleUploadDialogClose();
     },
-    [handleUploadDialogClose, uploadContext]
+    [handleUploadDialogClose, uploadContext, editableRestaurant]
   );
 
   useEffect(() => {

@@ -892,3 +892,65 @@ Lucide icon에 Hamburger의 버전은 v0.504.0이다. Hamburger icon출력이 �
    * 현재 식당 수정 팝업에 메뉴 이미지 ID의 이전 등록 이미지는 하단에 나타나고 있지만 메뉴 수정 팝업에 메뉴 이미지는 나타나지 않고 있다.
 
 메뉴 업로드 팝업에서 사진 아이콘 클릭시 `사진 촬용`, `파일 선택`, `취소`버튼이 보인다. 이중에 `취소`버튼 제거
+
+이미지 업로드시 public id를 바로 db에 저장한다.
+
+메뉴 리스트 이미지를 저장하면 메뉴 관리가 초기화 된다.
+메뉴 관리가 조치화 되지 않도록 한다.
+
+메뉴 이미지 업로드 팝업에서 이미 등록된 이미지의 public id가 존재시 cludinary에서 public id를 조회하여 아래에 보여준다.
+메뉴 이미지 업로드 팝업에서 이미 등록된 이미지의 public id로 팝업 하단에 등록된 이미지로 나타나지 않고 있다. Cloudinary SDK를 이용하여 이미지를 출력 시도
+
+## Error Type
+Console Error
+
+## Error Message
+이미지 로드 실패: "cgkijrj8qkrazz1whpxi" "URL:" "https://res.cloudinary.com/da5h7wjxc/image/upload/f_auto/q_auto/cgkijrj8qkrazz1whpxi?_a=DATAiZAAZAA0"
+
+
+    at onError (app/home-page-client.tsx:1225:31)현
+    at img (<anonymous>:null:null)
+    at ImageUploadDialog (app/home-page-client.tsx:1220:19)
+    at Home (app/home-page-client.tsx:3003:64)
+    at HomePage (app\page.tsx:7:10)
+
+## Code Frame
+  1223 |                     className="h-40 w-full object-cover"
+  1224 |                     onError={() => {
+> 1225 |                       console.error('이미지 로드 실패:', initialPublicId.trim(), 'URL:', imageUrl);
+       |                               ^
+  1226 |                       setImageLoadError(true);
+  1227 |                       setImageLoading(false);
+  1228 |                     }}
+
+Next.js version: 15.5.0 (Turbopack)
+
+등록된 이미지 조회시 현재를 변경으로 조정하여 시도
+현재 : "https://res.cloudinary.com/da5h7wjxc/image/upload/f_auto/q_auto/cgkijrj8qkrazz1whpxi?_a=DATAiZAAZAA0"
+변경 : "https://res.cloudinary.com/da5h7wjxc/image/upload/f_auto,q_auto/cgkijrj8qkrazz1whpxi?_a=DATAiZAAZAA0"
+
+## Error Type
+Console Error
+
+## Error Message
+이미지 로드 실패: "snax4c13u5rjpmq2kyjh" "URL:" "https://res.cloudinary.com/da5h7wjxc/image/upload/f_auto,q_auto/snax4c13u5rjpmq2kyjh"
+
+
+    at onError (app/home-page-client.tsx:1221:31)
+    at img (<anonymous>:null:null)
+    at ImageUploadDialog (app/home-page-client.tsx:1216:19)
+    at MenuEditDialog (app/home-page-client.tsx:1421:7)
+    at RestaurantFormDialog (app/home-page-client.tsx:1865:9)
+    at Home (app/home-page-client.tsx:2973:13)
+    at HomePage (app\page.tsx:7:10)
+
+## Code Frame
+  1219 |                     className="h-40 w-full object-cover"
+  1220 |                     onError={() => {
+> 1221 |                       console.error('이미지 로드 실패:', initialPublicId.trim(), 'URL:', imageUrl);
+       |                               ^
+  1222 |                       setImageLoadError(true);
+  1223 |                       setImageLoading(false);
+  1224 |                     }}
+
+Next.js version: 15.5.0 (Turbopack)
