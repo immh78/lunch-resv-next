@@ -1708,14 +1708,14 @@ function RestaurantFormDialog({
     <>
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
         <DialogContent className={cn(
-          "flex max-h-[80vh] max-w-md flex-col p-0",
-          (mode === 'create' || mode === 'edit') && "mt-[60px] !items-start"
+          "flex h-[90vh] max-h-[90vh] max-w-md flex-col p-0 overflow-hidden !items-start !mt-0",
+          "[&>div]:h-full [&>div]:max-h-[90vh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden"
         )}>
-          <DialogHeader className="border-b border-border/50 px-5 py-4">
+          <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
             <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 min-h-0">
             <div className="space-y-4">
             {mode === 'create' && (
               <div className="space-y-2">
