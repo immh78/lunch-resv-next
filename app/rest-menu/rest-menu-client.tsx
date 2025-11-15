@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ref, onValue, set, get, remove, update } from 'firebase/database';
+import { ref, onValue, set, get, remove } from 'firebase/database';
 import { toast } from 'sonner';
 
 import { database } from '@/lib/firebase';
@@ -23,7 +23,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -48,14 +47,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
-import { ImageUploadDialog, MenuEditDialog, RestaurantEditDialog, MenuListDialog } from './components';
+import { MenuEditDialog, RestaurantEditDialog } from './components';
 
 import {
   UtensilsCrossed,
   MoreVertical,
   Phone,
   Navigation,
-  X,
   PlusCircle,
   Palette,
   Camera,
@@ -265,7 +263,6 @@ function RestaurantMenuDialog({
   onMenuClick,
 }: RestaurantMenuDialogProps) {
   const menuEntries = Object.entries(menus);
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
   const [deleteMenuKey, setDeleteMenuKey] = useState<string | null>(null);
 
   return (
@@ -498,7 +495,7 @@ export default function RestMenuPageClient() {
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.val();
-          const restaurantList: Restaurant[] = Object.entries(data).map(([id, restaurant]: [string, any]) => ({
+          const restaurantList: Restaurant[] = Object.entries(data).map(([id, restaurant]: [string, Partial<Restaurant>]) => ({
             id,
             name: restaurant.name || '',
             telNo: restaurant.telNo || '',
