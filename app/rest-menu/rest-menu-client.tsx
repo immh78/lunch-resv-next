@@ -62,6 +62,7 @@ import {
   Pencil,
   Trash2,
   Plus,
+  Search,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -483,6 +484,10 @@ export default function RestMenuPageClient() {
   const [selectedMenuKey, setSelectedMenuKey] = useState<string | null>(null);
   const [selectedMenu, setSelectedMenu] = useState<RestaurantMenu | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allRestaurantMenus, setAllRestaurantMenus] = useState<Record<string, Record<string, RestaurantMenu>>>({});
+  const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
+
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_MOBILE || 'menu-mobile';
   const thumbnailPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_THUMBNAIL || uploadPreset;
@@ -586,6 +591,42 @@ export default function RestMenuPageClient() {
 
     return () => unsubscribe();
   }, [user]);
+
+  // 모든 식당의 메뉴 조회 (검색용)
+  useEffect(() => {
+    if (!user || restaurants.length === 0) {
+      setAllRestaurantMenus({});
+      return;
+    }
+
+    const unsubscribes: (() => void)[] = [];
+    const menusData: Record<string, Record<string, RestaurantMenu>> = {};
+
+    restaurants.forEach((restaurant) => {
+      const menuRef = ref(database, `food-resv/restaurant/${restaurant.id}/menu`);
+      const unsubscribe = onValue(
+        menuRef,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            menusData[restaurant.id] = snapshot.val() || {};
+          } else {
+            menusData[restaurant.id] = {};
+          }
+          setAllRestaurantMenus({ ...menusData });
+        },
+        (error) => {
+          console.error(`Error fetching menus for ${restaurant.id}:`, error);
+          menusData[restaurant.id] = {};
+          setAllRestaurantMenus({ ...menusData });
+        }
+      );
+      unsubscribes.push(unsubscribe);
+    });
+
+    return () => {
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [user, restaurants]);
 
   // 메뉴 조회
   useEffect(() => {
@@ -801,6 +842,58 @@ export default function RestMenuPageClient() {
     setMenuEditOpen(true);
   }, [menus]);
 
+  // 검색 필터링
+  const handleSearch = useCallback(() => {
+    if (!searchQuery.trim()) {
+      setFilteredRestaurants(restaurants);
+      return;
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+    const filtered = restaurants.filter((restaurant) => {
+      // 식당명 검색
+      if (restaurant.name.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      // 메뉴명 검색
+      const restaurantMenus = allRestaurantMenus[restaurant.id] || {};
+      const menuNames = Object.values(restaurantMenus).map((menu) => menu.name.toLowerCase());
+      if (menuNames.some((menuName) => menuName.includes(query))) {
+        return true;
+      }
+
+      return false;
+    });
+
+    setFilteredRestaurants(filtered);
+  }, [searchQuery, restaurants, allRestaurantMenus]);
+
+  // 검색어가 변경되거나 식당 목록이 변경될 때 필터링
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      const filtered = restaurants.filter((restaurant) => {
+        // 식당명 검색
+        if (restaurant.name.toLowerCase().includes(query)) {
+          return true;
+        }
+
+        // 메뉴명 검색
+        const restaurantMenus = allRestaurantMenus[restaurant.id] || {};
+        const menuNames = Object.values(restaurantMenus).map((menu) => menu.name.toLowerCase());
+        if (menuNames.some((menuName) => menuName.includes(query))) {
+          return true;
+        }
+
+        return false;
+      });
+      setFilteredRestaurants(filtered);
+    } else {
+      setFilteredRestaurants(restaurants);
+    }
+  }, [searchQuery, restaurants, allRestaurantMenus]);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground">
@@ -868,9 +961,27 @@ export default function RestMenuPageClient() {
           </div>
         </header>
 
+        <div className="mx-auto w-full max-w-xl px-3 py-3 border-b border-border/40">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="식당명 또는 메뉴명으로 검색"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
         <main className="mx-auto w-full max-w-xl px-3 pb-28">
           <RestaurantList
-            restaurants={restaurants}
+            restaurants={filteredRestaurants.length > 0 || searchQuery.trim() ? filteredRestaurants : restaurants}
             onSelect={handleRestaurantClick}
             loading={loading}
             error={error}
