@@ -1711,43 +1711,15 @@ function RestaurantFormDialog({
 
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">메뉴 리스트 이미지</Label>
-            {hasMenuListImage && (
-              <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
-                <div className="flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
-                  <span>이미지 등록됨</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-[11px] text-emerald-700 hover:text-emerald-900"
-                  onClick={() => onChange({ menuImgId: '' })}
-                >
-                  초기화
-                </Button>
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <Input
-                value={restaurant.menuImgId ?? ''}
-                onChange={(event) => onChange({ menuImgId: event.target.value })}
-                placeholder="Cloudinary 이미지 ID"
-              />
-              <Button
-                variant={hasMenuListImage ? 'outline' : 'ghost'}
-                size={hasMenuListImage ? 'sm' : 'icon'}
-                className={cn(
-                  'text-muted-foreground',
-                  hasMenuListImage
-                    ? 'h-9 w-full justify-center gap-2 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50'
-                    : 'h-9 w-9'
-                )}
-                onClick={onOpenUpload}
-              >
-                <Camera className={cn('h-4 w-4', hasMenuListImage && 'text-emerald-600')} />
-                {hasMenuListImage && <span className="text-xs font-semibold">이미지 등록됨</span>}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              onClick={onOpenUpload}
+            >
+              <Camera className={cn("mr-2 h-4 w-4", hasMenuListImage && "text-green-500")} />
+              {hasMenuListImage ? '이미지 업로드됨' : '이미지 업로드'}
+            </Button>
           </div>
 
           {mode === 'edit' && (
