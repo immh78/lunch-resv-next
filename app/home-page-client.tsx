@@ -2886,7 +2886,7 @@ export default function Home() {
                 variant="ghost"
                 size="icon"
                 className="shrink-0"
-                onClick={() => window.location.reload()}
+                onClick={() => router.push('/rest-menu')}
               >
                 <UtensilsCrossed className="h-5 w-5" />
               </Button>
