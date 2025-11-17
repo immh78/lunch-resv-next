@@ -2933,7 +2933,7 @@ export default function Home() {
     }
     try {
       setSavingRestaurant(true);
-      await set(ref(database, `food-resv/restaurant/${id}`), {
+      await update(ref(database, `food-resv/restaurant/${id}`), {
         name: name.trim(),
         telNo: telNo || '',
         kind: kind || '',
