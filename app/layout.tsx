@@ -55,7 +55,7 @@ export default function RootLayout({
             <PageViewLogger />
             {children}
           </AuthProvider>
-          <Toaster position="top-center" richColors closeButton />
+          <Toaster position="top-center" richColors />
       </body>
     </html>
   );

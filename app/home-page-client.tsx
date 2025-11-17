@@ -1209,9 +1209,6 @@ function ImageUploadDialog({
       <DialogContent className="flex max-w-lg flex-col gap-0 p-0">
         <DialogHeader className="border-b border-border/50 px-5 py-4">
           <DialogTitle>메뉴 이미지 업로드</DialogTitle>
-          <DialogDescription>
-            Cloudinary에 이미지를 업로드하여 메뉴 이미지 ID를 자동으로 채워요.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 px-5 py-4">
@@ -1440,7 +1437,7 @@ function MenuEditDialog({
         img: img,
         thumbnail: thumbnail,
       };
-      onSave(menuKey, menuData);
+      await onSave(menuKey, menuData);
       toast.success('메뉴를 저장했습니다.');
       onClose();
     } catch (error) {
@@ -1746,7 +1743,10 @@ function RestaurantFormDialog({
   const restaurantId = restaurant.id;
   useEffect(() => {
     if (!open || mode !== 'edit' || !restaurantId) {
-      setMenus({});
+      // 팝업이 닫힐 때만 메뉴 목록 초기화
+      if (!open) {
+        setMenus({});
+      }
       return;
     }
 
@@ -2936,7 +2936,7 @@ export default function Home() {
     }
     try {
       setSavingRestaurant(true);
-      await set(ref(database, `food-resv/restaurant/${id}`), {
+      await update(ref(database, `food-resv/restaurant/${id}`), {
         name: name.trim(),
         telNo: telNo || '',
         kind: kind || '',

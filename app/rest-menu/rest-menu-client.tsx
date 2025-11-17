@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ref, onValue, set, get, remove } from 'firebase/database';
+import { ref, onValue, set, get, remove, update } from 'firebase/database';
 import { toast } from 'sonner';
 
 import { database } from '@/lib/firebase';
@@ -795,7 +795,7 @@ export default function RestMenuPageClient() {
     }
     try {
       setSavingRestaurant(true);
-      await set(ref(database, `food-resv/restaurant/${id}`), {
+      await update(ref(database, `food-resv/restaurant/${id}`), {
         name: name.trim(),
         telNo: telNo || '',
         kind: kind || '',
