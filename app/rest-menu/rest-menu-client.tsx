@@ -185,11 +185,14 @@ function RestaurantList({
     <Table>
       <TableHeader>
         <TableRow className="border-border/40">
-          <TableHead className="w-[60%] text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             식당
           </TableHead>
-          <TableHead className="w-[40%] text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            최근 메뉴 / 전화/네비
+          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            최근 메뉴
+          </TableHead>
+          <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            전화/네비
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -197,8 +200,7 @@ function RestaurantList({
         {restaurants.map((restaurant) => (
           <TableRow
             key={restaurant.id}
-            onClick={() => onSelect(restaurant)}
-            className="cursor-pointer border-border/30 transition hover:bg-muted/70"
+            className="border-border/30"
           >
             <TableCell className="align-middle">
               <Button
@@ -225,36 +227,39 @@ function RestaurantList({
               </Button>
             </TableCell>
             <TableCell className="align-middle">
+              {restaurant.recentMenu && (() => {
+                // yyyyMMdd 형식을 mm/dd(요일) 형식으로 변환
+                const dateStr = restaurant.recentMenu.date;
+                let displayDate = '';
+                if (dateStr && dateStr.length === 8) {
+                  const year = dateStr.substring(0, 4);
+                  const month = dateStr.substring(4, 6);
+                  const day = dateStr.substring(6, 8);
+                  const date = dayjs(`${year}-${month}-${day}`);
+                  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                  const weekday = weekdays[date.day()];
+                  displayDate = `${month}/${day}(${weekday})`;
+                } else {
+                  displayDate = dateStr;
+                }
+                return (
+                  <span 
+                    className="text-xs text-muted-foreground truncate cursor-pointer hover:text-foreground transition-colors block max-w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onRecentMenuClick) {
+                        onRecentMenuClick(restaurant);
+                      }
+                    }}
+                    title={`${displayDate} ${restaurant.recentMenu.menuName}`}
+                  >
+                    {displayDate} {restaurant.recentMenu.menuName}
+                  </span>
+                );
+              })()}
+            </TableCell>
+            <TableCell className="align-middle">
               <div className="flex items-center justify-end gap-2">
-                {restaurant.recentMenu && (() => {
-                  // yyyyMMdd 형식을 mm/dd(요일) 형식으로 변환
-                  const dateStr = restaurant.recentMenu.date;
-                  let displayDate = '';
-                  if (dateStr && dateStr.length === 8) {
-                    const year = dateStr.substring(0, 4);
-                    const month = dateStr.substring(4, 6);
-                    const day = dateStr.substring(6, 8);
-                    const date = dayjs(`${year}-${month}-${day}`);
-                    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-                    const weekday = weekdays[date.day()];
-                    displayDate = `${month}/${day}(${weekday})`;
-                  } else {
-                    displayDate = dateStr;
-                  }
-                  return (
-                    <span 
-                      className="text-xs text-muted-foreground truncate cursor-pointer hover:text-foreground transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onRecentMenuClick) {
-                          onRecentMenuClick(restaurant);
-                        }
-                      }}
-                    >
-                      {displayDate} {restaurant.recentMenu.menuName}
-                    </span>
-                  );
-                })()}
                 <a
                   href={`tel:${restaurant.telNo}`}
                   onClick={(event) => event.stopPropagation()}
@@ -304,7 +309,7 @@ function RestaurantList({
         {!restaurants.length && (
           <TableRow>
             <TableCell
-              colSpan={2}
+              colSpan={3}
               className="py-10 text-center text-sm text-muted-foreground"
             >
               등록된 식당이 없습니다.
@@ -1274,7 +1279,7 @@ export default function RestMenuPageClient() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {selectedRestaurantForHistory?.name} 메뉴 이력
+                {selectedRestaurantForHistory?.name}
               </DialogTitle>
             </DialogHeader>
             <div className="max-h-80 space-y-2 overflow-y-auto">
