@@ -1743,7 +1743,10 @@ function RestaurantFormDialog({
   const restaurantId = restaurant.id;
   useEffect(() => {
     if (!open || mode !== 'edit' || !restaurantId) {
-      setMenus({});
+      // 팝업이 닫힐 때만 메뉴 목록 초기화
+      if (!open) {
+        setMenus({});
+      }
       return;
     }
 

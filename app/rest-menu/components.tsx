@@ -658,7 +658,10 @@ export function RestaurantEditDialog({
 
   useEffect(() => {
     if (!open || !restaurant.id) {
-      setMenus({});
+      // 팝업이 닫힐 때만 메뉴 목록 초기화
+      if (!open) {
+        setMenus({});
+      }
       return;
     }
 
