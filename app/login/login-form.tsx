@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { FirebaseError } from 'firebase/app';
 
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -37,8 +38,35 @@ function LoginFormContent() {
       await login(email, password);
       router.push(returnUrl);
     } catch (err) {
-      const error = err as Error;
-      setError(error.message || '로그인에 실패했습니다.');
+      // Firebase 인증 오류 코드를 사용자 친화적인 메시지로 변환
+      let errorMessage = '로그인에 실패했습니다.';
+      
+      if (err instanceof FirebaseError) {
+        const errorCode = err.code;
+        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/invaild-credential') {
+          errorMessage = '이메일 또는 비밀번호가 맞지 않습니다.';
+        } else if (errorCode === 'auth/user-not-found') {
+          errorMessage = '등록되지 않은 이메일입니다.';
+        } else if (errorCode === 'auth/wrong-password') {
+          errorMessage = '비밀번호가 맞지 않습니다.';
+        } else if (errorCode === 'auth/too-many-requests') {
+          errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+        } else if (errorCode === 'auth/user-disabled') {
+          errorMessage = '이 계정은 비활성화되었습니다.';
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      } else if (err instanceof Error) {
+        // FirebaseError가 아닌 경우 메시지 확인
+        const errorMessageLower = err.message.toLowerCase();
+        if (errorMessageLower.includes('auth/invalid-credential') || errorMessageLower.includes('auth/invaild-credential')) {
+          errorMessage = '이메일 또는 비밀번호가 맞지 않습니다.';
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
