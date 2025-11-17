@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
 
-import { Camera, Save, Plus } from 'lucide-react';
+import { Camera, Save, Plus, Pencil, Trash2 } from 'lucide-react';
 
 interface Restaurant {
   id: string;
@@ -896,6 +896,10 @@ export function RestaurantFormDialog({
             setMenuListOpen(false);
             handleAddNewMenu();
           }}
+          onEditMenu={(menuKey) => {
+            setMenuListOpen(false);
+            handleMenuClick(menuKey);
+          }}
         />
         <MenuEditDialog
           open={menuEditOpen}
@@ -1007,8 +1011,11 @@ type MenuListDialogProps = {
   restaurantName: string;
   menus: Record<string, RestaurantMenu>;
   onClose: () => void;
-  onMenuClick: (menuKey: string) => void;
+  onMenuClick?: (menuKey: string) => void;
   onAddNewMenu: () => void;
+  onEditMenu?: (menuKey: string) => void;
+  onMenuSelect?: (menuKey: string, menu: RestaurantMenu) => void;
+  onDeleteMenu?: (menuKey: string) => void;
 };
 
 export function MenuListDialog({
@@ -1018,8 +1025,25 @@ export function MenuListDialog({
   onClose,
   onMenuClick,
   onAddNewMenu,
+  onEditMenu,
+  onMenuSelect,
+  onDeleteMenu,
 }: MenuListDialogProps) {
   const menuEntries = Object.entries(menus);
+
+  const handleMenuNameClick = (menuKey: string, menu: RestaurantMenu) => {
+    if (onMenuSelect) {
+      onMenuSelect(menuKey, menu);
+    }
+    onClose();
+  };
+
+  const handleEditClick = (e: React.MouseEvent, menuKey: string) => {
+    e.stopPropagation();
+    if (onEditMenu) {
+      onEditMenu(menuKey);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -1042,22 +1066,61 @@ export function MenuListDialog({
             <p className="text-sm text-muted-foreground">등록된 메뉴가 없습니다.</p>
           ) : (
             menuEntries.map(([key, menu]) => (
-              <button
+              <div
                 key={key}
-                type="button"
                 className="flex w-full items-center justify-between rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted"
-                onClick={() => {
-                  onMenuClick(key);
-                  onClose();
-                }}
               >
-                <span>{menu.name}</span>
-                {menu.cost > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {menu.cost.toLocaleString('ko-KR')}원
-                  </span>
-                )}
-              </button>
+                <button
+                  type="button"
+                  className="flex-1 text-left"
+                  onClick={() => handleMenuNameClick(key, menu)}
+                >
+                  <span>{menu.name}</span>
+                  {menu.cost > 0 && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {menu.cost.toLocaleString('ko-KR')}원
+                    </span>
+                  )}
+                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  {onEditMenu && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => handleEditClick(e, key)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {onDeleteMenu && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteMenu(key);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                  {!onDeleteMenu && onMenuClick && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMenuClick(key);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              </div>
             ))
           )}
         </div>

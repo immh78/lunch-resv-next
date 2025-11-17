@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ref, onValue, set, get, remove, update } from 'firebase/database';
+import { ref, onValue, set, get, remove, update, push } from 'firebase/database';
+import dayjs from 'dayjs';
 import { toast } from 'sonner';
 
 import { database } from '@/lib/firebase';
@@ -76,6 +77,10 @@ interface Restaurant {
   menuImgId?: string;
   menuUrl?: string;
   naviUrl?: string;
+  recentMenu?: {
+    date: string; // yyyyMMdd 형식
+    menuName: string;
+  };
 }
 
 interface RestaurantMenu {
@@ -109,6 +114,25 @@ const sortRestaurantsByName = (a: Restaurant, b: Restaurant): number => {
   return nameA.localeCompare(nameB, 'ko');
 };
 
+// 식당 리스트 정렬 함수: 1) 최근 메뉴 방문일시 역순, 2) 식당명
+const sortRestaurantsByRecentMenu = (a: Restaurant, b: Restaurant, visitLogs: Record<string, { date: string; menuName: string }[]>): number => {
+  const recentA = visitLogs[a.id]?.[0]?.date || '';
+  const recentB = visitLogs[b.id]?.[0]?.date || '';
+  
+  // 최근 메뉴 방문일시 역순 정렬
+  if (recentA && recentB) {
+    const dateCompare = recentB.localeCompare(recentA);
+    if (dateCompare !== 0) return dateCompare;
+  } else if (recentA && !recentB) {
+    return -1;
+  } else if (!recentA && recentB) {
+    return 1;
+  }
+  
+  // 날짜가 같거나 둘 다 없으면 식당명으로 정렬
+  return sortRestaurantsByName(a, b);
+};
+
 const getCloudinaryImageUrl = (publicId: string, isThumbnail = false): string => {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
   if (!publicId) return '';
@@ -125,6 +149,7 @@ const getCloudinaryImageUrl = (publicId: string, isThumbnail = false): string =>
 type RestaurantListProps = {
   restaurants: Restaurant[];
   onSelect: (restaurant: Restaurant) => void;
+  onRecentMenuClick?: (restaurant: Restaurant) => void;
   loading: boolean;
   error: string;
   currentTheme: ThemeMode;
@@ -134,6 +159,7 @@ type RestaurantListProps = {
 function RestaurantList({
   restaurants,
   onSelect,
+  onRecentMenuClick,
   loading,
   error,
   currentTheme,
@@ -163,7 +189,7 @@ function RestaurantList({
             식당
           </TableHead>
           <TableHead className="w-[40%] text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            전화/네비
+            최근 메뉴 / 전화/네비
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -195,13 +221,40 @@ function RestaurantList({
                     <IconComponent className="mr-2 h-4 w-4 shrink-0" />
                   ) : null;
                 })()}
-                <span className="truncate min-w-0">
-                  {restaurant.name}
-                </span>
+                <span className="truncate">{restaurant.name}</span>
               </Button>
             </TableCell>
             <TableCell className="align-middle">
               <div className="flex items-center justify-end gap-2">
+                {restaurant.recentMenu && (() => {
+                  // yyyyMMdd 형식을 mm/dd(요일) 형식으로 변환
+                  const dateStr = restaurant.recentMenu.date;
+                  let displayDate = '';
+                  if (dateStr && dateStr.length === 8) {
+                    const year = dateStr.substring(0, 4);
+                    const month = dateStr.substring(4, 6);
+                    const day = dateStr.substring(6, 8);
+                    const date = dayjs(`${year}-${month}-${day}`);
+                    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                    const weekday = weekdays[date.day()];
+                    displayDate = `${month}/${day}(${weekday})`;
+                  } else {
+                    displayDate = dateStr;
+                  }
+                  return (
+                    <span 
+                      className="text-xs text-muted-foreground truncate cursor-pointer hover:text-foreground transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onRecentMenuClick) {
+                          onRecentMenuClick(restaurant);
+                        }
+                      }}
+                    >
+                      {displayDate} {restaurant.recentMenu.menuName}
+                    </span>
+                  );
+                })()}
                 <a
                   href={`tel:${restaurant.telNo}`}
                   onClick={(event) => event.stopPropagation()}
@@ -273,6 +326,8 @@ type RestaurantMenuDialogProps = {
   onDeleteMenu?: (menuKey: string) => void;
   onAddMenu?: () => void;
   onMenuClick?: (menuKey: string) => void;
+  onEditMenu?: (menuKey: string) => void;
+  onMenuSelect?: (menuKey: string, menu: RestaurantMenu) => void;
 };
 
 function RestaurantMenuDialog({
@@ -285,6 +340,8 @@ function RestaurantMenuDialog({
   onDeleteMenu,
   onAddMenu,
   onMenuClick,
+  onEditMenu,
+  onMenuSelect,
 }: RestaurantMenuDialogProps) {
   const menuEntries = Object.entries(menus);
   const [deleteMenuKey, setDeleteMenuKey] = useState<string | null>(null);
@@ -347,7 +404,10 @@ function RestaurantMenuDialog({
                       <div 
                         className="flex-1 min-w-0 cursor-pointer"
                         onClick={() => {
-                          if (onMenuClick) {
+                          if (onMenuSelect) {
+                            onMenuSelect(key, menu);
+                            onClose();
+                          } else if (onMenuClick) {
                             onMenuClick(key);
                           }
                         }}
@@ -361,19 +421,34 @@ function RestaurantMenuDialog({
                               {formatCurrency(menu.cost)}원
                             </div>
                           )}
-                          {onDeleteMenu && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteMenuKey(key);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {onEditMenu && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEditMenu(key);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {onDeleteMenu && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteMenuKey(key);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         {menu.remark && (
                           <div className="text-sm text-muted-foreground mt-1">
@@ -511,6 +586,10 @@ export default function RestMenuPageClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [allRestaurantMenus, setAllRestaurantMenus] = useState<Record<string, Record<string, RestaurantMenu>>>({});
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
+  const [visitLogs, setVisitLogs] = useState<Record<string, { date: string; menuName: string }[]>>({});
+  const [allVisitLogs, setAllVisitLogs] = useState<Record<string, { date: string; menuName: string }[]>>({});
+  const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
+  const [selectedRestaurantForHistory, setSelectedRestaurantForHistory] = useState<Restaurant | null>(null);
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_MOBILE || 'menu-mobile';
@@ -539,7 +618,7 @@ export default function RestMenuPageClient() {
             menuUrl: restaurant?.menuUrl || '',
             naviUrl: restaurant?.naviUrl || '',
           }));
-          restaurantList.sort(sortRestaurantsByName);
+          // 정렬은 visitLogs가 로드된 후에 수행
           setRestaurants(restaurantList);
         } else {
           setRestaurants([]);
@@ -550,6 +629,54 @@ export default function RestMenuPageClient() {
         console.error('Error fetching restaurants:', error);
         setError('식당 목록을 불러오는 중 오류가 발생했습니다.');
         setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // visit-log 조회
+  useEffect(() => {
+    if (!user) return;
+
+    const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}`);
+    const unsubscribe = onValue(
+      visitLogRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val() as Record<string, Record<string, { date: string; menuName: string }>>;
+          const logs: Record<string, { date: string; menuName: string }[]> = {};
+          const allLogs: Record<string, { date: string; menuName: string }[]> = {};
+          
+          Object.entries(data).forEach(([restaurantId, restaurantLogs]) => {
+            if (restaurantLogs) {
+              const logEntries = Object.values(restaurantLogs);
+              // 날짜(yyyyMMdd) 기준으로 정렬
+              logEntries.sort((a, b) => {
+                const dateA = a.date || '';
+                const dateB = b.date || '';
+                return dateB.localeCompare(dateA);
+              });
+              
+              // 전체 로그 저장
+              allLogs[restaurantId] = logEntries;
+              
+              // 가장 최근 것만 저장 (최근 메뉴 표시용)
+              if (logEntries.length > 0) {
+                logs[restaurantId] = [logEntries[0]];
+              }
+            }
+          });
+          
+          setVisitLogs(logs);
+          setAllVisitLogs(allLogs);
+        } else {
+          setVisitLogs({});
+          setAllVisitLogs({});
+        }
+      },
+      (error) => {
+        console.error('Error fetching visit logs:', error);
       }
     );
 
@@ -865,10 +992,52 @@ export default function RestMenuPageClient() {
     setMenuEditOpen(true);
   }, [menus]);
 
+  const handleMenuSelect = useCallback(async (menuKey: string, menu: RestaurantMenu) => {
+    if (!user || !selectedRestaurant) return;
+
+    try {
+      const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}/${selectedRestaurant.id}`);
+      const logEntry = {
+        date: dayjs().format('YYYYMMDD'),
+        menuName: menu.name,
+      };
+      await push(visitLogRef, logEntry);
+    } catch (error) {
+      console.error('Error saving visit log:', error);
+    }
+  }, [user, selectedRestaurant]);
+
+  const handleEditMenu = useCallback((menuKey: string) => {
+    handleMenuClick(menuKey);
+  }, [handleMenuClick]);
+
+  const handleRecentMenuClick = useCallback((restaurant: Restaurant) => {
+    setSelectedRestaurantForHistory(restaurant);
+    setMenuHistoryOpen(true);
+  }, []);
+
   // 검색 필터링
   const handleSearch = useCallback(() => {
+    const addRecentMenu = (restaurantList: Restaurant[]) => {
+      return restaurantList.map((restaurant) => {
+        const recentLog = visitLogs[restaurant.id];
+        if (recentLog && recentLog.length > 0) {
+          return {
+            ...restaurant,
+            recentMenu: {
+              date: recentLog[0].date,
+              menuName: recentLog[0].menuName,
+            },
+          };
+        }
+        return restaurant;
+      });
+    };
+
     if (!searchQuery.trim()) {
-      setFilteredRestaurants(restaurants);
+      const restaurantsWithRecentMenu = addRecentMenu(restaurants);
+      restaurantsWithRecentMenu.sort((a, b) => sortRestaurantsByRecentMenu(a, b, visitLogs));
+      setFilteredRestaurants(restaurantsWithRecentMenu);
       return;
     }
 
@@ -889,35 +1058,28 @@ export default function RestMenuPageClient() {
       return false;
     });
 
-    filtered.sort(sortRestaurantsByName);
-    setFilteredRestaurants(filtered);
-  }, [searchQuery, restaurants, allRestaurantMenus]);
+    filtered.sort((a, b) => sortRestaurantsByRecentMenu(a, b, visitLogs));
+    const filteredWithRecentMenu = addRecentMenu(filtered);
+    setFilteredRestaurants(filteredWithRecentMenu);
+  }, [searchQuery, restaurants, allRestaurantMenus, visitLogs]);
 
-  // 검색어가 변경되거나 식당 목록이 변경될 때 필터링
+  // visitLogs가 로드된 후 식당 목록 정렬 (초기 로드 시)
   useEffect(() => {
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase();
-      const filtered = restaurants.filter((restaurant) => {
-        // 식당명 검색
-        if (restaurant.name.toLowerCase().includes(query)) {
-          return true;
-        }
-
-        // 메뉴명 검색
-        const restaurantMenus = allRestaurantMenus[restaurant.id] || {};
-        const menuNames = Object.values(restaurantMenus).map((menu) => menu.name.toLowerCase());
-        if (menuNames.some((menuName) => menuName.includes(query))) {
-          return true;
-        }
-
-        return false;
-      });
-      filtered.sort(sortRestaurantsByName);
-      setFilteredRestaurants(filtered);
-    } else {
-      setFilteredRestaurants(restaurants);
+    if (restaurants.length > 0 && Object.keys(visitLogs).length >= 0) {
+      // visitLogs가 로드되었거나 빈 객체인 경우 정렬
+      const sorted = [...restaurants].sort((a, b) => sortRestaurantsByRecentMenu(a, b, visitLogs));
+      // 정렬 결과가 다를 때만 업데이트 (무한 루프 방지)
+      const needsUpdate = sorted.some((restaurant, index) => restaurant.id !== restaurants[index]?.id);
+      if (needsUpdate) {
+        setRestaurants(sorted);
+      }
     }
-  }, [searchQuery, restaurants, allRestaurantMenus]);
+  }, [visitLogs]);
+
+  // 검색어, 식당 목록, visit-log가 변경될 때 필터링
+  useEffect(() => {
+    handleSearch();
+  }, [searchQuery, restaurants, visitLogs, handleSearch]);
 
   return (
     <ProtectedRoute>
@@ -1018,6 +1180,7 @@ export default function RestMenuPageClient() {
           <RestaurantList
             restaurants={filteredRestaurants.length > 0 || searchQuery.trim() ? filteredRestaurants : restaurants}
             onSelect={handleRestaurantClick}
+            onRecentMenuClick={handleRecentMenuClick}
             loading={loading}
             error={error}
             currentTheme={currentTheme}
@@ -1038,6 +1201,8 @@ export default function RestMenuPageClient() {
           onDeleteMenu={handleDeleteMenu}
           onAddMenu={handleAddNewMenu}
           onMenuClick={handleMenuClick}
+          onEditMenu={handleEditMenu}
+          onMenuSelect={handleMenuSelect}
         />
 
         <ImageViewDialog
@@ -1103,6 +1268,59 @@ export default function RestMenuPageClient() {
             onSave={handleMenuSave}
           />
         )}
+
+        {/* 메뉴 이력 팝업 */}
+        <Dialog open={menuHistoryOpen} onOpenChange={(open) => setMenuHistoryOpen(open)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedRestaurantForHistory?.name} 메뉴 이력
+              </DialogTitle>
+            </DialogHeader>
+            <div className="max-h-80 space-y-2 overflow-y-auto">
+              {selectedRestaurantForHistory && allVisitLogs[selectedRestaurantForHistory.id] ? (
+                (() => {
+                  const logs = allVisitLogs[selectedRestaurantForHistory.id];
+                  // 날짜 역순 정렬 (이미 정렬되어 있지만 확실히 하기 위해)
+                  const sortedLogs = [...logs].sort((a, b) => {
+                    const dateA = a.date || '';
+                    const dateB = b.date || '';
+                    return dateB.localeCompare(dateA);
+                  });
+                  
+                  return sortedLogs.length > 0 ? (
+                    sortedLogs.map((log, index) => {
+                      // yyyyMMdd 형식을 yyyy.mm.dd 형식으로 변환
+                      let displayDate = '';
+                      if (log.date && log.date.length === 8) {
+                        const year = log.date.substring(0, 4);
+                        const month = log.date.substring(4, 6);
+                        const day = log.date.substring(6, 8);
+                        displayDate = `${year}.${month}.${day}`;
+                      } else {
+                        displayDate = log.date;
+                      }
+                      
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between rounded-sm border border-transparent px-3 py-2 text-sm transition hover:border-border hover:bg-muted"
+                        >
+                          <span className="text-muted-foreground">{displayDate}</span>
+                          <span className="font-medium">{log.menuName}</span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">등록된 메뉴 이력이 없습니다.</p>
+                  );
+                })()
+              ) : (
+                <p className="text-sm text-muted-foreground">등록된 메뉴 이력이 없습니다.</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </ProtectedRoute>
   );

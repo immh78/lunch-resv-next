@@ -52,7 +52,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
-import { MenuEditDialog, ImageUploadDialog } from '@/app/rest-menu/components';
+import { MenuEditDialog, ImageUploadDialog, MenuListDialog } from '@/app/rest-menu/components';
 
 import {
   UtensilsCrossed,
@@ -964,70 +964,6 @@ function RestaurantMenuPickerDialog({
   );
 }
 
-type MenuListDialogProps = {
-  open: boolean;
-  restaurantName: string;
-  menus: Record<string, RestaurantMenu>;
-  onClose: () => void;
-  onMenuClick: (menuKey: string) => void;
-  onAddNewMenu: () => void;
-};
-
-function MenuListDialog({
-  open,
-  restaurantName,
-  menus,
-  onClose,
-  onMenuClick,
-  onAddNewMenu,
-}: MenuListDialogProps) {
-  const menuEntries = Object.entries(menus);
-
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader className="space-y-0">
-          <div className="flex items-center gap-2">
-            <DialogTitle>{restaurantName} 메뉴목록</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground"
-              onClick={onAddNewMenu}
-            >
-              <PlusCircle className="h-4 w-4" />
-            </Button>
-          </div>
-        </DialogHeader>
-        <div className="max-h-80 space-y-2 overflow-y-auto">
-          {menuEntries.length === 0 ? (
-            <p className="text-sm text-muted-foreground">등록된 메뉴가 없습니다.</p>
-          ) : (
-            menuEntries.map(([key, menu]) => (
-              <button
-                key={key}
-                type="button"
-                className="flex w-full items-center justify-between rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted"
-                onClick={() => {
-                  onMenuClick(key);
-                  onClose();
-                }}
-              >
-                <span>{menu.name}</span>
-                {menu.cost > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {formatCurrency(menu.cost)}원
-                  </span>
-                )}
-              </button>
-            ))
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 type RestaurantKindSelectDialogProps = {
   open: boolean;
   selectedKind: string | undefined;
@@ -1395,6 +1331,10 @@ function RestaurantFormDialog({
           onAddNewMenu={() => {
             setMenuListOpen(false);
             handleAddNewMenu();
+          }}
+          onEditMenu={(menuKey) => {
+            setMenuListOpen(false);
+            handleMenuClick(menuKey);
           }}
         />
         <MenuEditDialog
