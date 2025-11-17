@@ -47,7 +47,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
-import { MenuEditDialog, RestaurantEditDialog } from './components';
+import { MenuEditDialog, RestaurantFormDialog } from './components';
 
 import {
   UtensilsCrossed,
@@ -1054,8 +1054,9 @@ export default function RestMenuPageClient() {
           saving={savingTheme}
         />
 
-        <RestaurantCreateDialog
+        <RestaurantFormDialog
           open={createDialogOpen}
+          mode="create"
           restaurant={newRestaurant}
           onChange={(updates) => setNewRestaurant((prev) => ({ ...prev, ...updates }))}
           onClose={() => setCreateDialogOpen(false)}
@@ -1066,8 +1067,9 @@ export default function RestMenuPageClient() {
         />
 
         {editableRestaurant && (
-          <RestaurantEditDialog
+          <RestaurantFormDialog
             open={editDialogOpen}
+            mode="edit"
             restaurant={editableRestaurant}
             onChange={(updates) =>
               setEditableRestaurant((prev) => (prev ? { ...prev, ...updates } : prev))
@@ -1103,154 +1105,6 @@ export default function RestMenuPageClient() {
         )}
       </div>
     </ProtectedRoute>
-  );
-}
-
-type RestaurantCreateDialogProps = {
-  open: boolean;
-  restaurant: Restaurant;
-  onChange: (updates: Partial<Restaurant>) => void;
-  onClose: () => void;
-  onSave: () => void;
-  saving: boolean;
-  restaurantKinds: Record<string, { icon?: string; name?: string }>;
-  restaurantIcons: Record<string, string>;
-};
-
-function RestaurantCreateDialog({
-  open,
-  restaurant,
-  onChange,
-  onClose,
-  onSave,
-  saving,
-  restaurantKinds,
-  restaurantIcons,
-}: RestaurantCreateDialogProps) {
-  const [kindSelectOpen, setKindSelectOpen] = useState(false);
-  const selectedKindData = restaurant.kind ? restaurantKinds[restaurant.kind] : null;
-  const selectedKindName = selectedKindData?.name || restaurant.kind || '';
-  const selectedKindIcon = selectedKindData?.icon || (restaurant.kind ? restaurantIcons[restaurant.kind] : undefined);
-  const SelectedIconComponent = selectedKindIcon ? getLucideIcon(selectedKindIcon) : null;
-  const hasMenuListImage = Boolean(restaurant.menuImgId?.trim());
-
-  return (
-    <>
-      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-        <DialogContent className={cn(
-          "flex h-[90vh] max-h-[90vh] max-w-md flex-col p-0 overflow-hidden !items-start !mt-0",
-          "[&>div]:h-full [&>div]:max-h-[90vh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden"
-        )}>
-          <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
-            <DialogTitle>식당 등록</DialogTitle>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 min-h-0">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">식당 ID</Label>
-                <Input
-                  value={restaurant.id}
-                  onChange={(event) =>
-                    onChange({
-                      id: event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
-                    })
-                  }
-                  placeholder="영문 대문자와 숫자 조합"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">식당명</Label>
-                <Input
-                  value={restaurant.name}
-                  onChange={(event) => onChange({ name: event.target.value })}
-                  placeholder="식당명을 입력하세요"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">종류</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setKindSelectOpen(true)}
-                >
-                  {SelectedIconComponent && (
-                    <SelectedIconComponent className="mr-2 h-4 w-4 shrink-0" />
-                  )}
-                  <span className={cn(!selectedKindName && 'text-muted-foreground')}>
-                    {selectedKindName || '종류를 선택하세요'}
-                  </span>
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">전화번호</Label>
-                <Input
-                  value={restaurant.telNo ?? ''}
-                  onChange={(event) => onChange({ telNo: event.target.value })}
-                  placeholder="전화번호"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">메뉴 URL</Label>
-                <Input
-                  value={restaurant.menuUrl ?? ''}
-                  onChange={(event) => onChange({ menuUrl: event.target.value })}
-                  placeholder="메뉴 페이지 URL"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">메뉴 리스트 이미지</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start"
-                  disabled
-                >
-                  <Camera className={cn("mr-2 h-4 w-4", hasMenuListImage && "text-green-500")} />
-                  {hasMenuListImage ? '이미지 업로드됨' : '이미지 업로드 (식당 등록 후 수정 가능)'}
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">식당 위치</Label>
-                <Input
-                  value={restaurant.naviUrl ?? ''}
-                  onChange={(event) => onChange({ naviUrl: event.target.value })}
-                  placeholder="네이버 지도 검색어 또는 주소"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onSave}
-                  disabled={saving || !restaurant.id || !restaurant.name}
-                  className="h-8 w-8"
-                >
-                  {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <RestaurantKindSelectDialog
-        open={kindSelectOpen}
-        selectedKind={restaurant.kind}
-        restaurantKinds={restaurantKinds}
-        restaurantIcons={restaurantIcons}
-        onClose={() => setKindSelectOpen(false)}
-        onSelect={(kind) => onChange({ kind })}
-      />
-    </>
   );
 }
 
