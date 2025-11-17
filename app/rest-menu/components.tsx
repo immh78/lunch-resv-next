@@ -501,6 +501,7 @@ export function MenuEditDialog({
         thumbnail: thumbnail,
       };
       await onSave(menuKey, menuData);
+      toast.success('메뉴를 저장했습니다.');
       onClose();
     } catch (error) {
       console.error('Error saving menu:', error);
@@ -614,8 +615,9 @@ export function MenuEditDialog({
   );
 }
 
-type RestaurantEditDialogProps = {
+type RestaurantFormDialogProps = {
   open: boolean;
+  mode: 'create' | 'edit';
   restaurant: Restaurant;
   onChange: (updates: Partial<Restaurant>) => void;
   onClose: () => void;
@@ -623,14 +625,16 @@ type RestaurantEditDialogProps = {
   saving: boolean;
   restaurantKinds: Record<string, { icon?: string; name?: string }>;
   restaurantIcons: Record<string, string>;
-  cloudName: string;
-  uploadPreset: string;
-  thumbnailPreset: string;
-  onMenuSave: (menuKey: string, menu: RestaurantMenu) => void;
+  cloudName?: string;
+  uploadPreset?: string;
+  thumbnailPreset?: string;
+  onMenuSave?: (menuKey: string, menu: RestaurantMenu) => void;
+  onOpenUpload?: () => void;
 };
 
-export function RestaurantEditDialog({
+export function RestaurantFormDialog({
   open,
+  mode,
   restaurant,
   onChange,
   onClose,
@@ -642,7 +646,8 @@ export function RestaurantEditDialog({
   uploadPreset,
   thumbnailPreset,
   onMenuSave,
-}: RestaurantEditDialogProps) {
+  onOpenUpload,
+}: RestaurantFormDialogProps) {
   const [kindSelectOpen, setKindSelectOpen] = useState(false);
   const [menuEditOpen, setMenuEditOpen] = useState(false);
   const [menuListOpen, setMenuListOpen] = useState(false);
@@ -657,8 +662,7 @@ export function RestaurantEditDialog({
   const hasMenuListImage = Boolean(restaurant.menuImgId?.trim());
 
   useEffect(() => {
-    if (!open || !restaurant.id) {
-      // 팝업이 닫힐 때만 메뉴 목록 초기화
+    if (!open || mode !== 'edit' || !restaurant.id) {
       if (!open) {
         setMenus({});
       }
@@ -682,7 +686,7 @@ export function RestaurantEditDialog({
     );
 
     return () => unsubscribe();
-  }, [open, restaurant.id]);
+  }, [open, mode, restaurant.id]);
 
   const handleMenuClick = useCallback((menuKey: string) => {
     const menu = menus[menuKey];
@@ -745,154 +749,173 @@ export function RestaurantEditDialog({
           "[&>div]:h-full [&>div]:max-h-[90vh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden"
         )}>
           <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
-            <DialogTitle>{restaurant.id}</DialogTitle>
+            <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 min-h-0">
             <div className="space-y-4">
+            {mode === 'create' && (
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">식당명</Label>
+                <Label className="text-xs font-medium text-muted-foreground">식당 ID</Label>
                 <Input
-                  value={restaurant.name}
-                  onChange={(event) => onChange({ name: event.target.value })}
-                  placeholder="식당명을 입력하세요"
+                  value={restaurant.id}
+                  onChange={(event) =>
+                    onChange({
+                      id: event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                    })
+                  }
+                  placeholder="영문 대문자와 숫자 조합"
                 />
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">종류</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setKindSelectOpen(true)}
-                >
-                  {SelectedIconComponent && (
-                    <SelectedIconComponent className="mr-2 h-4 w-4 shrink-0" />
-                  )}
-                  <span className={cn(!selectedKindName && 'text-muted-foreground')}>
-                    {selectedKindName || '종류를 선택하세요'}
-                  </span>
-                </Button>
-              </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">식당명</Label>
+              <Input
+                value={restaurant.name}
+                onChange={(event) => onChange({ name: event.target.value })}
+                placeholder="식당명을 입력하세요"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">전화번호</Label>
-                <Input
-                  value={restaurant.telNo ?? ''}
-                  onChange={(event) => onChange({ telNo: event.target.value })}
-                  placeholder="전화번호"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">종류</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setKindSelectOpen(true)}
+              >
+                {SelectedIconComponent && (
+                  <SelectedIconComponent className="mr-2 h-4 w-4 shrink-0" />
+                )}
+                <span className={cn(!selectedKindName && 'text-muted-foreground')}>
+                  {selectedKindName || '종류를 선택하세요'}
+                </span>
+              </Button>
+            </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">메뉴 URL</Label>
-                <Input
-                  value={restaurant.menuUrl ?? ''}
-                  onChange={(event) => onChange({ menuUrl: event.target.value })}
-                  placeholder="메뉴 페이지 URL"
-                />
-              </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">전화번호</Label>
+            <Input
+              value={restaurant.telNo ?? ''}
+              onChange={(event) => onChange({ telNo: event.target.value })}
+              placeholder="전화번호"
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">메뉴 리스트 이미지</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setUploadDialogOpen(true)}
-                >
-                  <Camera className={cn("mr-2 h-4 w-4", hasMenuListImage && "text-green-500")} />
-                  {hasMenuListImage ? '이미지 업로드됨' : '이미지 업로드'}
-                </Button>
-              </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">메뉴 URL</Label>
+            <Input
+              value={restaurant.menuUrl ?? ''}
+              onChange={(event) => onChange({ menuUrl: event.target.value })}
+              placeholder="메뉴 페이지 URL"
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">메뉴 관리</Label>
-                <div 
-                  className="flex flex-wrap items-center gap-2 min-h-[2.5rem] rounded-md border border-input bg-background px-3 py-2 cursor-pointer hover:bg-muted/50"
-                  onClick={handleMenuManagementClick}
-                >
-                  {menuNames.length > 0 ? (
-                    menuNames.map((name, index) => (
-                      <span key={index} className="text-sm">
-                        {name}
-                        {index < menuNames.length - 1 && (
-                          <span className="text-muted-foreground">, </span>
-                        )}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-muted-foreground">등록된 메뉴가 없습니다. 클릭하여 메뉴를 추가하세요.</span>
-                  )}
-                </div>
-              </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">메뉴 리스트 이미지</Label>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              onClick={mode === 'edit' && onOpenUpload ? onOpenUpload : () => setUploadDialogOpen(true)}
+              disabled={mode === 'create'}
+            >
+              <Camera className={cn("mr-2 h-4 w-4", hasMenuListImage && "text-green-500")} />
+              {hasMenuListImage ? '이미지 업로드됨' : mode === 'create' ? '이미지 업로드 (식당 등록 후 수정 가능)' : '이미지 업로드'}
+            </Button>
+          </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">식당 위치</Label>
-                <Input
-                  value={restaurant.naviUrl ?? ''}
-                  onChange={(event) => onChange({ naviUrl: event.target.value })}
-                  placeholder="네이버 지도 검색어 또는 주소"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onSave}
-                  disabled={saving}
-                  className="h-8 w-8"
-                >
-                  {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
-                </Button>
+          {mode === 'edit' && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">메뉴 관리</Label>
+              <div 
+                className="flex flex-wrap items-center gap-2 min-h-[2.5rem] rounded-md border border-input bg-background px-3 py-2 cursor-pointer hover:bg-muted/50"
+                onClick={handleMenuManagementClick}
+              >
+                {menuNames.length > 0 ? (
+                  menuNames.map((name, index) => (
+                    <span key={index} className="text-sm">
+                      {name}
+                      {index < menuNames.length - 1 && (
+                        <span className="text-muted-foreground">, </span>
+                      )}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground">등록된 메뉴가 없습니다. 클릭하여 메뉴를 추가하세요.</span>
+                )}
               </div>
             </div>
+          )}
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">식당 위치</Label>
+            <Input
+              value={restaurant.naviUrl ?? ''}
+              onChange={(event) => onChange({ naviUrl: event.target.value })}
+              placeholder="네이버 지도 검색어 또는 주소"
+            />
           </div>
-        </DialogContent>
-      </Dialog>
 
-      <RestaurantKindSelectDialog
-        open={kindSelectOpen}
-        selectedKind={restaurant.kind}
-        restaurantKinds={restaurantKinds}
-        restaurantIcons={restaurantIcons}
-        onClose={() => setKindSelectOpen(false)}
-        onSelect={(kind) => onChange({ kind })}
-      />
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onSave}
+              disabled={saving || (mode === 'create' && (!restaurant.id || !restaurant.name))}
+              className="h-8 w-8"
+            >
+              {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+            </Button>
+          </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
 
-      {cloudName && uploadPreset && thumbnailPreset && (
-        <>
-          <MenuListDialog
-            open={menuListOpen}
-            restaurantName={restaurant.name}
-            menus={menus}
-            onClose={() => setMenuListOpen(false)}
-            onMenuClick={handleMenuClick}
-            onAddNewMenu={() => {
-              setMenuListOpen(false);
-              handleAddNewMenu();
-            }}
-          />
-          <MenuEditDialog
-            open={menuEditOpen}
-            menu={selectedMenu}
-            menuKey={selectedMenuKey}
-            restaurantId={restaurant.id}
-            cloudName={cloudName}
-            mobilePreset={uploadPreset}
-            thumbnailPreset={thumbnailPreset}
-            onClose={() => {
-              setMenuEditOpen(false);
-              setSelectedMenuKey(null);
-              setSelectedMenu(null);
-            }}
-            onSave={handleMenuSave}
-          />
-        </>
-      )}
+    <RestaurantKindSelectDialog
+      open={kindSelectOpen}
+      selectedKind={restaurant.kind}
+      restaurantKinds={restaurantKinds}
+      restaurantIcons={restaurantIcons}
+      onClose={() => setKindSelectOpen(false)}
+      onSelect={(kind) => onChange({ kind })}
+    />
 
+    {mode === 'edit' && cloudName && uploadPreset && thumbnailPreset && (
+      <>
+        <MenuListDialog
+          open={menuListOpen}
+          restaurantName={restaurant.name}
+          menus={menus}
+          onClose={() => setMenuListOpen(false)}
+          onMenuClick={handleMenuClick}
+          onAddNewMenu={() => {
+            setMenuListOpen(false);
+            handleAddNewMenu();
+          }}
+        />
+        <MenuEditDialog
+          open={menuEditOpen}
+          menu={selectedMenu}
+          menuKey={selectedMenuKey}
+          restaurantId={restaurant.id}
+          cloudName={cloudName}
+          mobilePreset={uploadPreset}
+          thumbnailPreset={thumbnailPreset}
+          onClose={() => {
+            setMenuEditOpen(false);
+            setSelectedMenuKey(null);
+            setSelectedMenu(null);
+          }}
+          onSave={handleMenuSave}
+        />
+      </>
+    )}
+
+    {mode === 'edit' && cloudName && uploadPreset && (
       <ImageUploadDialog
         open={uploadDialogOpen}
         onClose={() => setUploadDialogOpen(false)}
@@ -901,6 +924,7 @@ export function RestaurantEditDialog({
         uploadPreset={uploadPreset}
         initialPublicId={restaurant.menuImgId || null}
       />
+    )}
     </>
   );
 }
