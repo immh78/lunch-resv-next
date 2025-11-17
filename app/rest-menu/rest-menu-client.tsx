@@ -592,7 +592,7 @@ export default function RestMenuPageClient() {
   const [allRestaurantMenus, setAllRestaurantMenus] = useState<Record<string, Record<string, RestaurantMenu>>>({});
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
   const [visitLogs, setVisitLogs] = useState<Record<string, { date: string; menuName: string }[]>>({});
-  const [allVisitLogs, setAllVisitLogs] = useState<Record<string, { date: string; menuName: string }[]>>({});
+  const [allVisitLogs, setAllVisitLogs] = useState<Record<string, { date: string; menuName: string; key: string }[]>>({});
   const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
   const [selectedRestaurantForHistory, setSelectedRestaurantForHistory] = useState<Restaurant | null>(null);
 
@@ -651,24 +651,30 @@ export default function RestMenuPageClient() {
         if (snapshot.exists()) {
           const data = snapshot.val() as Record<string, Record<string, { date: string; menuName: string }>>;
           const logs: Record<string, { date: string; menuName: string }[]> = {};
-          const allLogs: Record<string, { date: string; menuName: string }[]> = {};
+          const allLogs: Record<string, { date: string; menuName: string; key: string }[]> = {};
           
           Object.entries(data).forEach(([restaurantId, restaurantLogs]) => {
             if (restaurantLogs) {
-              const logEntries = Object.values(restaurantLogs);
+              // 키와 함께 로그 엔트리 생성
+              const logEntriesWithKey = Object.entries(restaurantLogs).map(([key, log]) => ({
+                ...log,
+                key,
+              }));
+              
               // 날짜(yyyyMMdd) 기준으로 정렬
-              logEntries.sort((a, b) => {
+              logEntriesWithKey.sort((a, b) => {
                 const dateA = a.date || '';
                 const dateB = b.date || '';
                 return dateB.localeCompare(dateA);
               });
               
-              // 전체 로그 저장
-              allLogs[restaurantId] = logEntries;
+              // 전체 로그 저장 (키 포함)
+              allLogs[restaurantId] = logEntriesWithKey;
               
-              // 가장 최근 것만 저장 (최근 메뉴 표시용)
-              if (logEntries.length > 0) {
-                logs[restaurantId] = [logEntries[0]];
+              // 가장 최근 것만 저장 (최근 메뉴 표시용, 키 제외)
+              if (logEntriesWithKey.length > 0) {
+                const { key, ...recentLog } = logEntriesWithKey[0];
+                logs[restaurantId] = [recentLog];
               }
             }
           });
@@ -1021,6 +1027,19 @@ export default function RestMenuPageClient() {
     setMenuHistoryOpen(true);
   }, []);
 
+  const handleDeleteVisitLog = useCallback(async (restaurantId: string, logKey: string) => {
+    if (!user) return;
+
+    try {
+      const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}/${restaurantId}/${logKey}`);
+      await remove(visitLogRef);
+      toast.success('메뉴 이력을 삭제했습니다.');
+    } catch (error) {
+      console.error('Error deleting visit log:', error);
+      toast.error('메뉴 이력 삭제 중 오류가 발생했습니다.');
+    }
+  }, [user]);
+
   // 검색 필터링
   const handleSearch = useCallback(() => {
     const addRecentMenu = (restaurantList: Restaurant[]) => {
@@ -1308,11 +1327,24 @@ export default function RestMenuPageClient() {
                       
                       return (
                         <div
-                          key={index}
-                          className="flex items-center justify-between rounded-sm border border-transparent px-3 py-2 text-sm transition hover:border-border hover:bg-muted"
+                          key={log.key || index}
+                          className="flex items-center justify-between gap-2 rounded-sm border border-transparent px-3 py-2 text-sm transition hover:border-border hover:bg-muted"
                         >
                           <span className="text-muted-foreground">{displayDate}</span>
-                          <span className="font-medium">{log.menuName}</span>
+                          <span className="font-medium flex-1">{log.menuName}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (selectedRestaurantForHistory && log.key) {
+                                handleDeleteVisitLog(selectedRestaurantForHistory.id, log.key);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       );
                     })
