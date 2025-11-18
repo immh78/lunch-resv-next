@@ -437,7 +437,7 @@ function RestaurantMenuDialog({
                                   onEditMenu(key);
                                 }}
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-3 w-3" />
                               </Button>
                             )}
                             {onDeleteMenu && (

@@ -531,6 +531,30 @@ function RestaurantDetailDialog({
   const [prepaymentDateOpens, setPrepaymentDateOpens] = useState<Record<string, boolean>>({});
   const reservationDateValue = useMemo(() => displayToDate(reservationDate), [reservationDate]);
 
+  // 메뉴 탭에 메뉴가 없을 경우 빈행 추가 시 포커스 이동
+  useEffect(() => {
+    if (open && currentTab === 'menu' && menuRows.length === 1 && menuRows[0].menu === '') {
+      setTimeout(() => {
+        const input = document.querySelector(`[data-menu-input-id="${menuRows[0].id}"]`) as HTMLInputElement;
+        if (input) {
+          input.focus();
+        }
+      }, 100);
+    }
+  }, [open, currentTab, menuRows]);
+
+  // 결제 탭에 결제 이력이 없을 경우 빈행 추가 시 포커스 이동
+  useEffect(() => {
+    if (open && currentTab === 'prepayment' && prepaymentRows.length === 1 && prepaymentRows[0].amount === 0) {
+      setTimeout(() => {
+        const input = document.querySelector(`[data-prepayment-amount-input-id="${prepaymentRows[0].id}"]`) as HTMLInputElement;
+        if (input) {
+          input.focus();
+        }
+      }, 100);
+    }
+  }, [open, currentTab, prepaymentRows]);
+
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="mx-auto flex h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] flex-col items-start justify-center px-1 pt-[5vh] [&>div]:max-w-full [&>div]:w-full [&>div]:rounded-sm">
@@ -652,6 +676,7 @@ function RestaurantDetailDialog({
                               className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
                             >
                               <Input
+                                data-menu-input-id={menu.id}
                                 value={menu.menu}
                                 onChange={(event) =>
                                   onMenuChange(menu.id, 'menu', event.target.value)
@@ -748,6 +773,7 @@ function RestaurantDetailDialog({
                                 </PopoverContent>
                               </Popover>
                               <Input
+                                data-prepayment-amount-input-id={item.id}
                                 type="number"
                                 min={0}
                                 step={100}
@@ -1792,10 +1818,18 @@ export default function Home() {
   };
 
   const handleAddMenuRow = () => {
+    const newId = `menu-${Date.now()}-${menuRows.length}`;
     setMenuRows((prev) => [
       ...prev,
-      { id: `menu-${Date.now()}-${prev.length}`, menu: '', cost: 0 },
+      { id: newId, menu: '', cost: 0 },
     ]);
+    // 포커스를 이동하기 위해 새 행 ID를 설정
+    setTimeout(() => {
+      const input = document.querySelector(`[data-menu-input-id="${newId}"]`) as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 0);
   };
 
   const handleRemoveMenuRow = (id: string) => {
@@ -1830,15 +1864,23 @@ export default function Home() {
 
   const handleAddPrepaymentRow = () => {
     const now = new Date();
+    const newId = `prepayment-${Date.now()}-${prepaymentRows.length}`;
     setPrepaymentRows((prev) => [
       ...prev,
       {
-        id: `prepayment-${Date.now()}-${prev.length}`,
+        id: newId,
         amount: 0,
         date: dayjs(now).format('YYYYMMDD'),
         dateValue: now,
       },
     ]);
+    // 포커스를 이동하기 위해 새 행 ID를 설정
+    setTimeout(() => {
+      const input = document.querySelector(`[data-prepayment-amount-input-id="${newId}"]`) as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 0);
   };
 
   const handleRemovePrepaymentRow = (id: string) => {
