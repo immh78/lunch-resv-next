@@ -73,6 +73,7 @@ import {
   BookOpen,
   Camera,
   EyeOff,
+  Eye,
   Palette,
 } from 'lucide-react';
 
@@ -208,6 +209,168 @@ const formatShareReservationDate = (value: string): string => {
   const day = date.getDate();
   const weekday = WEEKDAYS[date.getDay()];
   return `${month}.${day} (${weekday})`;
+};
+
+// 공유 양식 HTML 생성 함수 (공통)
+const generateShareFormHTML = (
+  restaurantName: string,
+  menuRows: Array<{ menu: string; cost: number }>,
+  reservationDate: string,
+  prepaymentRows: Array<{ date: string; amount: number }>
+): string => {
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('ko-KR').format(value);
+  };
+
+  const validMenus = menuRows.filter((menu) => menu.menu.trim() && menu.cost > 0);
+  const totalAmount = validMenus.reduce((sum, menu) => sum + menu.cost, 0);
+
+  const validPrepayments = prepaymentRows
+    .filter((item) => item.amount > 0 && item.date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const prepaymentTotal = validPrepayments.reduce((sum, item) => sum + item.amount, 0);
+
+  const menuRowsCount = validMenus.length || 1;
+  const isSingleMenu = validMenus.length === 1;
+
+  // Lucide icon SVG paths
+  const iconSVG = {
+    utensils: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3a2 2 0 0 0 2-2Z"/><path d="M21 15v7"/></svg>',
+    clipboard: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>',
+    dollarSign: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+    calendar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+    creditCard: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>',
+    calendarDays: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>',
+    coins: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="M16 14h1v4"/></svg>',
+    sparkles: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  };
+
+  const tableHTML = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 24px; background: #f5f5f5; border-radius: 12px;">
+      <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
+          <h2 style="align-items: center; margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
+        </div>
+        <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); margin-bottom: 20px; border-radius: 6px; overflow: hidden; border: 1px solid #e8e8e8;">
+          <tbody>
+            ${isSingleMenu ? `
+              <tr>
+                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
+                    <span style="font-weight: 600; font-size: 10pt;">메뉴</span>
+                  </div>
+                </td>
+                <td style="height: 30px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
+                  <span style="font-size: 10pt; font-weight: 500; vertical-align: middle;">${validMenus[0].menu.trim()}</span>
+                </td>
+              </tr>
+            ` : validMenus.length > 0 ? validMenus.map((menu, index) => `
+              <tr>
+                ${index === 0 ? `
+                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;" rowspan="${menuRowsCount}">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
+                    <span style="font-weight: 600; font-size: 10pt;">메뉴/가격</span>
+                  </div>
+                </td>
+                ` : ''}
+                <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px;">
+                  <span style="font-size: 10pt; font-weight: 500; vertical-align: middle;">${menu.menu.trim()}</span>
+                </td>
+                <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: right;">
+                  <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle;">${formatCurrency(menu.cost)}원</span>
+                </td>
+              </tr>
+            `).join('') : `
+              <tr>
+                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
+                    <span style="font-weight: 600; font-size: 10pt;">메뉴/가격</span>
+                  </div>
+                </td>
+                <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #999; white-space: nowrap; padding: 0 12px;" colspan="2">
+                  <span style="font-size: 10pt; vertical-align: middle;">-</span>
+                </td>
+              </tr>
+            `}
+            <tr>
+              <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                  <div style="display: flex; align-items: center; color: #495057;">${iconSVG.dollarSign}</div>
+                  <span style="font-weight: 600; font-size: 10pt;">가격</span>
+                </div>
+              </td>
+              <td style="height: 30px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
+                <span style="font-size: 11pt; font-weight: 700; color: #495057; vertical-align: middle;">${formatCurrency(totalAmount)}원</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                  <div style="display: flex; align-items: center; color: #495057;">${iconSVG.calendar}</div>
+                  <span style="font-weight: 600; font-size: 10pt;">예약일</span>
+                </div>
+              </td>
+              <td style="height: 30px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
+                <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        ${validPrepayments.length > 0 ? `
+        <div style="margin-top: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <div style="display: flex; align-items: bottom; color: #495057;">${iconSVG.creditCard}</div>
+            <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">선결제</h3>
+          </div>
+          <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); border-radius: 6px; overflow: hidden; border: 1px solid #e8e8e8;">
+            <tbody>
+              <tr>
+                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.calendarDays}</div>
+                    <span style="font-weight: 600; font-size: 10pt;">날짜</span>
+                  </div>
+                </td>
+                <td style="height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.coins}</div>
+                    <span style="font-weight: 600; font-size: 10pt;">금액</span>
+                  </div>
+                </td>
+              </tr>
+              ${validPrepayments.map((item) => `
+                <tr>
+                  <td style="min-width: 100px; height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center; border-right: 1px solid #e8e8e8;">
+                    <span style="font-size: 10pt; font-weight: 500; vertical-align: middle;">${formatShareDate(item.date)}</span>
+                  </td>
+                  <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;">
+                    <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle;">${formatCurrency(item.amount)}원</span>
+                  </td>
+                </tr>
+              `).join('')}
+              <tr>
+                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.sparkles}</div>
+                    <span style="font-weight: 600; font-size: 10pt;">합계</span>
+                  </div>
+                </td>
+                <td style="height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
+                  <span style="font-size: 11pt; font-weight: 700; color: #495057; vertical-align: middle;">${formatCurrency(prepaymentTotal)}원</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  return tableHTML;
 };
 
 const sumMenuAmount = (menus: { cost: number }[]): number =>
@@ -475,6 +638,7 @@ type RestaurantDetailDialogProps = {
   onAddPrepaymentRow: () => void;
   onRemovePrepaymentRow: (id: string) => void;
   onShare: () => void;
+  onPreview: () => void;
   onReceipt: () => void;
   onSaveMenus: () => void;
   onDeleteMenus: () => void;
@@ -510,6 +674,7 @@ function RestaurantDetailDialog({
   onAddPrepaymentRow,
   onRemovePrepaymentRow,
   onShare,
+  onPreview,
   onReceipt,
   onSaveMenus,
   onDeleteMenus,
@@ -807,6 +972,18 @@ function RestaurantDetailDialog({
 
             <DialogFooter className="mt-auto border-t border-border/50 px-5 py-4">
               <div className="flex w-full flex-wrap items-center justify-center gap-2">
+                {process.env.NODE_ENV === 'development' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onPreview}
+                    disabled={isReceipt}
+                    className={cn('h-9 w-9', isReceipt && 'text-gray-400')}
+                    title="미리보기"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1527,6 +1704,7 @@ export default function Home() {
   const [uploadContext, setUploadContext] = useState<UploadContext | null>(null);
   const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>({});
   const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>({});
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -2153,156 +2331,33 @@ export default function Home() {
       }
     };
 
+  // 공유 HTML 생성 함수 (공통)
+  const getShareHTML = () => {
+    if (!selectedRestaurant) return '';
+    
+    const validMenus = menuRows
+      .filter((menu) => menu.menu.trim() && menu.cost > 0)
+      .map((menu) => ({ menu: menu.menu, cost: menu.cost }));
+    const validPrepayments = prepaymentRows
+      .filter((item) => item.amount > 0 && item.date)
+      .map((item) => ({ date: item.date, amount: item.amount }));
+
+    return generateShareFormHTML(
+      selectedRestaurant.name,
+      validMenus,
+      reservationDate,
+      validPrepayments
+    );
+  };
+
+  const handlePreview = () => {
+    setPreviewDialogOpen(true);
+  };
+
   const handleShare = async () => {
     if (!selectedRestaurant) return;
 
-    const validMenus = menuRows.filter((menu) => menu.menu.trim() && menu.cost > 0);
-    const totalAmount = validMenus.reduce((sum, menu) => sum + menu.cost, 0);
-
-    const validPrepayments = prepaymentRows
-      .filter((item) => item.amount > 0 && item.date)
-      .sort((a, b) => a.date.localeCompare(b.date));
-    const prepaymentTotal = validPrepayments.reduce((sum, item) => sum + item.amount, 0);
-
-    // HTML 테이블 생성
-    const menuRowsCount = validMenus.length || 1;
-    const isSingleMenu = validMenus.length === 1;
-    // Lucide icon SVG paths
-    const iconSVG = {
-      utensils: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3a2 2 0 0 0 2-2Z"/><path d="M21 15v7"/></svg>',
-      clipboard: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>',
-      dollarSign: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
-      calendar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
-      creditCard: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>',
-      calendarDays: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>',
-      coins: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="M16 14h1v4"/></svg>',
-      sparkles: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
-    };
-    
-    const tableHTML = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 24px; background: #f5f5f5; border-radius: 12px;">
-        <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
-            <h2 style="align-items: center; margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${selectedRestaurant.name}</h2>
-          </div>
-          <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); margin-bottom: 20px; border-radius: 6px; overflow: hidden; border: 1px solid #e8e8e8;">
-            <tbody>
-              ${isSingleMenu ? `
-                <tr>
-                  <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                      <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">메뉴</span>
-                    </div>
-                  </td>
-                  <td style="height: 32px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                    <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${validMenus[0].menu.trim()}</span>
-                  </td>
-                </tr>
-              ` : validMenus.length > 0 ? validMenus.map((menu, index) => `
-                <tr>
-                  ${index === 0 ? `
-                  <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;" rowspan="${menuRowsCount}">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                      <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">메뉴/가격</span>
-                    </div>
-                  </td>
-                  ` : ''}
-                  <td style="height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px;">
-                    <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${menu.menu.trim()}</span>
-                  </td>
-                  <td style="height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: right;">
-                    <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatCurrency(menu.cost)}원</span>
-                  </td>
-                </tr>
-              `).join('') : `
-                <tr>
-                  <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                      <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">메뉴/가격</span>
-                    </div>
-                  </td>
-                  <td style="height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #999; white-space: nowrap; padding: 0 12px;" colspan="2">
-                    <span style="font-size: 10pt; display: inline-block; vertical-align: middle; padding-bottom: 12px;">-</span>
-                  </td>
-                </tr>
-              `}
-              <tr>
-                <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.dollarSign}</div>
-                    <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">가격</span>
-                  </div>
-                </td>
-                <td style="height: 32px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                  <span style="font-size: 11pt; font-weight: 700; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatCurrency(totalAmount)}원</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.calendar}</div>
-                    <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">예약일</span>
-                  </div>
-                </td>
-                <td style="height: 32px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                  <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          ${validPrepayments.length > 0 ? `
-          <div style="margin-top: 20px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-              <div style="display: flex; align-items: bottom; color: #495057;">${iconSVG.creditCard}</div>
-              <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">선결제</h3>
-            </div>
-            <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); border-radius: 6px; overflow: hidden; border: 1px solid #e8e8e8;">
-              <tbody>
-                <tr>
-                  <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                      <div style="display: flex; align-items: center; color: #495057;">${iconSVG.calendarDays}</div>
-                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">날짜</span>
-                    </div>
-                  </td>
-                  <td style="height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                      <div style="display: flex; align-items: center; color: #495057;">${iconSVG.coins}</div>
-                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">금액</span>
-                    </div>
-                  </td>
-                </tr>
-                ${validPrepayments.map((item) => `
-                  <tr>
-                    <td style="min-width: 100px; height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center; border-right: 1px solid #e8e8e8;">
-                      <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatShareDate(item.date)}</span>
-                    </td>
-                    <td style="height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;">
-                      <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatCurrency(item.amount)}원</span>
-                    </td>
-                  </tr>
-                `).join('')}
-                <tr>
-                  <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                      <div style="display: flex; align-items: center; color: #495057;">${iconSVG.sparkles}</div>
-                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">합계</span>
-                    </div>
-                  </td>
-                  <td style="height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
-                    <span style="font-size: 11pt; font-weight: 700; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatCurrency(prepaymentTotal)}원</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
+    const tableHTML = getShareHTML();
 
     try {
       // 임시 div 생성
@@ -2695,6 +2750,7 @@ export default function Home() {
           onAddPrepaymentRow={handleAddPrepaymentRow}
           onRemovePrepaymentRow={handleRemovePrepaymentRow}
           onShare={handleShare}
+          onPreview={handlePreview}
           onReceipt={handleReceipt}
           onSaveMenus={handleSaveMenus}
           onDeleteMenus={handleDeleteMenus}
@@ -2800,6 +2856,21 @@ export default function Home() {
           onCancel={() => setDeleteState({ open: false, target: null })}
           onConfirm={handleConfirmDelete}
         />
+
+        {/* 미리보기 다이얼로그 */}
+        <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>공유 양식 미리보기</DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <div 
+                className="share-form-container"
+                dangerouslySetInnerHTML={{ __html: getShareHTML() }} 
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </ProtectedRoute>
   );
