@@ -260,50 +260,50 @@ const generateShareFormHTML = (
             ${isSingleMenu ? `
               <tr>
                 <td style="min-width: 100px; height: 24px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 13px; display: inline-block;">메뉴</span>
+                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">메뉴</span>
                 </td>
                 <td style="height: 24px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                  <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 13px; display: inline-block;">${validMenus[0].menu.trim()}</span>
+                  <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${validMenus[0].menu.trim()}</span>
                 </td>
               </tr>
             ` : validMenus.length > 0 ? validMenus.map((menu, index) => `
               <tr>
                 ${index === 0 ? `
                 <td style="min-width: 100px; height: 24px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;" rowspan="${menuRowsCount}">
-                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 13px; display: inline-block;">메뉴/가격</span>
+                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">메뉴/가격</span>
                 </td>
                 ` : ''}
                 <td style="height: 24px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px;">
-                  <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 13px; display: inline-block;">${menu.menu.trim()}</span>
+                  <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${menu.menu.trim()}</span>
                 </td>
                 <td style="height: 24px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: right;">
-                  <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle; margin-bottom: 13px; display: inline-block;">${formatCurrency(menu.cost)}원</span>
+                  <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${formatCurrency(menu.cost)}원</span>
                 </td>
               </tr>
             `).join('') : `
               <tr>
                 <td style="min-width: 100px; height: 24px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 13px; display: inline-block;">메뉴/가격</span>
+                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">메뉴/가격</span>
                 </td>
                 <td style="height: 24px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #999; white-space: nowrap; padding: 0 12px;" colspan="2">
-                  <span style="font-size: 10pt; vertical-align: middle; margin-bottom: 13px; display: inline-block;">-</span>
+                  <span style="font-size: 10pt; vertical-align: middle; margin-bottom: 14px; display: inline-block;">-</span>
                 </td>
               </tr>
             `}
             <tr>
               <td style="min-width: 100px; height: 24px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                <span style="font-weight: 600; font-size: 10pt; margin-bottom: 13px; display: inline-block;">가격</span>
+                <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">가격</span>
               </td>
               <td style="height: 24px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                <span style="font-size: 11pt; font-weight: 700; color: #495057; vertical-align: middle; margin-bottom: 13px; display: inline-block;">${formatCurrency(totalAmount)}원</span>
+                <span style="font-size: 11pt; font-weight: 700; color: #495057; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${formatCurrency(totalAmount)}원</span>
               </td>
             </tr>
             <tr>
               <td style="min-width: 100px; height: 24px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                <span style="font-weight: 600; font-size: 10pt; margin-bottom: 13px; display: inline-block;">예약일</span>
+                <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">예약일</span>
               </td>
               <td style="height: 24px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle; margin-bottom: 13px; display: inline-block;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</span>
+                <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</span>
               </td>
             </tr>
             </tbody>
@@ -312,7 +312,7 @@ const generateShareFormHTML = (
         ${validPrepayments.length > 0 ? `
         <div style="margin-top: 20px;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <div style="display: flex; align-items: bottom; color: #495057; margin-bottom: -13px; display: inline-block;">${iconSVG.creditCard}</div>
+            <div style="display: flex; align-items: bottom; color: #495057; margin-bottom: -16px; display: inline-block;">${iconSVG.creditCard}</div>
             <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">선결제</h3>
           </div>
           <div style="border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden;">
@@ -320,19 +320,19 @@ const generateShareFormHTML = (
               <tbody>
               <tr>
                 <td style="min-width: 100px; height: 24px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 13px; display: inline-block;">날짜</span>
+                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">날짜</span>
                 </td>
                 <td style="height: 24px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
-                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 13px; display: inline-block;">금액</span>
+                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">금액</span>
                 </td>
               </tr>
               ${validPrepayments.map((item) => `
                 <tr>
                   <td style="min-width: 100px; height: 24px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center; border-right: 1px solid #e8e8e8;">
-                    <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 13px; display: inline-block;">${formatShareDate(item.date)}</span>
+                    <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${formatShareDate(item.date)}</span>
                   </td>
                   <td style="height: 24px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;">
-                    <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle; margin-bottom: 13px; display: inline-block;">${formatCurrency(item.amount)}원</span>
+                    <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${formatCurrency(item.amount)}원</span>
                   </td>
                 </tr>
               `).join('')}
@@ -340,11 +340,11 @@ const generateShareFormHTML = (
                 <td style="min-width: 100px; height: 24px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
                   <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                     ${showSparkles ? `<div style="display: flex; align-items: center; color: #495057;">${iconSVG.sparkles}</div>` : ''}
-                    <span style="font-weight: 600; font-size: 10pt; margin-bottom: 13px; display: inline-block;">합계</span>
+                    <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">합계</span>
                   </div>
                 </td>
                 <td style="height: 24px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
-                  <span style="font-size: 11pt; font-weight: 700; color: #495057; vertical-align: middle; margin-bottom: 13px; display: inline-block;">${formatCurrency(prepaymentTotal)}원</span>
+                  <span style="font-size: 11pt; font-weight: 700; color: #495057; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${formatCurrency(prepaymentTotal)}원</span>
                 </td>
                 </tr>
               </tbody>
