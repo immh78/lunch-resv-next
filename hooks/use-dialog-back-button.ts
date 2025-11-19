@@ -51,9 +51,10 @@ class DialogStackManager {
       const handler = this.stack[i];
       
       // 핸들러에 저장된 element가 있고, 그것이 실제로 열려있는지 확인
-      if (handler.element) {
+      const element = handler.element;
+      if (element) {
         const isOpen = Array.from(openDialogs).some(
-          dialog => dialog === handler.element || dialog.contains(handler.element)
+          dialog => dialog === element || dialog.contains(element)
         );
         if (isOpen) {
           return handler;
