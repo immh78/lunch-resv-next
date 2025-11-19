@@ -245,34 +245,32 @@ const generateShareFormHTML = (
     sparkles: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
   };
 
+  // 선결제 합계가 예약 금액보다 같거나 많은지 확인
+  const showSparkles = prepaymentTotal >= totalAmount;
+
   const tableHTML = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 24px; background: #f5f5f5; border-radius: 12px;">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 8px; background: #f5f5f5; border-radius: 12px;">
       <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
-          <h2 style="align-items: center; margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
+          <h2 style="align-items: center; margin: 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
         </div>
-        <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); margin-bottom: 20px; border-radius: 6px; overflow: hidden; border: 1px solid #e8e8e8;">
-          <tbody>
+        <div style="border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden; margin-bottom: 20px;">
+          <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255);">
+            <tbody>
             ${isSingleMenu ? `
               <tr>
-                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                    <span style="font-weight: 600; font-size: 10pt;">메뉴</span>
-                  </div>
+                <td style="min-width: 100px; height: 30px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                  <span style="font-weight: 600; font-size: 10pt;">메뉴</span>
                 </td>
-                <td style="height: 30px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
+                <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
                   <span style="font-size: 10pt; font-weight: 500; vertical-align: middle;">${validMenus[0].menu.trim()}</span>
                 </td>
               </tr>
             ` : validMenus.length > 0 ? validMenus.map((menu, index) => `
               <tr>
                 ${index === 0 ? `
-                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;" rowspan="${menuRowsCount}">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                    <span style="font-weight: 600; font-size: 10pt;">메뉴/가격</span>
-                  </div>
+                <td style="min-width: 100px; height: 30px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;" rowspan="${menuRowsCount}">
+                  <span style="font-weight: 600; font-size: 10pt;">메뉴/가격</span>
                 </td>
                 ` : ''}
                 <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px;">
@@ -284,11 +282,8 @@ const generateShareFormHTML = (
               </tr>
             `).join('') : `
               <tr>
-                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                    <span style="font-weight: 600; font-size: 10pt;">메뉴/가격</span>
-                  </div>
+                <td style="min-width: 100px; height: 30px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                  <span style="font-weight: 600; font-size: 10pt;">메뉴/가격</span>
                 </td>
                 <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #999; white-space: nowrap; padding: 0 12px;" colspan="2">
                   <span style="font-size: 10pt; vertical-align: middle;">-</span>
@@ -296,49 +291,39 @@ const generateShareFormHTML = (
               </tr>
             `}
             <tr>
-              <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                  <div style="display: flex; align-items: center; color: #495057;">${iconSVG.dollarSign}</div>
-                  <span style="font-weight: 600; font-size: 10pt;">가격</span>
-                </div>
+              <td style="min-width: 100px; height: 30px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                <span style="font-weight: 600; font-size: 10pt;">가격</span>
               </td>
-              <td style="height: 30px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
+              <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
                 <span style="font-size: 11pt; font-weight: 700; color: #495057; vertical-align: middle;">${formatCurrency(totalAmount)}원</span>
               </td>
             </tr>
             <tr>
               <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                  <div style="display: flex; align-items: center; color: #495057;">${iconSVG.calendar}</div>
-                  <span style="font-weight: 600; font-size: 10pt;">예약일</span>
-                </div>
+                <span style="font-weight: 600; font-size: 10pt;">예약일</span>
               </td>
               <td style="height: 30px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
                 <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</span>
               </td>
             </tr>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
         ${validPrepayments.length > 0 ? `
         <div style="margin-top: 20px;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
             <div style="display: flex; align-items: bottom; color: #495057;">${iconSVG.creditCard}</div>
             <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">선결제</h3>
           </div>
-          <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); border-radius: 6px; overflow: hidden; border: 1px solid #e8e8e8;">
-            <tbody>
+          <div style="border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden;">
+            <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255);">
+              <tbody>
               <tr>
-                <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.calendarDays}</div>
-                    <span style="font-weight: 600; font-size: 10pt;">날짜</span>
-                  </div>
+                <td style="min-width: 100px; height: 30px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                  <span style="font-weight: 600; font-size: 10pt;">날짜</span>
                 </td>
-                <td style="height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.coins}</div>
-                    <span style="font-weight: 600; font-size: 10pt;">금액</span>
-                  </div>
+                <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
+                  <span style="font-weight: 600; font-size: 10pt;">금액</span>
                 </td>
               </tr>
               ${validPrepayments.map((item) => `
@@ -354,16 +339,17 @@ const generateShareFormHTML = (
               <tr>
                 <td style="min-width: 100px; height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
                   <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                    <div style="display: flex; align-items: center; color: #495057;">${iconSVG.sparkles}</div>
+                    ${showSparkles ? `<div style="display: flex; align-items: center; color: #495057;">${iconSVG.sparkles}</div>` : ''}
                     <span style="font-weight: 600; font-size: 10pt;">합계</span>
                   </div>
                 </td>
                 <td style="height: 30px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
                   <span style="font-size: 11pt; font-weight: 700; color: #495057; vertical-align: middle;">${formatCurrency(prepaymentTotal)}원</span>
                 </td>
-              </tr>
-            </tbody>
-          </table>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         ` : ''}
       </div>
