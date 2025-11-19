@@ -328,6 +328,7 @@ type RestaurantMenuDialogProps = {
   onClose: () => void;
   onImageClick: (imageUrl: string) => void;
   onEditRestaurant?: () => void;
+  onOpenMenuResource?: () => void;
   onDeleteMenu?: (menuKey: string) => void;
   onAddMenu?: () => void;
   onMenuClick?: (menuKey: string) => void;
@@ -342,6 +343,7 @@ function RestaurantMenuDialog({
   onClose,
   onImageClick,
   onEditRestaurant,
+  onOpenMenuResource,
   onDeleteMenu,
   onAddMenu,
   onMenuClick,
@@ -362,10 +364,20 @@ function RestaurantMenuDialog({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 text-muted-foreground"
                   onClick={onEditRestaurant}
                 >
                   <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              {(restaurant?.menuImgId || restaurant?.menuUrl) && onOpenMenuResource && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
+                  onClick={onOpenMenuResource}
+                >
+                  <BookOpen className="h-4 w-4" />
                 </Button>
               )}
             </div>
@@ -825,6 +837,17 @@ export default function RestMenuPageClient() {
     setImageViewOpen(true);
   }, []);
 
+  const handleMenuImageOpen = useCallback(() => {
+    if (!selectedRestaurant) return;
+    if (selectedRestaurant.menuImgId) {
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
+      const url = `https://res.cloudinary.com/${cloudName}/image/upload/${selectedRestaurant.menuImgId}`;
+      window.open(url, '_blank', 'noopener');
+    } else if (selectedRestaurant.menuUrl) {
+      window.open(selectedRestaurant.menuUrl, '_blank', 'noopener');
+    }
+  }, [selectedRestaurant]);
+
   const handleShareThemeDialog = () => {
     setSelectedTheme(currentTheme);
     setThemeDialogOpen(true);
@@ -1222,6 +1245,7 @@ export default function RestMenuPageClient() {
           }}
           onImageClick={handleImageClick}
           onEditRestaurant={handleOpenRestaurantEditor}
+          onOpenMenuResource={handleMenuImageOpen}
           onDeleteMenu={handleDeleteMenu}
           onAddMenu={handleAddNewMenu}
           onMenuClick={handleMenuClick}
