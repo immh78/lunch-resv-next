@@ -1147,3 +1147,77 @@ popState 이벤트를 모두 무시하고 아무 동작하지 않게 구현할 �
 # 구현내용
  - 공유 아이콘을 클릭했을때 text로 작성되는 공유내용을 html로 작성하여 테이블 형태로 작성함.
  - 테이블 형태로 작성된 내용을 이미지로 변환하여 공유
+
+# 목적 : 예약 및 선결제 공유내용을 개선
+
+# 대상 : RestaurantDetailDialog  
+
+# 구현내용 : 아래 html을 참고하여 디자인을 개선해줘
+
+ <table cellspacing="0" cellpadding="0" border="1" class="" style="width: 234px; height: 147px; font-size: 10pt; border-width: 0px; border-color: rgb(0, 0, 0); border-collapse: collapse; border-style: solid; background-color: rgb(255, 255, 255);">
+<tbody>
+<tr>
+<td style="width: 72px; height: 87px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);" colspan="1" rowspan="3">
+<p style="text-align:center"><span style="font-weight: bold;">메뉴/가격</span></p></td>
+<td style="width: 106px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p>&nbsp;우유</p></td>
+<td style="width: 54px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align:right">2,000원</p></td>
+</tr>
+<tr>
+<td style="width: 106px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p>&nbsp;리얼초코</p></td>
+<td style="width: 54px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align:right">3,000원</p></td>
+</tr>
+<tr>
+<td style="width: 106px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p>&nbsp;분다버그x2</p></td>
+<td style="width: 54px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align:right">4,500원</p></td>
+</tr>
+<tr>
+<td style="width: 72px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align:center"><span style="font-weight: bold;">가격</span></p></td>
+<td style="width: 160px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;" colspan="2" rowspan="1">
+<p style="text-align:center">11,500원</p></td>
+</tr>
+<tr>
+<td style="width: 72px; height: 31px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align:center"><span style="font-weight: bold;">예약일</span></p></td>
+<td style="width: 160px; height: 31px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;" colspan="2" rowspan="1">
+<p style="text-align:center">11.21 (금)</p></td>
+</tr>
+</tbody>
+</table>
+<p><br /></p>
+<p><span style="font-weight: bold;">선결제</span></p>
+<table cellspacing="0" cellpadding="0" border="1" style="width: 233px; height: 120px; font-size: 10pt; border-width: 0px; border-color: rgb(0, 0, 0); border-collapse: collapse; border-style: solid; background-color: rgb(255, 255, 255);" class="">
+<tbody data-pe_by-k="">
+<tr>
+<td style="width: 72px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align: center;"><span style="font-weight: bold;">날짜</span></p></td>
+<td style="width: 159px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align: center;"><span style="font-weight: bold;">금액</span></p></td>
+</tr>
+<tr data-pe_by-k="">
+<td style="width: 72px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;" data-pe_by-k="">
+<p style="text-align: center;">&nbsp;11.17(월)</p></td>
+<td style="width: 159px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align: center;">&nbsp;10,000원</p></td>
+</tr>
+<tr>
+<td style="width: 72px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align: center;">&nbsp;11.18(화)</p></td>
+<td style="width: 159px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align: center;">&nbsp;500원</p></td>
+</tr>
+<tr>
+<td style="width: 72px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align: center;"><span style="font-weight: bold;">합계<br /></span></p></td>
+<td style="width: 159px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align: center;"><span style="font-weight: bold;">10,500원</span></p></td>
+</tr>
+</tbody>
+</table>
+<p><br /></p>
