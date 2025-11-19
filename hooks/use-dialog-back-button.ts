@@ -32,9 +32,17 @@ class DialogStackManager {
       return;
     }
 
-    // 스택이 비어있으면 무시 (일반적인 페이지 뒤로가기 허용)
+    // 스택이 비어있을 때도 처리
+    // 이는 모든 팝업이 닫혔을 때 뒤로가기 버튼을 눌렀을 때 발생할 수 있음
     if (this.stack.length === 0) {
-      this.historyPushed = false;
+      // 히스토리 엔트리를 다시 추가하여 페이지 이동을 방지
+      // 이렇게 하면 팝업이 없을 때도 뒤로가기 버튼을 눌러도 페이지 이동이 발생하지 않음
+      this.ignoreNextPopState = true;
+      window.history.pushState({ dialog: true }, '');
+      setTimeout(() => {
+        this.ignoreNextPopState = false;
+      }, 50);
+      this.historyPushed = true;
       return;
     }
 
@@ -46,19 +54,16 @@ class DialogStackManager {
       this.stack.pop();
     }
 
-    // 모든 팝업이 닫혔을 때 히스토리 엔트리 제거
-    // 이렇게 하면 이전 페이지로 이동하지 않고 현재 페이지에 머물 수 있음
-    if (this.stack.length === 0) {
-      // 다음 이벤트 루프에서 히스토리 엔트리 제거
-      // replaceState를 사용하여 현재 히스토리 엔트리를 제거하되, 페이지 이동은 방지
+    // 아직 다른 팝업이 열려있으면 히스토리 엔트리를 다시 추가
+    // 모든 팝업이 닫혔을 때도 히스토리 엔트리를 다시 추가하여 페이지 이동을 방지
+    setTimeout(() => {
+      this.ignoreNextPopState = true;
+      window.history.pushState({ dialog: true }, '');
       setTimeout(() => {
-        const currentState = window.history.state;
-        if (currentState?.dialog) {
-          window.history.replaceState(null, '');
-        }
-        this.historyPushed = false;
-      }, 0);
-    }
+        this.ignoreNextPopState = false;
+      }, 50);
+      this.historyPushed = true;
+    }, 0);
 
     // 다음 이벤트 루프에서 플래그 리셋
     setTimeout(() => {
