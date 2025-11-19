@@ -2183,8 +2183,7 @@ export default function Home() {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 24px; background: #f5f5f5; border-radius: 12px;">
         <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
-            <div style="display: flex; align-items: center; color: #667eea;">${iconSVG.utensils}</div>
-            <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${selectedRestaurant.name} 예약정보</h2>
+            <h2 style="align-items: center; margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${selectedRestaurant.name}</h2>
           </div>
           <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); margin-bottom: 20px; border-radius: 6px; overflow: hidden; border: 1px solid #e8e8e8;">
             <tbody>
@@ -2193,11 +2192,11 @@ export default function Home() {
                   <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                       <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                      <span style="font-weight: 600; font-size: 10pt;">메뉴</span>
+                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">메뉴</span>
                     </div>
                   </td>
                   <td style="height: 32px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                    <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle;">${validMenus[0].menu.trim()}</span>
+                    <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${validMenus[0].menu.trim()}</span>
                   </td>
                 </tr>
               ` : validMenus.length > 0 ? validMenus.map((menu, index) => `
@@ -2206,15 +2205,15 @@ export default function Home() {
                   <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;" rowspan="${menuRowsCount}">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                       <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                      <span style="font-weight: 600; font-size: 10pt;">메뉴/가격</span>
+                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">메뉴/가격</span>
                     </div>
                   </td>
                   ` : ''}
                   <td style="height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px;">
-                    <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle;">${menu.menu.trim()}</span>
+                    <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${menu.menu.trim()}</span>
                   </td>
                   <td style="height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: right;">
-                    <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle;">${formatCurrency(menu.cost)}원</span>
+                    <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatCurrency(menu.cost)}원</span>
                   </td>
                 </tr>
               `).join('') : `
@@ -2222,11 +2221,11 @@ export default function Home() {
                   <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                       <div style="display: flex; align-items: center; color: #495057;">${iconSVG.clipboard}</div>
-                      <span style="font-weight: 600; font-size: 10pt;">메뉴/가격</span>
+                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">메뉴/가격</span>
                     </div>
                   </td>
                   <td style="height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #999; white-space: nowrap; padding: 0 12px;" colspan="2">
-                    <span style="font-size: 10pt; display: inline-block; vertical-align: middle;">-</span>
+                    <span style="font-size: 10pt; display: inline-block; vertical-align: middle; padding-bottom: 12px;">-</span>
                   </td>
                 </tr>
               `}
@@ -2234,22 +2233,22 @@ export default function Home() {
                 <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
                   <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <div style="display: flex; align-items: center; color: #495057;">${iconSVG.dollarSign}</div>
-                    <span style="font-weight: 600; font-size: 10pt;">가격</span>
+                    <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">가격</span>
                   </div>
                 </td>
                 <td style="height: 32px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                  <span style="font-size: 11pt; font-weight: 700; color: #495057; display: inline-block; vertical-align: middle;">${formatCurrency(totalAmount)}원</span>
+                  <span style="font-size: 11pt; font-weight: 700; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatCurrency(totalAmount)}원</span>
                 </td>
               </tr>
               <tr>
                 <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
                   <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <div style="display: flex; align-items: center; color: #495057;">${iconSVG.calendar}</div>
-                    <span style="font-weight: 600; font-size: 10pt;">예약일</span>
+                    <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">예약일</span>
                   </div>
                 </td>
                 <td style="height: 32px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;" colspan="2">
-                  <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</span>
+                  <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</span>
                 </td>
               </tr>
             </tbody>
@@ -2257,7 +2256,7 @@ export default function Home() {
           ${validPrepayments.length > 0 ? `
           <div style="margin-top: 20px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-              <div style="display: flex; align-items: center; color: #495057;">${iconSVG.creditCard}</div>
+              <div style="display: flex; align-items: bottom; color: #495057;">${iconSVG.creditCard}</div>
               <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">선결제</h3>
             </div>
             <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); border-radius: 6px; overflow: hidden; border: 1px solid #e8e8e8;">
@@ -2266,23 +2265,23 @@ export default function Home() {
                   <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                       <div style="display: flex; align-items: center; color: #495057;">${iconSVG.calendarDays}</div>
-                      <span style="font-weight: 600; font-size: 10pt;">날짜</span>
+                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">날짜</span>
                     </div>
                   </td>
                   <td style="height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                       <div style="display: flex; align-items: center; color: #495057;">${iconSVG.coins}</div>
-                      <span style="font-weight: 600; font-size: 10pt;">금액</span>
+                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">금액</span>
                     </div>
                   </td>
                 </tr>
                 ${validPrepayments.map((item) => `
                   <tr>
                     <td style="min-width: 100px; height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center; border-right: 1px solid #e8e8e8;">
-                      <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle;">${formatShareDate(item.date)}</span>
+                      <span style="font-size: 10pt; font-weight: 500; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatShareDate(item.date)}</span>
                     </td>
                     <td style="height: 32px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;">
-                      <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle;">${formatCurrency(item.amount)}원</span>
+                      <span style="font-size: 10pt; font-weight: 600; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatCurrency(item.amount)}원</span>
                     </td>
                   </tr>
                 `).join('')}
@@ -2290,11 +2289,11 @@ export default function Home() {
                   <td style="min-width: 100px; height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                       <div style="display: flex; align-items: center; color: #495057;">${iconSVG.sparkles}</div>
-                      <span style="font-weight: 600; font-size: 10pt;">합계</span>
+                      <span style="font-weight: 600; font-size: 10pt; padding-bottom: 12px; display: inline-block;">합계</span>
                     </div>
                   </td>
                   <td style="height: 32px; border: none; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
-                    <span style="font-size: 11pt; font-weight: 700; color: #495057; display: inline-block; vertical-align: middle;">${formatCurrency(prepaymentTotal)}원</span>
+                    <span style="font-size: 11pt; font-weight: 700; color: #495057; display: inline-block; vertical-align: middle; padding-bottom: 12px;">${formatCurrency(prepaymentTotal)}원</span>
                   </td>
                 </tr>
               </tbody>
