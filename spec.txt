@@ -1138,3 +1138,139 @@ popState 이벤트를 모두 무시하고 아무 동작하지 않게 구현할 �
 # 구현
   - 타이틀에 연필 우측에 메뉴 아이콘 추가
   - 메뉴 아이콘의 나타나는 조건과 클릭시 기능은 `RestaurantDetailDialog의 메뉴 아이콘`과 동일하게 구현
+
+
+# 목적 : 예약 및 선결제 공유내용을 개선
+
+# 대상 : RestaurantDetailDialog  
+
+# 구현내용
+ - 공유 아이콘을 클릭했을때 text로 작성되는 공유내용을 html로 작성하여 테이블 형태로 작성함.
+ - 테이블 형태로 작성된 내용을 이미지로 변환하여 공유
+
+# 목적 : 예약 및 선결제 공유내용을 개선
+
+# 대상 : RestaurantDetailDialog  
+
+# 구현내용 : 아래 html을 참고하여 디자인을 개선해줘. row의 height는 모두 30px로 일치시킨다.
+
+ <table cellspacing="0" cellpadding="0" border="1" class="" style="width: 234px; height: 147px; font-size: 10pt; border-width: 0px; border-color: rgb(0, 0, 0); border-collapse: collapse; border-style: solid; background-color: rgb(255, 255, 255);">
+<tbody>
+<tr>
+<td style="width: 72px; height: 87px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);" colspan="1" rowspan="3">
+<p style="text-align:center"><span style="font-weight: bold;">메뉴/가격</span></p></td>
+<td style="width: 106px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p>&nbsp;우유</p></td>
+<td style="width: 54px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align:right">2,000원</p></td>
+</tr>
+<tr>
+<td style="width: 106px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p>&nbsp;리얼초코</p></td>
+<td style="width: 54px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align:right">3,000원</p></td>
+</tr>
+<tr>
+<td style="width: 106px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p>&nbsp;분다버그x2</p></td>
+<td style="width: 54px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align:right">4,500원</p></td>
+</tr>
+<tr>
+<td style="width: 72px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align:center"><span style="font-weight: bold;">가격</span></p></td>
+<td style="width: 160px; height: 28px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;" colspan="2" rowspan="1">
+<p style="text-align:center">11,500원</p></td>
+</tr>
+<tr>
+<td style="width: 72px; height: 31px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align:center"><span style="font-weight: bold;">예약일</span></p></td>
+<td style="width: 160px; height: 31px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;" colspan="2" rowspan="1">
+<p style="text-align:center">11.21 (금)</p></td>
+</tr>
+</tbody>
+</table>
+<p><br /></p>
+<p><span style="font-weight: bold;">선결제</span></p>
+<table cellspacing="0" cellpadding="0" border="1" style="width: 233px; height: 120px; font-size: 10pt; border-width: 0px; border-color: rgb(0, 0, 0); border-collapse: collapse; border-style: solid; background-color: rgb(255, 255, 255);" class="">
+<tbody data-pe_by-k="">
+<tr>
+<td style="width: 72px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align: center;"><span style="font-weight: bold;">날짜</span></p></td>
+<td style="width: 159px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align: center;"><span style="font-weight: bold;">금액</span></p></td>
+</tr>
+<tr data-pe_by-k="">
+<td style="width: 72px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;" data-pe_by-k="">
+<p style="text-align: center;">&nbsp;11.17(월)</p></td>
+<td style="width: 159px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align: center;">&nbsp;10,000원</p></td>
+</tr>
+<tr>
+<td style="width: 72px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align: center;">&nbsp;11.18(화)</p></td>
+<td style="width: 159px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid;">
+<p style="text-align: center;">&nbsp;500원</p></td>
+</tr>
+<tr>
+<td style="width: 72px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align: center;"><span style="font-weight: bold;">합계<br /></span></p></td>
+<td style="width: 159px; height: 30px; border-width: 1px; border-color: rgb(0, 0, 0); border-style: solid; background-color: rgb(238, 238, 238);">
+<p style="text-align: center;"><span style="font-weight: bold;">10,500원</span></p></td>
+</tr>
+</tbody>
+</table>
+<p><br /></p>
+
+
+# 공유양식
+- 선은 매우 얇게 하고 글짜색을 모두 검정색한다.
+- 글자가 row의 중앙에 오도록 한다.(현재는 아래쪽에 위치함)
+
+공유 양식을 현재의 기본 틀만 유지하고 최신 트렌드에 맞게 아이콘도 추가하고 컬러도 추가하여 깔끔하게 변경해줘
+내용이 행바꿈이 되지 않도록 테이블 크기를 고정하지 않음.
+
+# 공유양식
+- 아이콘은 Lucide icon으로 변경해서 깔끔하게 처리
+- row의 높이를 줄인다.
+- 배경이 너무 화려하다. 단색으로 처리해줘.
+- 타이틀의 배경색은 제거
+
+# 공유양식
+- 메뉴의 아이콘은 제거
+- 글자가 vertical의 center에 오도록 조정
+- 타이틀 아이콘을 제외한 나머지 아이콘은 모두 다크 그레이로 처리
+- 메뉴가 1개일때는 `메뉴/가격`에서 `메뉴`만 나타내고 메뉴별 가격을 없애고 메뉴명만 나타낸다.
+
+
+# 대상 : RestaurantDetailDialog  
+# 구현내용 
+- 공유 아이콘 왼쪽에 미리보기 아이콘을 추가
+- 미리보기 아이콘을 클릭시 공유 아이콘 클릭시 작성되는 html을 팝업창으로 보여준다.
+- 미리보기 아이콘은 개발모드에서만 나타나도록 하고 production에서는 나타나지 않도록 한다.
+- 공유 아이콘과 미리보기 아이콘을 클릭했을때 작성되는 html 코드 작성 코드는 하나로 관리한다.
+
+# 목적 : 공유양식 디자인 개선
+# 대상 : 공유양식
+# 내용
+- 가장 외부의 큰box의 외부 여백을 조금만 남기고 없앤다.
+- 선결제 아이콘을 놔두고 나머지 텍스트 앞 아이콘을 제거한다.
+- 예약 금액보다 설결제 금액의 합계가 같거나 더 많은 경우 sparkles아이콘을 합계 앞에 표시한다.
+- 예약 정보 테이블에 가로선을 나타낸다.
+
+# 목적 : 공유양식 디자인 개선
+# 대상 : 공유양식
+# 내용
+- 예약 정보 테이블과 선결제 테이블의 외각선츨 추가한다.
+
+
+# 목적 : 공유양식 디자인 개선
+# 대상 : 공유양식
+# 내용
+- 예약 정보 테이블과 선결제 테이블의 외각선이 보이지 않는다. 원인은?
+
+# 목적 : 공유양식 디자인 개선
+# 대상 : 공유양식
+# 내용
+- 예약 정보 테이블과 선결제 테이블의 왼쪽, 오른쪽 여백을 조금만 남긴다.
+- 타이틀(식당명) 위쪽 여백도 조금만 남긴다.
