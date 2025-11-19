@@ -2,6 +2,108 @@
 
 import { useEffect, useRef } from 'react';
 
+// 전역 팝업 스택 관리자
+type DialogHandler = {
+  id: string;
+  onClose: () => void;
+};
+
+class DialogStackManager {
+  private stack: DialogHandler[] = [];
+  private historyPushed = false;
+  private isHandlingPopState = false;
+  private ignoreNextPopState = false;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('popstate', this.handlePopState);
+    }
+  }
+
+  private handlePopState = (event: PopStateEvent) => {
+    // pushState 직후 발생하는 이벤트는 무시
+    if (this.ignoreNextPopState) {
+      this.ignoreNextPopState = false;
+      return;
+    }
+
+    // 이미 처리 중이면 무시
+    if (this.isHandlingPopState) {
+      return;
+    }
+
+    // 스택이 비어있으면 무시
+    if (this.stack.length === 0) {
+      return;
+    }
+
+    // 가장 최근에 열린 팝업 닫기
+    this.isHandlingPopState = true;
+    const topDialog = this.stack[this.stack.length - 1];
+    if (topDialog) {
+      topDialog.onClose();
+      this.stack.pop();
+    }
+
+    // 히스토리 상태 업데이트
+    if (this.stack.length === 0) {
+      this.historyPushed = false;
+    }
+
+    // 다음 이벤트 루프에서 플래그 리셋
+    setTimeout(() => {
+      this.isHandlingPopState = false;
+    }, 0);
+  };
+
+  register(id: string, onClose: () => void) {
+    // 이미 등록되어 있으면 제거 후 다시 추가 (최상단으로 이동)
+    this.unregister(id);
+    
+    this.stack.push({ id, onClose });
+
+    // 첫 번째 팝업이 열릴 때만 히스토리 엔트리 추가
+    if (!this.historyPushed && this.stack.length === 1) {
+      this.ignoreNextPopState = true;
+      window.history.pushState({ dialog: true }, '');
+      
+      // pushState 직후 발생할 수 있는 popstate 이벤트를 무시하기 위한 추가 지연
+      setTimeout(() => {
+        this.ignoreNextPopState = false;
+      }, 100);
+      
+      this.historyPushed = true;
+    }
+  }
+
+  unregister(id: string) {
+    const index = this.stack.findIndex((dialog) => dialog.id === id);
+    if (index !== -1) {
+      this.stack.splice(index, 1);
+    }
+
+    // 모든 팝업이 닫혔고, popstate 이벤트로 닫힌 경우가 아니라면 히스토리 정리
+    if (this.stack.length === 0 && this.historyPushed && !this.isHandlingPopState) {
+      const currentState = window.history.state;
+      if (currentState?.dialog) {
+        window.history.back();
+      }
+      this.historyPushed = false;
+    }
+  }
+
+  cleanup() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('popstate', this.handlePopState);
+    }
+    this.stack = [];
+    this.historyPushed = false;
+  }
+}
+
+// 싱글톤 인스턴스
+const dialogStackManager = typeof window !== 'undefined' ? new DialogStackManager() : null;
+
 /**
  * 모바일에서 뒤로가기 버튼을 눌렀을 때 팝업이 닫히도록 처리하는 훅
  * 
@@ -9,83 +111,32 @@ import { useEffect, useRef } from 'react';
  * @param onClose - 팝업을 닫는 콜백 함수
  */
 export function useDialogBackButton(open: boolean, onClose: () => void) {
-  const historyStateRef = useRef<number | null>(null);
-  const isHandlingPopStateRef = useRef(false);
-  const ignoreNextPopStateRef = useRef(false);
+  const dialogIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!dialogStackManager) {
+      return;
+    }
+
     if (open) {
-      // popstate 이벤트 리스너를 먼저 등록
-      const handlePopState = (event: PopStateEvent) => {
-        // pushState 직후 발생하는 이벤트는 무시
-        if (ignoreNextPopStateRef.current) {
-          ignoreNextPopStateRef.current = false;
-          return;
-        }
+      // 고유 ID 생성
+      if (!dialogIdRef.current) {
+        dialogIdRef.current = `dialog-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      }
 
-        // 이미 처리 중이면 무시
-        if (isHandlingPopStateRef.current) {
-          return;
-        }
-
-        // 뒤로가기 버튼이 눌렸을 때
-        if (historyStateRef.current !== null) {
-          isHandlingPopStateRef.current = true;
-          
-          // 팝업을 닫기
-          onClose();
-          
-          // 히스토리 상태 초기화
-          historyStateRef.current = null;
-          
-          // 다음 이벤트 루프에서 플래그 리셋
-          setTimeout(() => {
-            isHandlingPopStateRef.current = false;
-          }, 0);
-        }
-      };
-
-      window.addEventListener('popstate', handlePopState);
-
-      // 리스너 등록 후 짧은 지연을 두고 pushState 호출
-      // 이렇게 하면 pushState 직후 발생하는 popstate 이벤트를 무시할 수 있음
-      const timeoutId = setTimeout(() => {
-        const stateId = Date.now();
-        historyStateRef.current = stateId;
-        ignoreNextPopStateRef.current = true;
-        window.history.pushState({ dialog: true, stateId }, '');
-        
-        // pushState 직후 발생할 수 있는 popstate 이벤트를 무시하기 위한 추가 지연
-        setTimeout(() => {
-          ignoreNextPopStateRef.current = false;
-        }, 100);
-      }, 0);
+      // 팝업 스택에 등록
+      dialogStackManager.register(dialogIdRef.current, onClose);
 
       return () => {
-        clearTimeout(timeoutId);
-        window.removeEventListener('popstate', handlePopState);
-        
-        // 팝업이 닫힐 때 (컴포넌트 언마운트 또는 open이 false가 될 때)
-        // popstate 이벤트로 닫힌 경우가 아니라면 히스토리 정리
-        if (historyStateRef.current !== null && !isHandlingPopStateRef.current) {
-          const currentState = window.history.state;
-          // 현재 히스토리 상태가 우리가 추가한 것인지 확인
-          if (currentState?.dialog && currentState?.stateId === historyStateRef.current) {
-            // 히스토리에서 제거
-            window.history.back();
-          }
-          historyStateRef.current = null;
+        // 팝업이 닫힐 때 스택에서 제거
+        if (dialogIdRef.current) {
+          dialogStackManager.unregister(dialogIdRef.current);
         }
       };
     } else {
-      // 팝업이 닫힐 때 히스토리 정리 (open이 false가 된 경우)
-      if (historyStateRef.current !== null && !isHandlingPopStateRef.current) {
-        const currentState = window.history.state;
-        // popstate 이벤트가 아닌 다른 방법으로 닫힌 경우
-        if (currentState?.dialog && currentState?.stateId === historyStateRef.current) {
-          window.history.back();
-        }
-        historyStateRef.current = null;
+      // 팝업이 닫힐 때 스택에서 제거
+      if (dialogIdRef.current) {
+        dialogStackManager.unregister(dialogIdRef.current);
       }
     }
   }, [open, onClose]);
