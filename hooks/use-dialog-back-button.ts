@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 type DialogHandler = {
   id: string;
   onClose: () => void;
+  element?: HTMLElement | null;
 };
 
 class DialogStackManager {
@@ -13,11 +14,56 @@ class DialogStackManager {
   private historyPushed = false;
   private isHandlingPopState = false;
   private ignoreNextPopState = false;
+  private initialHistoryLength = 0;
 
   constructor() {
     if (typeof window !== 'undefined') {
+      this.initialHistoryLength = window.history.length;
       window.addEventListener('popstate', this.handlePopState);
     }
+  }
+
+  /**
+   * 현재 포커스가 있는 팝업을 찾습니다.
+   * Radix UI Dialog는 data-state="open" 속성을 사용하므로 이를 활용합니다.
+   * 일반적으로 스택의 최상단 팝업이 포커스를 가지고 있지만,
+   * DOM을 확인하여 실제로 열려있는 팝업을 검증합니다.
+   */
+  private findFocusedDialog(): DialogHandler | null {
+    if (this.stack.length === 0) {
+      return null;
+    }
+
+    // DOM에서 열려있는 모든 다이얼로그 찾기
+    const openDialogs = document.querySelectorAll('[role="dialog"][data-state="open"]');
+    
+    // 스택의 최상단 팝업이 기본값 (가장 최근에 열린 팝업)
+    const topHandler = this.stack[this.stack.length - 1];
+    
+    // DOM에 열린 다이얼로그가 없으면 스택의 최상단 반환
+    if (openDialogs.length === 0) {
+      return topHandler;
+    }
+
+    // 스택을 역순으로 순회하여 실제로 열려있는 팝업 찾기
+    // 가장 최근에 등록된 팝업부터 확인
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      const handler = this.stack[i];
+      
+      // 핸들러에 저장된 element가 있고, 그것이 실제로 열려있는지 확인
+      if (handler.element) {
+        const isOpen = Array.from(openDialogs).some(
+          dialog => dialog === handler.element || dialog.contains(handler.element)
+        );
+        if (isOpen) {
+          return handler;
+        }
+      }
+    }
+
+    // element 매칭이 실패하면 스택의 최상단 반환
+    // (일반적으로 스택의 최상단이 포커스를 가짐)
+    return topHandler;
   }
 
   private handlePopState = (event: PopStateEvent) => {
@@ -32,11 +78,11 @@ class DialogStackManager {
       return;
     }
 
-    // 스택이 비어있을 때도 처리
-    // 이는 모든 팝업이 닫혔을 때 뒤로가기 버튼을 눌렀을 때 발생할 수 있음
-    if (this.stack.length === 0) {
-      // 히스토리 엔트리를 다시 추가하여 페이지 이동을 방지
-      // 이렇게 하면 팝업이 없을 때도 뒤로가기 버튼을 눌러도 페이지 이동이 발생하지 않음
+    // 현재 포커스가 있는 팝업 찾기
+    const focusedDialog = this.findFocusedDialog();
+
+    if (!focusedDialog) {
+      // 열린 팝업이 없으면 히스토리 엔트리를 다시 추가하여 페이지 이동 방지
       this.ignoreNextPopState = true;
       window.history.pushState({ dialog: true }, '');
       setTimeout(() => {
@@ -46,16 +92,20 @@ class DialogStackManager {
       return;
     }
 
-    // 가장 최근에 열린 팝업 닫기
+    // 포커스가 있는 팝업 닫기
     this.isHandlingPopState = true;
-    const topDialog = this.stack[this.stack.length - 1];
-    if (topDialog) {
-      topDialog.onClose();
-      this.stack.pop();
+    
+    // 스택에서 해당 팝업 제거
+    const index = this.stack.findIndex((dialog) => dialog.id === focusedDialog.id);
+    if (index !== -1) {
+      this.stack.splice(index, 1);
     }
 
-    // 아직 다른 팝업이 열려있으면 히스토리 엔트리를 다시 추가
-    // 모든 팝업이 닫혔을 때도 히스토리 엔트리를 다시 추가하여 페이지 이동을 방지
+    // 팝업 닫기 콜백 실행
+    focusedDialog.onClose();
+
+    // 아직 다른 팝업이 열려있거나, 모든 팝업이 닫혔어도 히스토리 엔트리를 다시 추가
+    // 이렇게 하면 페이지 이동이 아닌 팝업 닫기로 처리됨
     setTimeout(() => {
       this.ignoreNextPopState = true;
       window.history.pushState({ dialog: true }, '');
@@ -71,11 +121,11 @@ class DialogStackManager {
     }, 0);
   };
 
-  register(id: string, onClose: () => void) {
+  register(id: string, onClose: () => void, element?: HTMLElement | null) {
     // 이미 등록되어 있으면 제거 후 다시 추가 (최상단으로 이동)
     this.unregister(id);
     
-    this.stack.push({ id, onClose });
+    this.stack.push({ id, onClose, element });
 
     // 각 팝업이 열릴 때마다 히스토리 엔트리 추가
     // 이렇게 하면 각 팝업마다 하나의 히스토리 엔트리가 있어서
@@ -89,6 +139,13 @@ class DialogStackManager {
     }, 50);
     
     this.historyPushed = true;
+  }
+
+  updateElement(id: string, element: HTMLElement) {
+    const handler = this.stack.find((dialog) => dialog.id === id);
+    if (handler) {
+      handler.element = element;
+    }
   }
 
   unregister(id: string) {
@@ -124,6 +181,7 @@ const dialogStackManager = typeof window !== 'undefined' ? new DialogStackManage
  */
 export function useDialogBackButton(open: boolean, onClose: () => void) {
   const dialogIdRef = useRef<string | null>(null);
+  const dialogElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!dialogStackManager) {
@@ -136,20 +194,38 @@ export function useDialogBackButton(open: boolean, onClose: () => void) {
         dialogIdRef.current = `dialog-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
       }
 
-      // 팝업 스택에 등록
-      dialogStackManager.register(dialogIdRef.current, onClose);
+      // 팝업 스택에 등록 (요소는 나중에 업데이트)
+      dialogStackManager.register(dialogIdRef.current, onClose, null);
+
+      // DOM 업데이트 후 다이얼로그 요소 찾기 및 업데이트
+      // 약간의 지연을 두어 DOM이 완전히 렌더링된 후 찾기
+      setTimeout(() => {
+        const dialogs = document.querySelectorAll('[role="dialog"][data-state="open"]');
+        // 가장 최근에 추가된 다이얼로그 (마지막 요소)를 찾기
+        // 일반적으로 가장 최근에 열린 팝업이 마지막에 추가됨
+        if (dialogs.length > 0) {
+          // 마지막 요소가 가장 최근에 열린 팝업일 가능성이 높음
+          dialogElementRef.current = dialogs[dialogs.length - 1] as HTMLElement;
+          // 요소를 찾았으면 스택의 핸들러에 업데이트
+          if (dialogIdRef.current && dialogElementRef.current) {
+            dialogStackManager.updateElement(dialogIdRef.current, dialogElementRef.current);
+          }
+        }
+      }, 50);
 
       return () => {
         // 팝업이 닫힐 때 스택에서 제거
         if (dialogIdRef.current) {
           dialogStackManager.unregister(dialogIdRef.current);
         }
+        dialogElementRef.current = null;
       };
     } else {
       // 팝업이 닫힐 때 스택에서 제거
       if (dialogIdRef.current) {
         dialogStackManager.unregister(dialogIdRef.current);
       }
+      dialogElementRef.current = null;
     }
   }, [open, onClose]);
 }
