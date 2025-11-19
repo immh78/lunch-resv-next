@@ -96,7 +96,7 @@ class DialogStackManager {
     // 포커스가 있는 팝업 닫기
     this.isHandlingPopState = true;
     
-    // 스택에서 해당 팝업 제거
+    // 스택에서 해당 팝업 제거 (unregister가 호출되지 않도록 미리 제거)
     const index = this.stack.findIndex((dialog) => dialog.id === focusedDialog.id);
     if (index !== -1) {
       this.stack.splice(index, 1);
@@ -105,21 +105,25 @@ class DialogStackManager {
     // 팝업 닫기 콜백 실행
     focusedDialog.onClose();
 
-    // 아직 다른 팝업이 열려있거나, 모든 팝업이 닫혔어도 히스토리 엔트리를 다시 추가
+    // 히스토리 엔트리를 다시 추가하여 페이지 이동 방지
+    // 다른 팝업이 열려있거나 모든 팝업이 닫혔어도 항상 히스토리 엔트리를 추가
     // 이렇게 하면 페이지 이동이 아닌 팝업 닫기로 처리됨
+    // 약간의 지연을 두어 팝업이 완전히 닫힌 후 히스토리 추가
     setTimeout(() => {
+      // 아직 다른 팝업이 열려있거나, 모든 팝업이 닫혔어도 히스토리 엔트리 추가
+      // 이렇게 하면 다음 뒤로가기 시에도 팝업 닫기로 처리됨
       this.ignoreNextPopState = true;
       window.history.pushState({ dialog: true }, '');
       setTimeout(() => {
         this.ignoreNextPopState = false;
       }, 50);
       this.historyPushed = true;
-    }, 0);
-
-    // 다음 이벤트 루프에서 플래그 리셋
-    setTimeout(() => {
-      this.isHandlingPopState = false;
-    }, 0);
+      
+      // 다음 이벤트 루프에서 플래그 리셋
+      setTimeout(() => {
+        this.isHandlingPopState = false;
+      }, 0);
+    }, 10);
   };
 
   register(id: string, onClose: () => void, element?: HTMLElement | null) {
@@ -150,13 +154,15 @@ class DialogStackManager {
   }
 
   unregister(id: string) {
+    // popstate 이벤트로 닫히는 경우는 이미 handlePopState에서 스택에서 제거했으므로
+    // 여기서는 스택에 있는지 확인 후 제거
     const index = this.stack.findIndex((dialog) => dialog.id === id);
     if (index !== -1) {
       this.stack.splice(index, 1);
     }
 
-    // 모든 팝업이 닫혔을 때 히스토리 상태만 업데이트
-    // popstate 이벤트로 닫힌 경우가 아니라면 히스토리를 건드리지 않음
+    // popstate 이벤트로 닫히는 경우가 아니고, 모든 팝업이 닫혔을 때만 히스토리 상태 업데이트
+    // popstate로 닫히는 경우는 handlePopState에서 히스토리를 관리하므로 여기서는 건드리지 않음
     if (this.stack.length === 0 && !this.isHandlingPopState) {
       this.historyPushed = false;
     }
