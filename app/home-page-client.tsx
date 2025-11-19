@@ -2224,7 +2224,8 @@ export default function Home() {
         backgroundColor: '#ffffff',
         scale: 2,
         logging: false,
-      });
+        useCORS: true,
+      } as Parameters<typeof html2canvas>[1]);
 
       // 임시 div 제거
       document.body.removeChild(tempDiv);
