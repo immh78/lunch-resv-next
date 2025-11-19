@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
 
 import { Camera, Save, Plus, Pencil, Trash2 } from 'lucide-react';
+import { useDialogBackButton } from '@/hooks/use-dialog-back-button';
 
 interface Restaurant {
   id: string;
@@ -62,6 +63,7 @@ export function ImageUploadDialog({
   uploadBoth = false,
   onBothUploaded,
 }: ImageUploadDialogProps) {
+  useDialogBackButton(open, onClose);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -456,6 +458,7 @@ export function MenuEditDialog({
   onClose,
   onSave,
 }: MenuEditDialogProps) {
+  useDialogBackButton(open, onClose);
   const [menuName, setMenuName] = useState('');
   const [cost, setCost] = useState<number>(0);
   const [remark, setRemark] = useState('');
@@ -648,6 +651,7 @@ export function RestaurantFormDialog({
   onMenuSave,
   onOpenUpload,
 }: RestaurantFormDialogProps) {
+  useDialogBackButton(open, onClose);
   const [kindSelectOpen, setKindSelectOpen] = useState(false);
   const [menuEditOpen, setMenuEditOpen] = useState(false);
   const [menuListOpen, setMenuListOpen] = useState(false);
@@ -950,6 +954,7 @@ function RestaurantKindSelectDialog({
   onClose,
   onSelect,
 }: RestaurantKindSelectDialogProps) {
+  useDialogBackButton(open, onClose);
   const kindEntries = Object.entries(restaurantKinds).sort(([a], [b]) => {
     const nameA = restaurantKinds[a]?.name || a;
     const nameB = restaurantKinds[b]?.name || b;
@@ -1029,6 +1034,7 @@ export function MenuListDialog({
   onMenuSelect,
   onDeleteMenu,
 }: MenuListDialogProps) {
+  useDialogBackButton(open, onClose);
   const menuEntries = Object.entries(menus);
 
   const handleMenuNameClick = (menuKey: string, menu: RestaurantMenu) => {

@@ -53,6 +53,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
 import { MenuEditDialog, ImageUploadDialog, MenuListDialog } from '@/app/rest-menu/components';
+import { useDialogBackButton } from '@/hooks/use-dialog-back-button';
 
 import {
   UtensilsCrossed,
@@ -527,6 +528,7 @@ function RestaurantDetailDialog({
   isReceipt,
   summary,
 }: RestaurantDetailDialogProps) {
+  useDialogBackButton(open, onClose);
   const [reservationDateOpen, setReservationDateOpen] = useState(false);
   const [prepaymentDateOpens, setPrepaymentDateOpens] = useState<Record<string, boolean>>({});
   const reservationDateValue = useMemo(() => displayToDate(reservationDate), [reservationDate]);
@@ -884,6 +886,7 @@ type MenuHistoryDialogProps = {
 };
 
 function MenuHistoryDialog({ open, menus, onClose, onSelect }: MenuHistoryDialogProps) {
+  useDialogBackButton(open, onClose);
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-md">
@@ -930,6 +933,7 @@ function RestaurantMenuPickerDialog({
   onClose,
   onSelect,
 }: RestaurantMenuPickerDialogProps) {
+  useDialogBackButton(open, onClose);
   const menuEntries = useMemo(() => {
     return Object.values(menus || {})
       .filter((menu) => menu?.name?.trim())
@@ -1007,6 +1011,7 @@ function RestaurantKindSelectDialog({
   onClose,
   onSelect,
 }: RestaurantKindSelectDialogProps) {
+  useDialogBackButton(open, onClose);
   const kindEntries = Object.entries(restaurantKinds).sort(([a], [b]) => {
     const nameA = restaurantKinds[a]?.name || a;
     const nameB = restaurantKinds[b]?.name || b;
@@ -1100,6 +1105,7 @@ function RestaurantFormDialog({
   mobilePreset,
   thumbnailPreset,
 }: RestaurantFormDialogProps) {
+  useDialogBackButton(open, onClose);
   const [kindSelectOpen, setKindSelectOpen] = useState(false);
   const [menuEditOpen, setMenuEditOpen] = useState(false);
   const [menuListOpen, setMenuListOpen] = useState(false);
@@ -1393,6 +1399,7 @@ type ThemeDialogProps = {
 };
 
 function ThemeDialog({ open, selectedTheme, onClose, onSelect, saving }: ThemeDialogProps) {
+  useDialogBackButton(open, onClose);
   const renderThemeButton = (theme: ThemeMode, label: string) => {
     const isActive = selectedTheme === theme;
     return (
@@ -1446,6 +1453,7 @@ type DeleteConfirmDialogProps = {
 };
 
 function DeleteConfirmDialog({ open, target, onCancel, onConfirm }: DeleteConfirmDialogProps) {
+  useDialogBackButton(open, onCancel);
   return (
     <AlertDialog open={open} onOpenChange={(next) => !next && onCancel()}>
       <AlertDialogContent>

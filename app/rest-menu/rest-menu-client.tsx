@@ -49,6 +49,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
 import { MenuEditDialog, RestaurantFormDialog } from './components';
+import { useDialogBackButton } from '@/hooks/use-dialog-back-button';
 
 import {
   UtensilsCrossed,
@@ -348,6 +349,7 @@ function RestaurantMenuDialog({
   onEditMenu,
   onMenuSelect,
 }: RestaurantMenuDialogProps) {
+  useDialogBackButton(open, onClose);
   const menuEntries = Object.entries(menus);
   const [deleteMenuKey, setDeleteMenuKey] = useState<string | null>(null);
 
@@ -521,6 +523,7 @@ function ImageViewDialog({
   imageUrl,
   onClose,
 }: ImageViewDialogProps) {
+  useDialogBackButton(open, onClose);
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-4xl p-0 overflow-hidden">
@@ -1445,6 +1448,7 @@ type ThemeDialogProps = {
 };
 
 function ThemeDialog({ open, selectedTheme, onClose, onSelect, saving }: ThemeDialogProps) {
+  useDialogBackButton(open, onClose);
   const renderThemeButton = (theme: ThemeMode, label: string) => {
     const isActive = selectedTheme === theme;
     return (
