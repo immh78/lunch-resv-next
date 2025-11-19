@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import { ref, onValue, set, remove, get, update } from 'firebase/database';
 import { toast } from 'sonner';
+import html2canvas from 'html2canvas';
 
 import { database } from '@/lib/firebase';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -2152,53 +2153,131 @@ export default function Home() {
       }
     };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!selectedRestaurant) return;
 
     const validMenus = menuRows.filter((menu) => menu.menu.trim() && menu.cost > 0);
-    const menuText = validMenus.map((menu) => menu.menu.trim()).join(' + ');
     const totalAmount = validMenus.reduce((sum, menu) => sum + menu.cost, 0);
 
     const validPrepayments = prepaymentRows
       .filter((item) => item.amount > 0 && item.date)
       .sort((a, b) => a.date.localeCompare(b.date));
-
-    const prepaymentLines = validPrepayments.map(
-      (item) => `${formatShareDate(item.date)} ${formatCurrency(item.amount)}원`
-    );
     const prepaymentTotal = validPrepayments.reduce((sum, item) => sum + item.amount, 0);
 
-    const lines: string[] = ['━━━━━━━━━━'];
-    if (menuText) lines.push(`■ 메뉴 : ${menuText}`);
-    if (totalAmount > 0) lines.push(`■ 가격 : ${formatCurrency(totalAmount)}원`);
-    if (reservationDate) lines.push(`■ 예약일 : ${formatShareReservationDate(reservationDate)}`);
-    lines.push('━━━━━━━━━━');
+    // HTML 테이블 생성
+    const tableHTML = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: #1a1a1a;">${selectedRestaurant.name} 예약정보</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <tr>
+            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333; width: 120px;">메뉴</td>
+            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333;">${validMenus.map((menu) => menu.menu.trim()).join(' + ') || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333;">가격</td>
+            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333;">${formatCurrency(totalAmount)}원</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333;">예약일</td>
+            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</td>
+          </tr>
+        </table>
+        ${validPrepayments.length > 0 ? `
+        <div style="margin-top: 20px;">
+          <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">선결제</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+            <thead>
+              <tr>
+                <th style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333; text-align: left;">날짜</th>
+                <th style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333; text-align: right;">금액</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${validPrepayments.map((item) => `
+                <tr>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333;">${formatShareDate(item.date)}</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333; text-align: right;">${formatCurrency(item.amount)}원</td>
+                </tr>
+              `).join('')}
+              <tr>
+                <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333;">합계</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333; text-align: right;">${formatCurrency(prepaymentTotal)}원</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+      </div>
+    `;
 
-    if (prepaymentLines.length) {
-      lines.push('');
-      lines.push('□ 선결제');
-      lines.push(...prepaymentLines);
-      lines.push('──────────');
-      lines.push(`합계 ${formatCurrency(prepaymentTotal)}원`);
+    try {
+      // 임시 div 생성
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = tableHTML;
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      document.body.appendChild(tempDiv);
+
+      // html2canvas로 이미지 변환
+      const canvas = await html2canvas(tempDiv.firstElementChild as HTMLElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+      });
+
+      // 임시 div 제거
+      document.body.removeChild(tempDiv);
+
+      // Canvas를 Blob으로 변환
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast.error('이미지 생성 중 오류가 발생했습니다.');
+          return;
+        }
+
+        const file = new File([blob], `${selectedRestaurant.name}_예약정보.png`, {
+          type: 'image/png',
+        });
+
+        try {
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: `${selectedRestaurant.name} 예약정보`,
+              files: [file],
+            });
+          } else {
+            // 다운로드
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${selectedRestaurant.name}_예약정보.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success('이미지가 다운로드되었습니다.');
+          }
+        } catch (error) {
+          if ((error as Error).name !== 'AbortError') {
+            console.error('Error sharing', error);
+            // 다운로드로 폴백
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${selectedRestaurant.name}_예약정보.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success('이미지가 다운로드되었습니다.');
+          }
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('Error creating image', error);
+      toast.error('이미지 생성 중 오류가 발생했습니다.');
     }
-
-    const text = lines.join('\n');
-
-    (async () => {
-      try {
-        if (navigator.share) {
-          await navigator.share({ title: '', text });
-        } else {
-          await navigator.clipboard.writeText(text);
-          toast.success('공유 내용을 클립보드에 복사했습니다.');
-        }
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Error sharing', error);
-          toast.error('공유 중 오류가 발생했습니다.');
-        }
-      }
-    })();
   };
 
   const handleThemeSelect = async (theme: ThemeMode) => {
