@@ -105,25 +105,23 @@ class DialogStackManager {
     // 팝업 닫기 콜백 실행
     focusedDialog.onClose();
 
-    // 히스토리 엔트리를 다시 추가하여 페이지 이동 방지
+    // 히스토리 엔트리를 즉시 추가하여 페이지 이동 방지
     // 다른 팝업이 열려있거나 모든 팝업이 닫혔어도 항상 히스토리 엔트리를 추가
     // 이렇게 하면 페이지 이동이 아닌 팝업 닫기로 처리됨
-    // 약간의 지연을 두어 팝업이 완전히 닫힌 후 히스토리 추가
+    // 동기적으로 처리하여 히스토리 엔트리가 확실히 추가되도록 함
+    this.ignoreNextPopState = true;
+    window.history.pushState({ dialog: true }, '');
+    this.historyPushed = true;
+    
+    // pushState 직후 발생할 수 있는 popstate 이벤트를 무시하기 위한 지연
     setTimeout(() => {
-      // 아직 다른 팝업이 열려있거나, 모든 팝업이 닫혔어도 히스토리 엔트리 추가
-      // 이렇게 하면 다음 뒤로가기 시에도 팝업 닫기로 처리됨
-      this.ignoreNextPopState = true;
-      window.history.pushState({ dialog: true }, '');
-      setTimeout(() => {
-        this.ignoreNextPopState = false;
-      }, 50);
-      this.historyPushed = true;
-      
-      // 다음 이벤트 루프에서 플래그 리셋
-      setTimeout(() => {
-        this.isHandlingPopState = false;
-      }, 0);
-    }, 10);
+      this.ignoreNextPopState = false;
+    }, 50);
+    
+    // 다음 이벤트 루프에서 플래그 리셋
+    setTimeout(() => {
+      this.isHandlingPopState = false;
+    }, 0);
   };
 
   register(id: string, onClose: () => void, element?: HTMLElement | null) {
