@@ -2165,48 +2165,121 @@ export default function Home() {
     const prepaymentTotal = validPrepayments.reduce((sum, item) => sum + item.amount, 0);
 
     // HTML 테이블 생성
+    const menuRowsCount = validMenus.length || 1;
     const tableHTML = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: #1a1a1a;">${selectedRestaurant.name} 예약정보</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-          <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333; width: 120px;">메뉴</td>
-            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333;">${validMenus.map((menu) => menu.menu.trim()).join(' + ') || '-'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333;">가격</td>
-            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333;">${formatCurrency(totalAmount)}원</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333;">예약일</td>
-            <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</td>
-          </tr>
-        </table>
-        ${validPrepayments.length > 0 ? `
-        <div style="margin-top: 20px;">
-          <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">선결제</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
-            <thead>
-              <tr>
-                <th style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333; text-align: left;">날짜</th>
-                <th style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333; text-align: right;">금액</th>
-              </tr>
-            </thead>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
+        <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #f0f0f0;">
+            <span style="font-size: 24px;">🍽️</span>
+            <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #1a1a1a; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">${selectedRestaurant.name} 예약정보</h2>
+          </div>
+          <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); margin-bottom: 24px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <tbody>
-              ${validPrepayments.map((item) => `
+              ${validMenus.length > 0 ? validMenus.map((menu, index) => `
                 <tr>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333;">${formatShareDate(item.date)}</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e5e5; color: #333; text-align: right;">${formatCurrency(item.amount)}원</td>
+                  ${index === 0 ? `
+                  <td style="min-width: 100px; height: 40px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); text-align: center; vertical-align: middle; color: white; white-space: nowrap; padding: 0 16px;" rowspan="${menuRowsCount}">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                      <span style="font-size: 16px;">📋</span>
+                      <span style="font-weight: 600; font-size: 11pt;">메뉴/가격</span>
+                    </div>
+                  </td>
+                  ` : ''}
+                  <td style="height: 40px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 16px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 14px;">🍴</span>
+                      <span style="font-size: 11pt; font-weight: 500;">${menu.menu.trim()}</span>
+                    </div>
+                  </td>
+                  <td style="height: 40px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 16px; text-align: right;">
+                    <span style="font-size: 11pt; font-weight: 600; color: #667eea;">${formatCurrency(menu.cost)}원</span>
+                  </td>
                 </tr>
-              `).join('')}
+              `).join('') : `
+                <tr>
+                  <td style="min-width: 100px; height: 40px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); text-align: center; vertical-align: middle; color: white; white-space: nowrap; padding: 0 16px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                      <span style="font-size: 16px;">📋</span>
+                      <span style="font-weight: 600; font-size: 11pt;">메뉴/가격</span>
+                    </div>
+                  </td>
+                  <td style="height: 40px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #999; white-space: nowrap; padding: 0 16px;" colspan="2">
+                    <span style="font-size: 11pt;">-</span>
+                  </td>
+                </tr>
+              `}
               <tr>
-                <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333;">합계</td>
-                <td style="padding: 8px 12px; border: 1px solid #e5e5e5; background: #f9f9f9; font-weight: 600; color: #333; text-align: right;">${formatCurrency(prepaymentTotal)}원</td>
+                <td style="min-width: 100px; height: 40px; border: none; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); text-align: center; vertical-align: middle; color: white; white-space: nowrap; padding: 0 16px;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span style="font-size: 16px;">💰</span>
+                    <span style="font-weight: 600; font-size: 11pt;">가격</span>
+                  </div>
+                </td>
+                <td style="height: 40px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 16px; text-align: center;" colspan="2">
+                  <span style="font-size: 13pt; font-weight: 700; color: #f5576c;">${formatCurrency(totalAmount)}원</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="min-width: 100px; height: 40px; border: none; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); text-align: center; vertical-align: middle; color: white; white-space: nowrap; padding: 0 16px;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span style="font-size: 16px;">📅</span>
+                    <span style="font-weight: 600; font-size: 11pt;">예약일</span>
+                  </div>
+                </td>
+                <td style="height: 40px; border: none; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 16px; text-align: center;" colspan="2">
+                  <span style="font-size: 11pt; font-weight: 600; color: #4facfe;">${reservationDate ? formatShareReservationDate(reservationDate) : '-'}</span>
+                </td>
               </tr>
             </tbody>
           </table>
+          ${validPrepayments.length > 0 ? `
+          <div style="margin-top: 24px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 20px;">💳</span>
+              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #1a1a1a;">선결제</h3>
+            </div>
+            <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+              <tbody>
+                <tr>
+                  <td style="min-width: 100px; height: 40px; border: none; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); text-align: center; vertical-align: middle; color: white; white-space: nowrap; padding: 0 16px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                      <span style="font-size: 16px;">📆</span>
+                      <span style="font-weight: 600; font-size: 11pt;">날짜</span>
+                    </div>
+                  </td>
+                  <td style="height: 40px; border: none; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); text-align: center; vertical-align: middle; color: white; white-space: nowrap; padding: 0 16px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                      <span style="font-size: 16px;">💵</span>
+                      <span style="font-weight: 600; font-size: 11pt;">금액</span>
+                    </div>
+                  </td>
+                </tr>
+                ${validPrepayments.map((item) => `
+                  <tr>
+                    <td style="min-width: 100px; height: 40px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 16px; text-align: center;">
+                      <span style="font-size: 11pt; font-weight: 500;">${formatShareDate(item.date)}</span>
+                    </td>
+                    <td style="height: 40px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 16px; text-align: center;">
+                      <span style="font-size: 11pt; font-weight: 600; color: #fa709a;">${formatCurrency(item.amount)}원</span>
+                    </td>
+                  </tr>
+                `).join('')}
+                <tr>
+                  <td style="min-width: 100px; height: 40px; border: none; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); text-align: center; vertical-align: middle; color: white; white-space: nowrap; padding: 0 16px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                      <span style="font-size: 16px;">✨</span>
+                      <span style="font-weight: 600; font-size: 11pt;">합계</span>
+                    </div>
+                  </td>
+                  <td style="height: 40px; border: none; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); text-align: center; vertical-align: middle; color: white; white-space: nowrap; padding: 0 16px;">
+                    <span style="font-size: 12pt; font-weight: 700;">${formatCurrency(prepaymentTotal)}원</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          ` : ''}
         </div>
-        ` : ''}
       </div>
     `;
 
