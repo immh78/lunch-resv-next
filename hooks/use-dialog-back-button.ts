@@ -32,15 +32,9 @@ class DialogStackManager {
       return;
     }
 
-    // 스택이 비어있으면 무시
+    // 스택이 비어있으면 무시 (일반적인 페이지 뒤로가기 허용)
     if (this.stack.length === 0) {
-      return;
-    }
-
-    // 현재 히스토리 상태가 우리가 추가한 것인지 확인
-    const currentState = window.history.state;
-    if (!currentState?.dialog) {
-      // 우리가 추가한 히스토리 엔트리가 아니면 무시
+      this.historyPushed = false;
       return;
     }
 
@@ -52,20 +46,17 @@ class DialogStackManager {
       this.stack.pop();
     }
 
-    // 히스토리 상태 업데이트
-    if (this.stack.length === 0) {
-      // 모든 팝업이 닫혔을 때 히스토리 엔트리 제거
-      // replaceState를 사용하여 현재 히스토리 엔트리를 제거하되, 페이지 이동은 방지
-      window.history.replaceState(null, '');
-      this.historyPushed = false;
-    } else {
-      // 아직 다른 팝업이 열려있으면 히스토리 엔트리 유지
-      // 히스토리 엔트리를 다시 추가하여 다음 뒤로가기 버튼 클릭을 처리할 수 있도록 함
+    // 아직 다른 팝업이 열려있으면 히스토리 엔트리를 다시 추가
+    // 이렇게 하면 다음 뒤로가기 버튼 클릭도 처리할 수 있음
+    if (this.stack.length > 0) {
       this.ignoreNextPopState = true;
       window.history.pushState({ dialog: true }, '');
       setTimeout(() => {
         this.ignoreNextPopState = false;
-      }, 100);
+      }, 50);
+    } else {
+      // 모든 팝업이 닫혔을 때 히스토리 상태만 업데이트
+      this.historyPushed = false;
     }
 
     // 다음 이벤트 루프에서 플래그 리셋
@@ -81,14 +72,14 @@ class DialogStackManager {
     this.stack.push({ id, onClose });
 
     // 첫 번째 팝업이 열릴 때만 히스토리 엔트리 추가
-    if (!this.historyPushed && this.stack.length === 1) {
+    if (!this.historyPushed) {
       this.ignoreNextPopState = true;
       window.history.pushState({ dialog: true }, '');
       
       // pushState 직후 발생할 수 있는 popstate 이벤트를 무시하기 위한 추가 지연
       setTimeout(() => {
         this.ignoreNextPopState = false;
-      }, 100);
+      }, 50);
       
       this.historyPushed = true;
     }
@@ -100,15 +91,9 @@ class DialogStackManager {
       this.stack.splice(index, 1);
     }
 
-    // 모든 팝업이 닫혔을 때 히스토리 엔트리 제거
-    // popstate 이벤트로 닫힌 경우가 아니라면 안전하게 제거
-    if (this.stack.length === 0 && this.historyPushed && !this.isHandlingPopState) {
-      const currentState = window.history.state;
-      if (currentState?.dialog) {
-        // history.back() 대신 replaceState를 사용하여 현재 히스토리 엔트리를 제거
-        // 이렇게 하면 이전 페이지로 이동하지 않음
-        window.history.replaceState(null, '');
-      }
+    // 모든 팝업이 닫혔을 때 히스토리 상태만 업데이트
+    // popstate 이벤트로 닫힌 경우가 아니라면 히스토리를 건드리지 않음
+    if (this.stack.length === 0 && !this.isHandlingPopState) {
       this.historyPushed = false;
     }
   }
