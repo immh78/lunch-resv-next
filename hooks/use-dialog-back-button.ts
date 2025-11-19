@@ -11,16 +11,18 @@ import { useEffect, useRef } from 'react';
 export function useDialogBackButton(open: boolean, onClose: () => void) {
   const historyStateRef = useRef<number | null>(null);
   const isHandlingPopStateRef = useRef(false);
+  const ignoreNextPopStateRef = useRef(false);
 
   useEffect(() => {
     if (open) {
-      // 팝업이 열릴 때 히스토리 엔트리 추가
-      const stateId = Date.now();
-      historyStateRef.current = stateId;
-      window.history.pushState({ dialog: true, stateId }, '');
-
-      // popstate 이벤트 리스너 등록
+      // popstate 이벤트 리스너를 먼저 등록
       const handlePopState = (event: PopStateEvent) => {
+        // pushState 직후 발생하는 이벤트는 무시
+        if (ignoreNextPopStateRef.current) {
+          ignoreNextPopStateRef.current = false;
+          return;
+        }
+
         // 이미 처리 중이면 무시
         if (isHandlingPopStateRef.current) {
           return;
@@ -45,7 +47,22 @@ export function useDialogBackButton(open: boolean, onClose: () => void) {
 
       window.addEventListener('popstate', handlePopState);
 
+      // 리스너 등록 후 짧은 지연을 두고 pushState 호출
+      // 이렇게 하면 pushState 직후 발생하는 popstate 이벤트를 무시할 수 있음
+      const timeoutId = setTimeout(() => {
+        const stateId = Date.now();
+        historyStateRef.current = stateId;
+        ignoreNextPopStateRef.current = true;
+        window.history.pushState({ dialog: true, stateId }, '');
+        
+        // pushState 직후 발생할 수 있는 popstate 이벤트를 무시하기 위한 추가 지연
+        setTimeout(() => {
+          ignoreNextPopStateRef.current = false;
+        }, 100);
+      }, 0);
+
       return () => {
+        clearTimeout(timeoutId);
         window.removeEventListener('popstate', handlePopState);
         
         // 팝업이 닫힐 때 (컴포넌트 언마운트 또는 open이 false가 될 때)
