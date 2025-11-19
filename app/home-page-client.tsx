@@ -312,8 +312,8 @@ const generateShareFormHTML = (
         ${validPrepayments.length > 0 ? `
         <div style="margin-top: 20px;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <div style="display: flex; align-items: bottom; color: #495057;">${iconSVG.creditCard}</div>
-            <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; display: inline-block;">선결제</h3>
+            <div style="display: flex; align-items: bottom; color: #495057; margin-bottom: -16px; display: inline-block;">${iconSVG.creditCard}</div>
+            <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">선결제</h3>
           </div>
           <div style="border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden;">
             <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255);">
