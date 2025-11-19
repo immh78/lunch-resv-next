@@ -46,17 +46,18 @@ class DialogStackManager {
       this.stack.pop();
     }
 
-    // 아직 다른 팝업이 열려있으면 히스토리 엔트리를 다시 추가
-    // 이렇게 하면 다음 뒤로가기 버튼 클릭도 처리할 수 있음
-    if (this.stack.length > 0) {
-      this.ignoreNextPopState = true;
-      window.history.pushState({ dialog: true }, '');
+    // 모든 팝업이 닫혔을 때 히스토리 엔트리 제거
+    // 이렇게 하면 이전 페이지로 이동하지 않고 현재 페이지에 머물 수 있음
+    if (this.stack.length === 0) {
+      // 다음 이벤트 루프에서 히스토리 엔트리 제거
+      // replaceState를 사용하여 현재 히스토리 엔트리를 제거하되, 페이지 이동은 방지
       setTimeout(() => {
-        this.ignoreNextPopState = false;
-      }, 50);
-    } else {
-      // 모든 팝업이 닫혔을 때 히스토리 상태만 업데이트
-      this.historyPushed = false;
+        const currentState = window.history.state;
+        if (currentState?.dialog) {
+          window.history.replaceState(null, '');
+        }
+        this.historyPushed = false;
+      }, 0);
     }
 
     // 다음 이벤트 루프에서 플래그 리셋
@@ -71,18 +72,18 @@ class DialogStackManager {
     
     this.stack.push({ id, onClose });
 
-    // 첫 번째 팝업이 열릴 때만 히스토리 엔트리 추가
-    if (!this.historyPushed) {
-      this.ignoreNextPopState = true;
-      window.history.pushState({ dialog: true }, '');
-      
-      // pushState 직후 발생할 수 있는 popstate 이벤트를 무시하기 위한 추가 지연
-      setTimeout(() => {
-        this.ignoreNextPopState = false;
-      }, 50);
-      
-      this.historyPushed = true;
-    }
+    // 각 팝업이 열릴 때마다 히스토리 엔트리 추가
+    // 이렇게 하면 각 팝업마다 하나의 히스토리 엔트리가 있어서
+    // 뒤로가기 버튼을 누를 때마다 하나의 팝업이 닫힘
+    this.ignoreNextPopState = true;
+    window.history.pushState({ dialog: true }, '');
+    
+    // pushState 직후 발생할 수 있는 popstate 이벤트를 무시하기 위한 추가 지연
+    setTimeout(() => {
+      this.ignoreNextPopState = false;
+    }, 50);
+    
+    this.historyPushed = true;
   }
 
   unregister(id: string) {
