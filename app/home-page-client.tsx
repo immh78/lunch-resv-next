@@ -2435,7 +2435,7 @@ export default function Home() {
                 variant="ghost"
                 size="icon"
                 className="shrink-0"
-                onClick={() => router.push('/rest-menu')}
+                onClick={() => router.replace('/rest-menu')}
               >
                 <UtensilsCrossed className="h-5 w-5" />
               </Button>
@@ -2456,7 +2456,7 @@ export default function Home() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuItem
-                  onSelect={() => router.push('/rest-menu')}
+                  onSelect={() => router.replace('/rest-menu')}
                   className="flex items-center gap-2"
                 >
                   <BookOpen className="h-4 w-4" />

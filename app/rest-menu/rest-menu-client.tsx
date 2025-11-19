@@ -1120,7 +1120,7 @@ export default function RestMenuPageClient() {
                 variant="ghost"
                 size="icon"
                 className="shrink-0"
-                onClick={() => router.push('/')}
+                onClick={() => router.replace('/')}
               >
                 <BookOpen className="h-5 w-5" />
               </Button>
@@ -1136,7 +1136,7 @@ export default function RestMenuPageClient() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuItem
-                  onSelect={() => router.push('/')}
+                  onSelect={() => router.replace('/')}
                   className="flex items-center gap-2"
                 >
                   <UtensilsCrossed className="h-4 w-4" />
