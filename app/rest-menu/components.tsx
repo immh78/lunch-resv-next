@@ -1157,10 +1157,13 @@ export function RestaurantKindManageDialog({
   onDelete,
 }: RestaurantKindManageDialogProps) {
   const [editingKind, setEditingKind] = useState<string | null>(null);
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [kindKey, setKindKey] = useState('');
   const [kindName, setKindName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [deleteKind, setDeleteKind] = useState<string | null>(null);
+  const keyInputRef = useRef<HTMLInputElement>(null);
 
   const kindEntries = Object.entries(restaurantKinds).sort(([a], [b]) => {
     const nameA = restaurantKinds[a]?.name || a;
@@ -1177,12 +1180,26 @@ export function RestaurantKindManageDialog({
 
   const handleAddNew = () => {
     setEditingKind(null);
+    setIsAddingNew(true);
+    setKindKey('');
     setKindName('');
     setSelectedIcon('');
+    // 다음 렌더링 사이클에서 포커스 이동
+    setTimeout(() => {
+      keyInputRef.current?.focus();
+    }, 0);
   };
+
+  // isAddingNew가 true가 되면 포커스 이동
+  useEffect(() => {
+    if (isAddingNew && keyInputRef.current) {
+      keyInputRef.current.focus();
+    }
+  }, [isAddingNew]);
 
   const handleEdit = (kind: string) => {
     setEditingKind(kind);
+    setKindKey(kind);
     setKindName(restaurantKinds[kind]?.name || kind);
     setSelectedIcon(restaurantKinds[kind]?.icon || restaurantIcons[kind] || '');
   };
@@ -1193,14 +1210,32 @@ export function RestaurantKindManageDialog({
       return;
     }
 
+    if (!editingKind && !kindKey.trim()) {
+      toast.error('Key 값을 입력하세요.');
+      return;
+    }
+
+    const finalKey = editingKind || kindKey.trim();
+    
+    if (!/^[A-Z0-9\-_]+$/.test(finalKey)) {
+      toast.error('Key는 영문 대문자, 숫자, 하이픈(-), 언더스코어(_)만 사용할 수 있습니다.');
+      return;
+    }
+
+    if (!editingKind && restaurantKinds[finalKey]) {
+      toast.error('이미 존재하는 Key입니다.');
+      return;
+    }
+
     setSaving(true);
     try {
-      const kindKey = editingKind || kindName.trim().toLowerCase().replace(/\s+/g, '-');
-      await onSave(kindKey, {
+      await onSave(finalKey, {
         name: kindName.trim(),
         icon: selectedIcon || undefined,
       });
       setEditingKind(null);
+      setIsAddingNew(false);
+      setKindKey('');
       setKindName('');
       setSelectedIcon('');
       toast.success(editingKind ? '식당 종류를 수정했습니다.' : '식당 종류를 추가했습니다.');
@@ -1247,7 +1282,7 @@ export function RestaurantKindManageDialog({
             <DialogDescription>식당 종류를 추가, 수정, 삭제할 수 있습니다.</DialogDescription>
           </DialogHeader>
           <div className="max-h-80 space-y-2 overflow-y-auto">
-            {kindEntries.length === 0 && !editingKind && kindName === '' && (
+            {kindEntries.length === 0 && !editingKind && !isAddingNew && (
               <p className="text-sm text-muted-foreground">등록된 종류가 없습니다.</p>
             )}
             {kindEntries.map(([kind, data]) => {
@@ -1258,6 +1293,15 @@ export function RestaurantKindManageDialog({
               if (isEditing) {
                 return (
                   <div key={kind} className="space-y-3 rounded-sm border border-border bg-muted/50 p-3">
+                    <div className="space-y-2">
+                      <Label>Key</Label>
+                      <Input
+                        value={kindKey}
+                        readOnly
+                        className="bg-muted"
+                        placeholder="Key (수정 불가)"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Label>종류명</Label>
                       <Input
@@ -1309,6 +1353,8 @@ export function RestaurantKindManageDialog({
                         variant="outline"
                         onClick={() => {
                           setEditingKind(null);
+                          setIsAddingNew(false);
+                          setKindKey('');
                           setKindName('');
                           setSelectedIcon('');
                         }}
@@ -1350,8 +1396,22 @@ export function RestaurantKindManageDialog({
                 </div>
               );
             })}
-            {!editingKind && kindName !== '' && (
+            {!editingKind && isAddingNew && (
               <div className="space-y-3 rounded-sm border border-border bg-muted/50 p-3">
+                <div className="space-y-2">
+                  <Label>Key</Label>
+                  <Input
+                    ref={keyInputRef}
+                    value={kindKey}
+                    onChange={(e) => {
+                      // 소문자를 대문자로 변환하고, 영문 대문자, 숫자, 하이픈(-), 언더스코어(_)만 허용
+                      const upperCase = e.target.value.toUpperCase();
+                      const filtered = upperCase.replace(/[^A-Z0-9\-_]/g, '');
+                      setKindKey(filtered);
+                    }}
+                    placeholder="Key를 입력하세요 (영문 대문자, 숫자, 하이픈, 언더스코어만 가능)"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>종류명</Label>
                   <Input
@@ -1392,7 +1452,7 @@ export function RestaurantKindManageDialog({
                 <Button
                   size="sm"
                   onClick={handleSave}
-                  disabled={saving || !kindName.trim()}
+                  disabled={saving || !kindName.trim() || !kindKey.trim()}
                   className="w-full"
                 >
                   {saving ? <Spinner className="h-4 w-4" /> : '추가'}
