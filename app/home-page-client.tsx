@@ -322,7 +322,7 @@ const generateShareFormHTML = (
               ${validPrepayments.map((item) => `
                 <tr>
                   <td style="min-width: 100px; height: 18px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center; border-right: 1px solid #e8e8e8;">
-                    <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${formatShareDate(item.date)}</span>
+                    <span style="font-size: 10pt; font-weight: 500; color: #495057; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${formatShareDate(item.date)}</span>
                   </td>
                   <td style="height: 18px; border: none; border-bottom: 1px solid #e8e8e8; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px; text-align: center;">
                     <span style="font-size: 10pt; font-weight: 600; color: #495057; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${formatCurrency(item.amount)}원</span>
