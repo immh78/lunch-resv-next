@@ -54,6 +54,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
 import { MenuEditDialog, ImageUploadDialog, MenuListDialog } from '@/app/rest-menu/components';
+import * as LucideIcons from 'lucide-react';
 
 import {
   UtensilsCrossed,
@@ -211,12 +212,100 @@ const formatShareReservationDate = (value: string): string => {
   return `${month}.${day} (${weekday})`;
 };
 
+// Lucide 아이콘 이름을 SVG 문자열로 변환하는 헬퍼 함수
+// 포장예약 페이지와 동일한 로직으로 아이콘을 가져옵니다.
+// React 렌더링 중에는 호출하지 않고, 이벤트 핸들러에서만 호출합니다.
+const getLucideIconSVG = async (iconName?: string): Promise<string> => {
+  if (!iconName || typeof document === 'undefined') return '';
+  
+  try {
+    // getLucideIcon과 동일한 로직으로 아이콘 이름 정규화
+    let pascalCaseName: string;
+    if (/^[A-Z][a-zA-Z0-9]*$/.test(iconName)) {
+      pascalCaseName = iconName;
+    } else {
+      pascalCaseName = iconName
+        .split(/[-_]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join('');
+    }
+    
+    // Lucide 아이콘 컴포넌트 가져오기
+    const IconComponent = (LucideIcons as unknown as Record<string, any>)[pascalCaseName];
+    if (!IconComponent) return '';
+    
+    // 임시 DOM 요소 생성하여 아이콘 렌더링
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '0';
+    tempDiv.style.width = '16px';
+    tempDiv.style.height = '16px';
+    document.body.appendChild(tempDiv);
+    
+    // React를 사용하여 아이콘 렌더링
+    // 이 함수는 React 렌더링 중이 아닐 때만 호출되어야 합니다.
+    // 동적 import를 사용하여 react-dom/client를 가져옵니다.
+    const ReactDOMClient = await import('react-dom/client');
+    const root = ReactDOMClient.createRoot(tempDiv);
+    
+    // 아이콘 렌더링
+    root.render(
+      React.createElement(IconComponent, {
+        size: 16,
+        strokeWidth: 2,
+        color: 'currentColor'
+      })
+    );
+    
+    // React 렌더링이 완료될 때까지 대기
+    // requestAnimationFrame을 사용하여 다음 프레임까지 대기
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+    
+    // 렌더링된 SVG 요소 가져오기
+    const svgElement = tempDiv.querySelector('svg');
+    let svgString = '';
+    
+    if (svgElement) {
+      // SVG 요소를 문자열로 변환
+      svgElement.setAttribute('style', 'display: inline-block; vertical-align: middle;');
+      svgString = svgElement.outerHTML;
+    }
+    
+    // 정리 (비동기적으로 처리하여 React 렌더링 완료 대기)
+    setTimeout(() => {
+      try {
+        root.unmount();
+        if (tempDiv.parentNode) {
+          document.body.removeChild(tempDiv);
+        }
+      } catch (e) {
+        // 이미 정리된 경우 무시
+      }
+    }, 100);
+    
+    return svgString;
+  } catch (error) {
+    console.error('Error getting icon SVG:', error);
+    return '';
+  }
+};
+
 // 공유 양식 HTML 생성 함수 (공통)
 const generateShareFormHTML = (
   restaurantName: string,
   menuRows: Array<{ menu: string; cost: number }>,
   reservationDate: string,
-  prepaymentRows: Array<{ date: string; amount: number }>
+  prepaymentRows: Array<{ date: string; amount: number }>,
+  restaurantKind?: string,
+  restaurantIcons?: Record<string, string>,
+  iconSVGCache?: Record<string, string>
 ): string => {
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('ko-KR').format(value);
@@ -248,11 +337,21 @@ const generateShareFormHTML = (
   // 선결제 합계가 예약 금액보다 같거나 많은지 확인
   const showSparkles = prepaymentTotal >= totalAmount;
 
+  // 포장예약 페이지와 동일한 로직으로 식당 아이콘 가져오기
+  const restaurantIconName = restaurantKind && restaurantIcons?.[restaurantKind];
+  // 캐시에서 아이콘 SVG를 가져오거나, 캐시가 없으면 빈 문자열 반환
+  const restaurantIconSVG = restaurantIconName && iconSVGCache?.[restaurantIconName] 
+    ? iconSVGCache[restaurantIconName] 
+    : '';
+
   const tableHTML = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 8px; background: #f5f5f5; border-radius: 12px;">
       <div style="background: white; border-radius: 8px; padding: 4px 10px 10px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
-          <h2 style="align-items: center; margin: 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${restaurantIconSVG ? `<div style="display: flex; align-items: center; color: #1a1a1a;">${restaurantIconSVG}</div>` : ''}
+            <h2 style="align-items: center; margin: 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
+          </div>
           ${reservationDate ? `<span style="font-size: 10pt; font-weight: 600; color: #495057;">${formatShareReservationDate(reservationDate)}</span>` : ''}
         </div>
         <div style="border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden; margin-bottom: 0;">
@@ -1684,6 +1783,7 @@ export default function Home() {
   const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>({});
   const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>({});
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [iconSVGCache, setIconSVGCache] = useState<Record<string, string>>({});
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -2311,7 +2411,8 @@ export default function Home() {
     };
 
   // 공유 HTML 생성 함수 (공통)
-  const getShareHTML = () => {
+  // iconSVGCache: 아이콘 SVG 캐시 (이벤트 핸들러에서 미리 생성)
+  const getShareHTML = (iconSVGCache?: Record<string, string>) => {
     if (!selectedRestaurant) return '';
     
     const validMenus = menuRows
@@ -2325,18 +2426,40 @@ export default function Home() {
       selectedRestaurant.name,
       validMenus,
       reservationDate,
-      validPrepayments
+      validPrepayments,
+      selectedRestaurant.kind,
+      restaurantIcons,
+      iconSVGCache
     );
   };
 
-  const handlePreview = () => {
+  const handlePreview = async () => {
+    if (!selectedRestaurant) return;
+    
+    // 아이콘 SVG를 미리 생성하여 캐시에 저장
+    const cache: Record<string, string> = {};
+    if (selectedRestaurant.kind && restaurantIcons[selectedRestaurant.kind]) {
+      const iconName = restaurantIcons[selectedRestaurant.kind];
+      cache[iconName] = await getLucideIconSVG(iconName);
+    }
+    
+    // 아이콘 SVG 캐시를 상태에 저장하여 미리보기에서 사용
+    setIconSVGCache(cache);
     setPreviewDialogOpen(true);
   };
 
   const handleShare = async () => {
     if (!selectedRestaurant) return;
 
-    const tableHTML = getShareHTML();
+    // 아이콘 SVG를 미리 생성하여 캐시에 저장
+    // 이렇게 하면 React 렌더링 중이 아닌 이벤트 핸들러에서 아이콘을 렌더링할 수 있습니다.
+    const iconSVGCache: Record<string, string> = {};
+    if (selectedRestaurant.kind && restaurantIcons[selectedRestaurant.kind]) {
+      const iconName = restaurantIcons[selectedRestaurant.kind];
+      iconSVGCache[iconName] = await getLucideIconSVG(iconName);
+    }
+
+    const tableHTML = getShareHTML(iconSVGCache);
 
     try {
       // 임시 div 생성
@@ -2845,7 +2968,7 @@ export default function Home() {
             <div className="p-4">
               <div 
                 className="share-form-container"
-                dangerouslySetInnerHTML={{ __html: getShareHTML() }} 
+                dangerouslySetInnerHTML={{ __html: getShareHTML(iconSVGCache) }} 
               />
             </div>
           </DialogContent>
