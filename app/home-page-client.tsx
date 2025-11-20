@@ -250,7 +250,7 @@ const generateShareFormHTML = (
 
   const tableHTML = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 8px; background: #f5f5f5; border-radius: 12px;">
-      <div style="background: white; border-radius: 8px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+      <div style="background: white; border-radius: 8px; padding: 4px 10px 10px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
           <h2 style="align-items: center; margin: 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
           ${reservationDate ? `<span style="font-size: 10pt; font-weight: 600; color: #495057;">${formatShareReservationDate(reservationDate)}</span>` : ''}
