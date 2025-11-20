@@ -1544,7 +1544,18 @@ function RestaurantFormDialog({
               onClick={onOpenUpload}
             >
               <Camera className={cn("mr-2 h-4 w-4", hasMenuListImage && "text-green-500")} />
-              {hasMenuListImage ? '이미지 업로드됨' : '이미지 업로드'}
+              <span className="flex-1 text-left">
+                {hasMenuListImage ? '이미지 업로드됨' : '이미지 업로드'}
+              </span>
+              {hasMenuListImage && (
+                <X
+                  className="ml-auto h-4 w-4 text-red-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange({ menuImgId: '' });
+                  }}
+                />
+              )}
             </Button>
           </div>
 
