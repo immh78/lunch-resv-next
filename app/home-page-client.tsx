@@ -383,7 +383,7 @@ const generateShareFormHTML = (
             ${restaurantIconSVG ? `<div style="display: flex; align-items: center; color:${iconColor};margin-bottom: -12px ;margin-right: -4px;  display: inline-block;">${restaurantIconSVG}</div>` : ''}
             <h2 style="align-items: center; margin: 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
           </div>
-          ${reservationDate ? `<span style="font-size: 10pt; font-weight: 600; color: #495057;">${formatShareReservationDate(reservationDate)}</span>` : ''}
+          ${reservationDate ? `<span style="font-size: 10pt; font-weight: 600; color: #495057;margin-bottom: -8px;  display: inline-block;">${formatShareReservationDate(reservationDate)}</span>` : ''}
         </div>
         <div style="border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden; margin-bottom: 0;">
           <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255);">
