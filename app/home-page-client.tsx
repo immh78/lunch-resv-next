@@ -55,6 +55,7 @@ import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
 import { MenuEditDialog, ImageUploadDialog, MenuListDialog } from '@/app/rest-menu/components';
 import * as LucideIcons from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 import {
   UtensilsCrossed,
@@ -231,7 +232,7 @@ const getLucideIconSVG = async (iconName?: string): Promise<string> => {
     }
     
     // Lucide 아이콘 컴포넌트 가져오기
-    const IconComponent = (LucideIcons as unknown as Record<string, any>)[pascalCaseName];
+    const IconComponent = (LucideIcons as unknown as Record<string, LucideIcon>)[pascalCaseName];
     if (!IconComponent) return '';
     
     // 임시 DOM 요소 생성하여 아이콘 렌더링
