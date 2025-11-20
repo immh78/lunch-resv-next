@@ -254,7 +254,7 @@ const getLucideIconSVG = async (iconName?: string): Promise<string> => {
     root.render(
       React.createElement(IconComponent, {
         size: 16,
-        strokeWidth: 3,
+        strokeWidth: 2,
         color: 'currentColor'
       })
     );
@@ -379,7 +379,7 @@ const generateShareFormHTML = (
       <div style="background: white; border-radius: 8px; padding: 4px 10px 10px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            ${restaurantIconSVG ? `<div style="display: flex; align-items: center; color:${iconColor};margin-bottom: -12px ;margin-right: -6px;  display: inline-block;">${restaurantIconSVG}</div>` : ''}
+            ${restaurantIconSVG ? `<div style="display: flex; align-items: center; color:${iconColor};margin-bottom: -12px ;margin-right: -4px;  display: inline-block;">${restaurantIconSVG}</div>` : ''}
             <h2 style="align-items: center; margin: 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
           </div>
           ${reservationDate ? `<span style="font-size: 10pt; font-weight: 600; color: #495057;">${formatShareReservationDate(reservationDate)}</span>` : ''}
