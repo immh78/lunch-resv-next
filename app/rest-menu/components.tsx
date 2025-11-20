@@ -18,10 +18,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
 
-import { Camera, Save, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Camera, Save, Plus, Pencil, Trash2, Tag } from 'lucide-react';
 
 interface Restaurant {
   id: string;
@@ -1126,6 +1136,290 @@ export function MenuListDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+type RestaurantKindManageDialogProps = {
+  open: boolean;
+  restaurantKinds: Record<string, { icon?: string; name?: string }>;
+  restaurantIcons: Record<string, string>;
+  onClose: () => void;
+  onSave: (kind: string, data: { icon?: string; name?: string }) => Promise<void>;
+  onDelete: (kind: string) => Promise<void>;
+};
+
+export function RestaurantKindManageDialog({
+  open,
+  restaurantKinds,
+  restaurantIcons,
+  onClose,
+  onSave,
+  onDelete,
+}: RestaurantKindManageDialogProps) {
+  const [editingKind, setEditingKind] = useState<string | null>(null);
+  const [kindName, setKindName] = useState('');
+  const [selectedIcon, setSelectedIcon] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [deleteKind, setDeleteKind] = useState<string | null>(null);
+
+  const kindEntries = Object.entries(restaurantKinds).sort(([a], [b]) => {
+    const nameA = restaurantKinds[a]?.name || a;
+    const nameB = restaurantKinds[b]?.name || b;
+    return nameA.localeCompare(nameB);
+  });
+
+  // 모든 Lucide 아이콘 목록 (일부 주요 아이콘만)
+  const commonIcons = [
+    'UtensilsCrossed', 'Coffee', 'Pizza', 'IceCream', 'Cake', 'Beer', 'Wine',
+    'Apple', 'Cherry', 'Fish', 'Beef', 'Chicken', 'Salad', 'Soup',
+    'Store', 'Building', 'Home', 'MapPin', 'Star', 'Heart', 'Tag'
+  ];
+
+  const handleAddNew = () => {
+    setEditingKind(null);
+    setKindName('');
+    setSelectedIcon('');
+  };
+
+  const handleEdit = (kind: string) => {
+    setEditingKind(kind);
+    setKindName(restaurantKinds[kind]?.name || kind);
+    setSelectedIcon(restaurantKinds[kind]?.icon || restaurantIcons[kind] || '');
+  };
+
+  const handleSave = async () => {
+    if (!kindName.trim()) {
+      toast.error('종류명을 입력하세요.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const kindKey = editingKind || kindName.trim().toLowerCase().replace(/\s+/g, '-');
+      await onSave(kindKey, {
+        name: kindName.trim(),
+        icon: selectedIcon || undefined,
+      });
+      setEditingKind(null);
+      setKindName('');
+      setSelectedIcon('');
+      toast.success(editingKind ? '식당 종류를 수정했습니다.' : '식당 종류를 추가했습니다.');
+    } catch (error) {
+      toast.error('저장 중 오류가 발생했습니다.');
+      console.error('Error saving restaurant kind:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteKind) return;
+
+    setSaving(true);
+    try {
+      await onDelete(deleteKind);
+      setDeleteKind(null);
+      toast.success('식당 종류를 삭제했습니다.');
+    } catch (error) {
+      toast.error('삭제 중 오류가 발생했습니다.');
+      console.error('Error deleting restaurant kind:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <DialogTitle>식당 종류 관리</DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground"
+                onClick={handleAddNew}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <DialogDescription>식당 종류를 추가, 수정, 삭제할 수 있습니다.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-80 space-y-2 overflow-y-auto">
+            {kindEntries.length === 0 && !editingKind && kindName === '' && (
+              <p className="text-sm text-muted-foreground">등록된 종류가 없습니다.</p>
+            )}
+            {kindEntries.map(([kind, data]) => {
+              const IconComponent = data?.icon ? getLucideIcon(data.icon) : null;
+              const displayName = data?.name || kind;
+              const isEditing = editingKind === kind;
+
+              if (isEditing) {
+                return (
+                  <div key={kind} className="space-y-3 rounded-sm border border-border bg-muted/50 p-3">
+                    <div className="space-y-2">
+                      <Label>종류명</Label>
+                      <Input
+                        value={kindName}
+                        onChange={(e) => setKindName(e.target.value)}
+                        placeholder="종류명을 입력하세요"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>아이콘</Label>
+                      <div className="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto">
+                        {commonIcons.map((iconName) => {
+                          const Icon = getLucideIcon(iconName);
+                          return Icon ? (
+                            <button
+                              key={iconName}
+                              type="button"
+                              className={cn(
+                                'flex items-center justify-center h-8 w-8 rounded border transition',
+                                selectedIcon === iconName
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-border hover:border-primary/50'
+                              )}
+                              onClick={() => setSelectedIcon(iconName)}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </button>
+                          ) : null;
+                        })}
+                      </div>
+                      <Input
+                        value={selectedIcon}
+                        onChange={(e) => setSelectedIcon(e.target.value)}
+                        placeholder="아이콘 이름 (선택사항)"
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSave}
+                        disabled={saving || !kindName.trim()}
+                        className="flex-1"
+                      >
+                        {saving ? <Spinner className="h-4 w-4" /> : '저장'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingKind(null);
+                          setKindName('');
+                          setSelectedIcon('');
+                        }}
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  key={kind}
+                  className="flex w-full items-center justify-between rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {IconComponent && <IconComponent className="h-4 w-4 shrink-0" />}
+                    <span className="truncate">{displayName}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(kind)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setDeleteKind(kind)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            {!editingKind && kindName !== '' && (
+              <div className="space-y-3 rounded-sm border border-border bg-muted/50 p-3">
+                <div className="space-y-2">
+                  <Label>종류명</Label>
+                  <Input
+                    value={kindName}
+                    onChange={(e) => setKindName(e.target.value)}
+                    placeholder="종류명을 입력하세요"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>아이콘</Label>
+                  <div className="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto">
+                    {commonIcons.map((iconName) => {
+                      const Icon = getLucideIcon(iconName);
+                      return Icon ? (
+                        <button
+                          key={iconName}
+                          type="button"
+                          className={cn(
+                            'flex items-center justify-center h-8 w-8 rounded border transition',
+                            selectedIcon === iconName
+                              ? 'border-primary bg-primary/10'
+                              : 'border-border hover:border-primary/50'
+                          )}
+                          onClick={() => setSelectedIcon(iconName)}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                  <Input
+                    value={selectedIcon}
+                    onChange={(e) => setSelectedIcon(e.target.value)}
+                    placeholder="아이콘 이름 (선택사항)"
+                    className="text-xs"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving || !kindName.trim()}
+                  className="w-full"
+                >
+                  {saving ? <Spinner className="h-4 w-4" /> : '추가'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteKind} onOpenChange={(open) => !open && setDeleteKind(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>식당 종류 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말로 이 식당 종류를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteKind(null)}>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={saving}>
+              {saving ? <Spinner className="h-4 w-4" /> : '삭제'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

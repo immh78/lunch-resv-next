@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
-import { MenuEditDialog, RestaurantFormDialog } from './components';
+import { MenuEditDialog, RestaurantFormDialog, RestaurantKindManageDialog } from './components';
 
 import {
   UtensilsCrossed,
@@ -65,6 +65,7 @@ import {
   Plus,
   Search,
   BookOpen,
+  Tag,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -579,6 +580,7 @@ export default function RestMenuPageClient() {
   const [savingTheme, setSavingTheme] = useState(false);
   const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>({});
   const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>({});
+  const [kindManageDialogOpen, setKindManageDialogOpen] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState<Restaurant>({
@@ -851,6 +853,26 @@ export default function RestMenuPageClient() {
   const handleShareThemeDialog = () => {
     setSelectedTheme(currentTheme);
     setThemeDialogOpen(true);
+  };
+
+  const handleKindSave = async (kind: string, data: { icon?: string; name?: string }) => {
+    try {
+      const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
+      await set(kindRef, data);
+    } catch (error) {
+      console.error('Error saving restaurant kind:', error);
+      throw error;
+    }
+  };
+
+  const handleKindDelete = async (kind: string) => {
+    try {
+      const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
+      await remove(kindRef);
+    } catch (error) {
+      console.error('Error deleting restaurant kind:', error);
+      throw error;
+    }
   };
 
   const handleThemeSelect = async (theme: ThemeMode) => {
@@ -1190,6 +1212,13 @@ export default function RestMenuPageClient() {
                   <Palette className="h-4 w-4" />
                   테마
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => setKindManageDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Tag className="h-4 w-4" />
+                  식당 종류
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -1265,6 +1294,15 @@ export default function RestMenuPageClient() {
           onClose={() => setThemeDialogOpen(false)}
           onSelect={handleThemeSelect}
           saving={savingTheme}
+        />
+
+        <RestaurantKindManageDialog
+          open={kindManageDialogOpen}
+          restaurantKinds={restaurantKinds}
+          restaurantIcons={restaurantIcons}
+          onClose={() => setKindManageDialogOpen(false)}
+          onSave={handleKindSave}
+          onDelete={handleKindDelete}
         />
 
         <RestaurantFormDialog

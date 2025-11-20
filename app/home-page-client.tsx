@@ -53,7 +53,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
-import { MenuEditDialog, ImageUploadDialog, MenuListDialog } from '@/app/rest-menu/components';
+import { MenuEditDialog, ImageUploadDialog, MenuListDialog, RestaurantKindManageDialog } from '@/app/rest-menu/components';
 import * as LucideIcons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -77,6 +77,7 @@ import {
   EyeOff,
   Eye,
   Palette,
+  Tag,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -1814,6 +1815,7 @@ export default function Home() {
   const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>({});
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [iconSVGCache, setIconSVGCache] = useState<Record<string, string>>({});
+  const [kindManageDialogOpen, setKindManageDialogOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -2768,6 +2770,26 @@ export default function Home() {
     setThemeDialogOpen(true);
   };
 
+  const handleKindSave = async (kind: string, data: { icon?: string; name?: string }) => {
+    try {
+      const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
+      await set(kindRef, data);
+    } catch (error) {
+      console.error('Error saving restaurant kind:', error);
+      throw error;
+    }
+  };
+
+  const handleKindDelete = async (kind: string) => {
+    try {
+      const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
+      await remove(kindRef);
+    } catch (error) {
+      console.error('Error deleting restaurant kind:', error);
+      throw error;
+    }
+  };
+
   const handleMenuSave = useCallback(async (menuKey: string, menu: RestaurantMenu) => {
     if (!user || !editableRestaurant) return;
 
@@ -2847,6 +2869,13 @@ export default function Home() {
                 >
                   <Palette className="h-4 w-4" />
                   테마
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => setKindManageDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Tag className="h-4 w-4" />
+                  식당 종류
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -2987,6 +3016,15 @@ export default function Home() {
           target={deleteState.target}
           onCancel={() => setDeleteState({ open: false, target: null })}
           onConfirm={handleConfirmDelete}
+        />
+
+        <RestaurantKindManageDialog
+          open={kindManageDialogOpen}
+          restaurantKinds={restaurantKinds}
+          restaurantIcons={restaurantIcons}
+          onClose={() => setKindManageDialogOpen(false)}
+          onSave={handleKindSave}
+          onDelete={handleKindDelete}
         />
 
         {/* 미리보기 다이얼로그 */}
