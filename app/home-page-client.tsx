@@ -344,12 +344,41 @@ const generateShareFormHTML = (
     ? iconSVGCache[restaurantIconName] 
     : '';
 
+  // 식당 아이콘 색상 계산 (선결제 금액 비율에 따라 동적 변경)
+  const getRestaurantIconColor = (): string => {
+    if (totalAmount === 0) {
+      // 예약금액이 0이면 기본 색상 (파란색)
+      return 'rgb(37, 0, 170)';
+    }
+    
+    if (prepaymentTotal === 0) {
+      // 선결제금액이 0이면 빨간색
+      return 'rgb(170, 0, 0)';
+    }
+    
+    if (prepaymentTotal >= totalAmount) {
+      // 선결제금액이 예약금액보다 같거나 크면 파란색
+      return 'rgb(37, 0, 170)';
+    }
+    
+    // 비율에 따라 선형 보간
+    const ratio = Math.min(prepaymentTotal / totalAmount, 1);
+    // rgb(170, 0, 0)에서 rgb(37, 0, 170)로 보간
+    const r = Math.round(170 - (170 - 37) * ratio);
+    const g = 0;
+    const b = Math.round(170 * ratio);
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  const iconColor = getRestaurantIconColor();
+
   const tableHTML = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 8px; background: #f5f5f5; border-radius: 12px;">
       <div style="background: white; border-radius: 8px; padding: 4px 10px 10px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            ${restaurantIconSVG ? `<div style="display: flex; align-items: center; color:ㅊ;margin-bottom: -12px; display: inline-block;">${restaurantIconSVG}</div>` : ''}
+            ${restaurantIconSVG ? `<div style="display: flex; align-items: center; color:${iconColor};margin-bottom: -12px; display: inline-block;">${restaurantIconSVG}</div>` : ''}
             <h2 style="align-items: center; margin: 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${restaurantName}</h2>
           </div>
           ${reservationDate ? `<span style="font-size: 10pt; font-weight: 600; color: #495057;">${formatShareReservationDate(reservationDate)}</span>` : ''}
