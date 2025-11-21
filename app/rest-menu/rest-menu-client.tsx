@@ -574,10 +574,25 @@ export default function RestMenuPageClient() {
   const [imageViewOpen, setImageViewOpen] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState('');
 
-  const [currentTheme, setCurrentTheme] = useState<ThemeMode>('white');
-  const [selectedTheme, setSelectedTheme] = useState<ThemeMode>('white');
+  const [currentTheme, setCurrentTheme] = useState<ThemeMode>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'white' || savedTheme === 'black') {
+        return savedTheme;
+      }
+    }
+    return 'white';
+  });
+  const [selectedTheme, setSelectedTheme] = useState<ThemeMode>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'white' || savedTheme === 'black') {
+        return savedTheme;
+      }
+    }
+    return 'white';
+  });
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
-  const [savingTheme, setSavingTheme] = useState(false);
   const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>({});
   const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>({});
   const [kindManageDialogOpen, setKindManageDialogOpen] = useState(false);
@@ -743,29 +758,6 @@ export default function RestMenuPageClient() {
     };
   }, [user]);
 
-  // 테마 조회
-  useEffect(() => {
-    if (!user) return;
-
-    const themeRef = ref(database, `food-resv/theme/${user.uid}`);
-    const unsubscribe = onValue(
-      themeRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const themeData = snapshot.val();
-          if (themeData.theme === 'white' || themeData.theme === 'black') {
-            setCurrentTheme(themeData.theme);
-            setSelectedTheme(themeData.theme);
-          }
-        }
-      },
-      (error) => {
-        console.error('Error fetching theme:', error);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user]);
 
   // 모든 식당의 메뉴 조회 (검색용)
   useEffect(() => {
@@ -875,28 +867,17 @@ export default function RestMenuPageClient() {
     }
   };
 
-  const handleThemeSelect = async (theme: ThemeMode) => {
-    const previousTheme = currentTheme;
-
+  const handleThemeSelect = (theme: ThemeMode) => {
     setSelectedTheme(theme);
     setCurrentTheme(theme);
-
-    if (!user) {
-      setThemeDialogOpen(false);
-      return;
-    }
-
+    
+    // localStorage에 테마 저장
     try {
-      setSavingTheme(true);
-      await set(ref(database, `food-resv/theme/${user.uid}`), { theme });
+      localStorage.setItem('theme', theme);
       setThemeDialogOpen(false);
     } catch (error) {
-      console.error('Error saving theme', error);
-      setCurrentTheme(previousTheme);
-      setSelectedTheme(previousTheme);
+      console.error('Error saving theme to localStorage:', error);
       toast.error('테마 저장 중 오류가 발생했습니다.');
-    } finally {
-      setSavingTheme(false);
     }
   };
 
@@ -1293,7 +1274,7 @@ export default function RestMenuPageClient() {
           selectedTheme={selectedTheme}
           onClose={() => setThemeDialogOpen(false)}
           onSelect={handleThemeSelect}
-          saving={savingTheme}
+          saving={false}
         />
 
         <RestaurantKindManageDialog
