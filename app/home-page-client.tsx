@@ -2807,6 +2807,7 @@ export default function Home() {
     try {
       const menuRef = ref(database, `food-resv/restaurant/${editableRestaurant.id}/menu/${menuKey}`);
       await set(menuRef, menu);
+      toast.success('메뉴를 저장했습니다.');
     } catch (error) {
       console.error('Error saving menu:', error);
       toast.error('메뉴 저장 중 오류가 발생했습니다.');
