@@ -1813,10 +1813,25 @@ export default function Home() {
   const [savingRestaurant, setSavingRestaurant] = useState(false);
   const [creatingRestaurant, setCreatingRestaurant] = useState(false);
 
-  const [currentTheme, setCurrentTheme] = useState<ThemeMode>('white');
-  const [selectedTheme, setSelectedTheme] = useState<ThemeMode>('white');
+  const [currentTheme, setCurrentTheme] = useState<ThemeMode>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'white' || savedTheme === 'black') {
+        return savedTheme;
+      }
+    }
+    return 'white';
+  });
+  const [selectedTheme, setSelectedTheme] = useState<ThemeMode>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'white' || savedTheme === 'black') {
+        return savedTheme;
+      }
+    }
+    return 'white';
+  });
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
-  const [savingTheme, setSavingTheme] = useState(false);
 
   const [hiddenRestaurantIds, setHiddenRestaurantIds] = useState<string[]>([]);
   const [showHidden, setShowHidden] = useState(false);
@@ -1918,29 +1933,6 @@ export default function Home() {
     },
     [handleUploadDialogClose, uploadContext, editableRestaurant]
   );
-
-  useEffect(() => {
-    if (!user) return;
-
-    const themeRef = ref(database, `food-resv/theme/${user.uid}`);
-    const unsubscribe = onValue(
-      themeRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const themeData = snapshot.val();
-          if (themeData.theme === 'white' || themeData.theme === 'black') {
-            setCurrentTheme(themeData.theme);
-            setSelectedTheme(themeData.theme);
-          }
-        }
-      },
-      (err) => {
-        console.error('Error fetching theme:', err);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user]);
 
   useEffect(() => {
     const restaurantKindRef = ref(database, 'food-resv/restaurant-kind');
@@ -2575,28 +2567,17 @@ export default function Home() {
     }
   };
 
-  const handleThemeSelect = async (theme: ThemeMode) => {
-    const previousTheme = currentTheme;
-
+  const handleThemeSelect = (theme: ThemeMode) => {
     setSelectedTheme(theme);
     setCurrentTheme(theme);
-
-    if (!user) {
-      setThemeDialogOpen(false);
-      return;
-    }
-
+    
+    // localStorage에 테마 저장
     try {
-      setSavingTheme(true);
-      await set(ref(database, `food-resv/theme/${user.uid}`), { theme });
+      localStorage.setItem('theme', theme);
       setThemeDialogOpen(false);
     } catch (error) {
-      console.error('Error saving theme', error);
-      setCurrentTheme(previousTheme);
-      setSelectedTheme(previousTheme);
+      console.error('Error saving theme to localStorage:', error);
       toast.error('테마 저장 중 오류가 발생했습니다.');
-    } finally {
-      setSavingTheme(false);
     }
   };
 
@@ -3020,7 +3001,7 @@ export default function Home() {
           selectedTheme={selectedTheme}
           onClose={() => setThemeDialogOpen(false)}
           onSelect={handleThemeSelect}
-          saving={savingTheme}
+          saving={false}
         />
 
         <DeleteConfirmDialog
