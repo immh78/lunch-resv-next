@@ -127,6 +127,7 @@ interface EditablePrepaymentItem {
   amount: number;
   date: string;
   dateValue: Date | null;
+  savedIndex?: number; // 저장된 항목의 원본 인덱스
 }
 
 interface RestaurantWithReservation extends Restaurant {
@@ -822,9 +823,13 @@ function RestaurantDetailDialog({
 
   // 선결제가 저장되었는지 확인하는 함수
   const isPrepaymentSaved = useCallback((item: EditablePrepaymentItem) => {
-    return savedPrepayments.some(
-      (saved) => saved.date === item.date && saved.amount === item.amount
-    );
+    // savedIndex가 있으면 저장된 항목
+    if (item.savedIndex !== undefined) {
+      const savedItem = savedPrepayments[item.savedIndex];
+      // 저장된 항목이 존재하고 값이 일치하는지 확인
+      return savedItem && savedItem.date === item.date && savedItem.amount === item.amount;
+    }
+    return false;
   }, [savedPrepayments]);
 
   // 메뉴 탭에 메뉴가 없을 경우 빈행 추가 시 포커스 이동
@@ -982,7 +987,7 @@ function RestaurantDetailDialog({
                                   placeholder="메뉴"
                                   className={cn(
                                     "text-sm",
-                                    !isSaved && "text-gray-600"
+                                    !isSaved && "text-gray-400 dark:text-gray-600"
                                   )}
                                 />
                                 <Input
@@ -1000,7 +1005,7 @@ function RestaurantDetailDialog({
                                   placeholder="금액"
                                   className={cn(
                                     "w-24 text-right text-sm",
-                                    !isSaved && "text-gray-600"
+                                    !isSaved && "text-gray-400 dark:text-gray-600"
                                   )}
                                 />
                                 <Button
@@ -1054,7 +1059,7 @@ function RestaurantDetailDialog({
                                     className={cn(
                                       "h-10 w-full justify-start text-left font-normal",
                                       !selectedDate && "text-muted-foreground",
-                                      !isSaved && "text-gray-600"
+                                      !isSaved && selectedDate && "text-gray-400 dark:text-gray-600"
                                     )}
                                   >
                                     {selectedDate ? (
@@ -1094,7 +1099,7 @@ function RestaurantDetailDialog({
                                 placeholder="금액"
                                 className={cn(
                                   "w-24 text-right text-sm",
-                                  !isSaved && "text-gray-600"
+                                  !isSaved && "text-gray-400 dark:text-gray-600"
                                 )}
                               />
                               <Button
@@ -2265,6 +2270,7 @@ export default function Home() {
                   amount: item.amount || 0,
                   date: item.date || todayCompact(),
                   dateValue,
+                  savedIndex: index, // 저장된 항목의 인덱스 저장
                 };
               })
             );
@@ -2409,6 +2415,18 @@ export default function Home() {
       const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
       await set(ref(database, prepaymentPath), validItems);
       setSavedPrepayments(validItems);
+      // 저장 후 prepaymentRows의 savedIndex 업데이트
+      setPrepaymentRows((prev) =>
+        prev.map((item) => {
+          const savedIndex = validItems.findIndex(
+            (saved) => saved.date === item.date && saved.amount === item.amount
+          );
+          return {
+            ...item,
+            savedIndex: savedIndex >= 0 ? savedIndex : undefined,
+          };
+        })
+      );
       toast.success('선결제를 저장했습니다.');
     } catch (error) {
       console.error('Error saving prepayment', error);
