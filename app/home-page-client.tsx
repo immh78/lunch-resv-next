@@ -742,6 +742,7 @@ type RestaurantDetailDialogProps = {
   reservationDate: string;
   onReservationDateChange: (date: Date | undefined) => void;
   prepaymentRows: EditablePrepaymentItem[];
+  savedPrepayments: PrepaymentItem[];
   onPrepaymentAmountChange: (id: string, amount: number) => void;
   onPrepaymentDateChange: (id: string, date: Date | undefined) => void;
   onAddPrepaymentRow: () => void;
@@ -778,6 +779,7 @@ function RestaurantDetailDialog({
   reservationDate,
   onReservationDateChange,
   prepaymentRows,
+  savedPrepayments,
   onPrepaymentAmountChange,
   onPrepaymentDateChange,
   onAddPrepaymentRow,
@@ -805,6 +807,25 @@ function RestaurantDetailDialog({
   const [reservationDateOpen, setReservationDateOpen] = useState(false);
   const [prepaymentDateOpens, setPrepaymentDateOpens] = useState<Record<string, boolean>>({});
   const reservationDateValue = useMemo(() => displayToDate(reservationDate), [reservationDate]);
+
+  // 저장된 메뉴 목록
+  const savedMenus = useMemo(() => {
+    return restaurant?.reservation?.menus ?? [];
+  }, [restaurant?.reservation?.menus]);
+
+  // 메뉴가 저장되었는지 확인하는 함수
+  const isMenuSaved = useCallback((menu: EditableMenuItem) => {
+    return savedMenus.some(
+      (saved) => saved.menu.trim() === menu.menu.trim() && saved.cost === menu.cost
+    );
+  }, [savedMenus]);
+
+  // 선결제가 저장되었는지 확인하는 함수
+  const isPrepaymentSaved = useCallback((item: EditablePrepaymentItem) => {
+    return savedPrepayments.some(
+      (saved) => saved.date === item.date && saved.amount === item.amount
+    );
+  }, [savedPrepayments]);
 
   // 메뉴 탭에 메뉴가 없을 경우 빈행 추가 시 포커스 이동
   useEffect(() => {
@@ -945,45 +966,54 @@ function RestaurantDetailDialog({
                           </Button>
                         </div>
                         <div className="divide-y divide-border/60">
-                          {menuRows.map((menu) => (
-                            <div
-                              key={menu.id}
-                              className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
-                            >
-                              <Input
-                                data-menu-input-id={menu.id}
-                                value={menu.menu}
-                                onChange={(event) =>
-                                  onMenuChange(menu.id, 'menu', event.target.value)
-                                }
-                                placeholder="메뉴"
-                                className="text-sm"
-                              />
-                              <Input
-                                type="number"
-                                min={0}
-                                step={100}
-                                value={menu.cost || ''}
-                                onChange={(event) =>
-                                  onMenuChange(
-                                    menu.id,
-                                    'cost',
-                                    Number(event.target.value) || 0
-                                  )
-                                }
-                                placeholder="금액"
-                                className="w-24 text-right text-sm"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => onRemoveMenuRow(menu.id)}
+                          {menuRows.map((menu) => {
+                            const isSaved = isMenuSaved(menu);
+                            return (
+                              <div
+                                key={menu.id}
+                                className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3 py-2"
                               >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
+                                <Input
+                                  data-menu-input-id={menu.id}
+                                  value={menu.menu}
+                                  onChange={(event) =>
+                                    onMenuChange(menu.id, 'menu', event.target.value)
+                                  }
+                                  placeholder="메뉴"
+                                  className={cn(
+                                    "text-sm",
+                                    !isSaved && "text-gray-600"
+                                  )}
+                                />
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={100}
+                                  value={menu.cost || ''}
+                                  onChange={(event) =>
+                                    onMenuChange(
+                                      menu.id,
+                                      'cost',
+                                      Number(event.target.value) || 0
+                                    )
+                                  }
+                                  placeholder="금액"
+                                  className={cn(
+                                    "w-24 text-right text-sm",
+                                    !isSaved && "text-gray-600"
+                                  )}
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => onRemoveMenuRow(menu.id)}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -1005,6 +1035,7 @@ function RestaurantDetailDialog({
                       <div className="divide-y divide-border/60">
                         {prepaymentRows.map((item) => {
                           const selectedDate = item.dateValue ?? compactToDate(item.date) ?? null;
+                          const isSaved = isPrepaymentSaved(item);
 
                           return (
                             <div
@@ -1022,7 +1053,8 @@ function RestaurantDetailDialog({
                                     variant="outline"
                                     className={cn(
                                       "h-10 w-full justify-start text-left font-normal",
-                                      !selectedDate && "text-muted-foreground"
+                                      !selectedDate && "text-muted-foreground",
+                                      !isSaved && "text-gray-600"
                                     )}
                                   >
                                     {selectedDate ? (
@@ -1060,7 +1092,10 @@ function RestaurantDetailDialog({
                                   )
                                 }
                                 placeholder="금액"
-                                className="w-24 text-right text-sm"
+                                className={cn(
+                                  "w-24 text-right text-sm",
+                                  !isSaved && "text-gray-600"
+                                )}
                               />
                               <Button
                                 variant="ghost"
@@ -1784,6 +1819,7 @@ export default function Home() {
   const [menuRows, setMenuRows] = useState<EditableMenuItem[]>([]);
   const [reservationDate, setReservationDate] = useState<string>('');
   const [prepaymentRows, setPrepaymentRows] = useState<EditablePrepaymentItem[]>([]);
+  const [savedPrepayments, setSavedPrepayments] = useState<PrepaymentItem[]>([]);
   const [currentTab, setCurrentTab] = useState<'menu' | 'prepayment'>('menu');
   const [savingMenus, setSavingMenus] = useState(false);
   const [savingPrepayments, setSavingPrepayments] = useState(false);
@@ -2220,6 +2256,7 @@ export default function Home() {
         if (snapshot.exists()) {
           const data: PrepaymentItem[] = snapshot.val() ?? [];
           if (data.length) {
+            setSavedPrepayments(data);
             setPrepaymentRows(
               data.map((item, index) => {
                 const dateValue = compactToDate(item.date) ?? new Date();
@@ -2237,6 +2274,7 @@ export default function Home() {
       } catch (error) {
         console.error('Error loading prepayments', error);
       }
+      setSavedPrepayments([]);
       const today = new Date();
       setPrepaymentRows([
         {
@@ -2288,6 +2326,7 @@ export default function Home() {
     setSelectedRestaurant(null);
     setMenuRows([]);
     setPrepaymentRows([]);
+    setSavedPrepayments([]);
     setReservationDate('');
     setMenuHistoryList([]);
     setMenuHistoryOpen(false);
@@ -2369,6 +2408,7 @@ export default function Home() {
       setSavingPrepayments(true);
       const prepaymentPath = `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`;
       await set(ref(database, prepaymentPath), validItems);
+      setSavedPrepayments(validItems);
       toast.success('선결제를 저장했습니다.');
     } catch (error) {
       console.error('Error saving prepayment', error);
@@ -2400,6 +2440,7 @@ export default function Home() {
         }
   
         await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
+        setSavedPrepayments([]);
         toast.success('수령 처리되었습니다.');
         handleCloseDetail();
       } catch (error) {
@@ -2434,6 +2475,7 @@ export default function Home() {
           handleCloseDetail();
         } else {
           await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
+          setSavedPrepayments([]);
           toast.success('선결제를 삭제했습니다.');
           await loadPrepayments(user.uid, selectedRestaurant.id);
         }
@@ -2899,6 +2941,7 @@ export default function Home() {
           reservationDate={reservationDate}
           onReservationDateChange={handleReservationDateChange}
           prepaymentRows={prepaymentRows}
+          savedPrepayments={savedPrepayments}
           onPrepaymentAmountChange={handlePrepaymentAmountChange}
           onPrepaymentDateChange={handlePrepaymentDateChange}
           onAddPrepaymentRow={handleAddPrepaymentRow}
