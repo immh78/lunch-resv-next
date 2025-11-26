@@ -189,7 +189,7 @@ function RestaurantList({
           <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             식당
           </TableHead>
-          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <TableHead className="w-[180px] max-w-[180px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             최근 메뉴
           </TableHead>
           <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -227,7 +227,7 @@ function RestaurantList({
                 <span className="truncate">{restaurant.name}</span>
               </Button>
             </TableCell>
-            <TableCell className="align-middle">
+            <TableCell className="w-[180px] max-w-[180px] align-middle">
               {restaurant.recentMenu && (() => {
                 // yyyyMMdd 형식을 mm/dd(요일) 형식으로 변환
                 const dateStr = restaurant.recentMenu.date;
@@ -245,7 +245,7 @@ function RestaurantList({
                 }
                 return (
                   <span 
-                    className="text-xs text-muted-foreground truncate cursor-pointer hover:text-foreground transition-colors block max-w-full"
+                    className="text-xs text-muted-foreground break-words cursor-pointer hover:text-foreground transition-colors block"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (onRecentMenuClick) {
