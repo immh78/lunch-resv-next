@@ -110,6 +110,7 @@ interface EditableMenuItem {
   id: string;
   menu: string;
   cost: number;
+  savedIndex?: number; // 저장된 항목의 원본 인덱스
 }
 
 interface ReservationData {
@@ -815,10 +816,14 @@ function RestaurantDetailDialog({
   }, [restaurant?.reservation?.menus]);
 
   // 메뉴가 저장되었는지 확인하는 함수
+  // savedIndex가 있으면 저장된 항목
   const isMenuSaved = useCallback((menu: EditableMenuItem) => {
-    return savedMenus.some(
-      (saved) => saved.menu.trim() === menu.menu.trim() && saved.cost === menu.cost
-    );
+    if (menu.savedIndex !== undefined) {
+      const savedItem = savedMenus[menu.savedIndex];
+      // 저장된 항목이 존재하고 값이 일치하는지 확인
+      return savedItem && savedItem.menu.trim() === menu.menu.trim() && savedItem.cost === menu.cost;
+    }
+    return false;
   }, [savedMenus]);
 
   // 선결제가 저장되었는지 확인하는 함수
@@ -2145,6 +2150,7 @@ export default function Home() {
           ? {
               ...row,
               [field]: field === 'cost' ? Math.max(0, Number(value)) : (value as string),
+              savedIndex: undefined, // 메뉴 변경 시 savedIndex 제거
             }
           : row
       )
@@ -2314,6 +2320,7 @@ export default function Home() {
             id: `menu-${Date.now()}-${index}`,
             menu: menu.menu,
             cost: menu.cost,
+            savedIndex: index, // 저장된 메뉴의 인덱스 설정
           }))
         );
       } else {
@@ -2387,6 +2394,19 @@ export default function Home() {
                 }
               : restaurant
           )
+        );
+        // 저장 후 savedIndex 설정
+        // 저장된 메뉴 배열의 인덱스를 사용
+        setMenuRows((prev) =>
+          prev.map((menu) => {
+            const savedIndex = data.menus.findIndex(
+              (saved) => saved.menu.trim() === menu.menu.trim() && saved.cost === menu.cost
+            );
+            return {
+              ...menu,
+              savedIndex: savedIndex >= 0 ? savedIndex : undefined,
+            };
+          })
         );
     } catch (error) {
       console.error('Error saving reservation', error);
