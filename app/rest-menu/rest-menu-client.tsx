@@ -155,6 +155,26 @@ type RestaurantListProps = {
   error: string;
   currentTheme: ThemeMode;
   restaurantIcons: Record<string, string>;
+  allVisitLogs: Record<string, { date: string; menuName: string; key: string }[]>;
+};
+
+// 최근 30일 방문 횟수 계산 함수
+const getVisitCountLast30Days = (
+  restaurantId: string,
+  allVisitLogs: Record<string, { date: string; menuName: string; key: string }[]>
+): number => {
+  const logs = allVisitLogs[restaurantId] || [];
+  const today = dayjs();
+  const thirtyDaysAgo = today.subtract(30, 'day');
+  
+  return logs.filter(log => {
+    if (!log.date || log.date.length !== 8) return false;
+    const year = log.date.substring(0, 4);
+    const month = log.date.substring(4, 6);
+    const day = log.date.substring(6, 8);
+    const visitDate = dayjs(`${year}-${month}-${day}`);
+    return visitDate.isAfter(thirtyDaysAgo) || visitDate.isSame(thirtyDaysAgo, 'day');
+  }).length;
 };
 
 function RestaurantList({
@@ -165,6 +185,7 @@ function RestaurantList({
   error,
   currentTheme,
   restaurantIcons,
+  allVisitLogs,
 }: RestaurantListProps) {
   if (loading) {
     return (
@@ -208,7 +229,7 @@ function RestaurantList({
                 variant="outline"
                 size="sm"
                 className={cn(
-                  'w-[140px] max-w-[140px] justify-start transition-colors overflow-hidden',
+                  'w-[140px] max-w-[140px] justify-start transition-colors overflow-hidden relative',
                   currentTheme === 'white'
                     ? 'bg-[rgb(250,250,250)] hover:bg-[rgb(240,240,240)]'
                     : 'bg-neutral-900 text-neutral-100 border-neutral-700 hover:bg-neutral-800'
@@ -225,6 +246,19 @@ function RestaurantList({
                   ) : null;
                 })()}
                 <span className="truncate">{restaurant.name}</span>
+                {(() => {
+                  const visitCount = getVisitCountLast30Days(restaurant.id, allVisitLogs);
+                  if (visitCount > 0) {
+                    return (
+                      <div className="absolute top-1 right-1 flex flex-wrap gap-0.5 max-w-[20px] justify-end pointer-events-none z-10">
+                        {Array.from({ length: visitCount }).map((_, index) => (
+                          <span key={index} className="text-red-500 text-[10px] leading-none block">•</span>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </Button>
             </TableCell>
             <TableCell className="w-[180px] max-w-[180px] align-middle">
@@ -1242,6 +1276,7 @@ export default function RestMenuPageClient() {
             error={error}
             currentTheme={currentTheme}
             restaurantIcons={restaurantIcons}
+            allVisitLogs={allVisitLogs}
           />
         </main>
 
