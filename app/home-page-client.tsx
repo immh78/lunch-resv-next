@@ -490,6 +490,105 @@ const sumMenuAmount = (menus: { cost: number }[]): number =>
 const sumPrepaymentAmount = (items: { amount: number }[]): number =>
   items.reduce((sum, item) => sum + (item.amount || 0), 0);
 
+// 포장 예약 목록 공유 양식 HTML 생성 함수
+const generateReservationListShareHTML = (
+  restaurantMenuList: Array<{ restaurantName: string; restaurantKind?: string; reservationDate?: string; menus: Array<{ menu: string; cost: number }> }>,
+  restaurantIcons?: Record<string, string>,
+  iconSVGCache?: Record<string, string>
+): string => {
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('ko-KR').format(value);
+  };
+
+  // 유효한 식당만 필터링 (메뉴가 있는 경우만)
+  const validRestaurants = restaurantMenuList.filter(
+    (restaurant) => restaurant.menus && restaurant.menus.length > 0
+  );
+
+  if (validRestaurants.length === 0) {
+    return '';
+  }
+
+  // 첫번째 예약 식당의 예약 날짜 가져오기
+  const firstReservationDate = validRestaurants[0]?.reservationDate;
+  let formattedDate = '';
+  if (firstReservationDate) {
+    // reservationDate는 YYYYMMDD 형식이거나 YYYY.MM.DD 형식일 수 있음
+    const date = firstReservationDate.length === 8 
+      ? compactToDate(firstReservationDate)
+      : displayToDate(firstReservationDate);
+    if (date) {
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const weekday = WEEKDAYS[date.getDay()];
+      formattedDate = `${month}.${day} (${weekday})`;
+    }
+  }
+
+  // 각 식당의 메뉴 개수 계산
+  const restaurantMenuCounts = validRestaurants.map((r) => r.menus.length);
+  const totalRows = restaurantMenuCounts.reduce((sum, count) => sum + count, 0);
+
+  const tableHTML = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 8px; background: #f5f5f5; border-radius: 12px;">
+      <div style="background: white; border-radius: 8px; padding: 4px 10px 10px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 style="align-items: center; margin: 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">포장 예약 목록</h2>
+          </div>
+          ${formattedDate ? `<span style="font-size: 10pt; font-weight: 600; color: #495057;">${formattedDate}</span>` : ''}
+        </div>
+        <div style="border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden; margin-bottom: 0;">
+          <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255);">
+            <tbody>
+              <tr>
+                <td style="min-width: 100px; height: 30px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;">
+                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">식당</span>
+                </td>
+                <td style="height: 30px; border: none; border-bottom: 1px solid #e8e8e8; background: #f8f9fa; text-align: center; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px;">
+                  <span style="font-weight: 600; font-size: 10pt; margin-bottom: 14px; display: inline-block;">메뉴</span>
+                </td>
+              </tr>
+              ${validRestaurants.map((restaurant, restaurantIndex) => {
+                const menuCount = restaurant.menus.length;
+                const isLastRestaurant = restaurantIndex === validRestaurants.length - 1;
+                const restaurantIconName = restaurant.restaurantKind && restaurantIcons?.[restaurant.restaurantKind];
+                const restaurantIconSVG = restaurantIconName && iconSVGCache?.[restaurantIconName] 
+                  ? iconSVGCache[restaurantIconName] 
+                  : '';
+                
+                return restaurant.menus.map((menu, menuIndex) => {
+                  const isFirstMenu = menuIndex === 0;
+                  const isLastMenu = menuIndex === menuCount - 1;
+                  const isLastRow = isLastRestaurant && isLastMenu;
+                  
+                  return `
+                    <tr>
+                      ${isFirstMenu ? `
+                      <td style="min-width: 100px; height: 30px; border: none; border-bottom: ${isLastMenu && !isLastRestaurant ? '1px solid #e8e8e8' : isLastMenu ? 'none' : '1px solid #e8e8e8'}; background: #f8f9fa; text-align: left; vertical-align: middle; color: #495057; white-space: nowrap; padding: 0 12px; border-right: 1px solid #e8e8e8;" rowspan="${menuCount}">
+                        <div style="display: flex; align-items: center; justify-content: flex-start; gap: 6px;">
+                          ${restaurantIconSVG ? `<div style="display: flex; align-items: center; color: rgb(37, 0, 170);">${restaurantIconSVG}</div>` : ''}
+                          <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${restaurant.restaurantName}</span>
+                        </div>
+                      </td>
+                      ` : ''}
+                      <td style="height: 30px; border: none; border-bottom: ${isLastMenu && !isLastRestaurant ? '1px solid #e8e8e8' : isLastRow ? 'none' : '1px solid #e8e8e8'}; vertical-align: middle; color: #2d2d2d; white-space: nowrap; padding: 0 12px;">
+                        <span style="font-size: 10pt; font-weight: 500; vertical-align: middle; margin-bottom: 14px; display: inline-block;">${menu.menu.trim()}</span>
+                      </td>
+                    </tr>
+                  `;
+                }).join('');
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return tableHTML;
+};
+
 const getCloudinaryImageUrl = (publicId: string, isThumbnail = false): string => {
   if (!publicId) return '';
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
@@ -2647,6 +2746,116 @@ export default function Home() {
     }
   };
 
+  const handleReservationListShare = async () => {
+    // 수령하지 않은 메뉴 목록 수집
+    const restaurantMenuList: Array<{ restaurantName: string; restaurantKind?: string; reservationDate?: string; menus: Array<{ menu: string; cost: number }> }> = [];
+    
+    restaurants.forEach((restaurant) => {
+      if (restaurant.reservation && !restaurant.reservation.isReceipt && restaurant.reservation.menus && restaurant.reservation.menus.length > 0) {
+        restaurantMenuList.push({
+          restaurantName: restaurant.name,
+          restaurantKind: restaurant.kind,
+          reservationDate: restaurant.reservationDate,
+          menus: restaurant.reservation.menus.map((menu) => ({
+            menu: menu.menu,
+            cost: menu.cost,
+          })),
+        });
+      }
+    });
+
+    if (restaurantMenuList.length === 0) {
+      toast.error('공유할 수령하지 않은 예약이 없습니다.');
+      return;
+    }
+
+    // 아이콘 SVG를 미리 생성하여 캐시에 저장
+    const iconSVGCache: Record<string, string> = {};
+    const iconPromises = restaurantMenuList
+      .map((restaurant) => restaurant.restaurantKind)
+      .filter((kind): kind is string => !!kind && !!restaurantIcons[kind])
+      .map(async (kind) => {
+        const iconName = restaurantIcons[kind];
+        if (!iconSVGCache[iconName]) {
+          iconSVGCache[iconName] = await getLucideIconSVG(iconName);
+        }
+      });
+    
+    await Promise.all(iconPromises);
+
+    const tableHTML = generateReservationListShareHTML(restaurantMenuList, restaurantIcons, iconSVGCache);
+
+    try {
+      // 임시 div 생성
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = tableHTML;
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      document.body.appendChild(tempDiv);
+
+      // html2canvas로 이미지 변환
+      const canvas = await html2canvas(tempDiv.firstElementChild as HTMLElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+      } as Parameters<typeof html2canvas>[1]);
+
+      // 임시 div 제거
+      document.body.removeChild(tempDiv);
+
+      // Canvas를 Blob으로 변환
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast.error('이미지 생성 중 오류가 발생했습니다.');
+          return;
+        }
+
+        const file = new File([blob], '포장예약목록.png', {
+          type: 'image/png',
+        });
+
+        try {
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: '포장 예약 목록',
+              files: [file],
+            });
+          } else {
+            // 다운로드
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = '포장예약목록.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success('이미지가 다운로드되었습니다.');
+          }
+        } catch (error) {
+          if ((error as Error).name !== 'AbortError') {
+            console.error('Error sharing', error);
+            // 다운로드로 폴백
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = '포장예약목록.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success('이미지가 다운로드되었습니다.');
+          }
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('Error creating image', error);
+      toast.error('이미지 생성 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleThemeSelect = (theme: ThemeMode) => {
     setSelectedTheme(theme);
     setCurrentTheme(theme);
@@ -2904,54 +3113,64 @@ export default function Home() {
                 )}
               </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem
-                  onSelect={() => router.replace('/rest-menu')}
-                  className="flex items-center gap-2"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  식당 메뉴
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    setNewRestaurant({
-                      id: '',
-                      name: '',
-                      telNo: '',
-                      kind: '',
-                      menuImgId: '',
-                      menuUrl: '',
-                      naviUrl: '',
-                    });
-                    setCreateDialogOpen(true);
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  식당 등록
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={handleShareThemeDialog}
-                  className="flex items-center gap-2"
-                >
-                  <Palette className="h-4 w-4" />
-                  테마
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => setKindManageDialogOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Tag className="h-4 w-4" />
-                  식당 종류
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleReservationListShare}
+                title="포장 예약 목록 공유"
+              >
+                <Share2 className="h-5 w-5" />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem
+                    onSelect={() => router.replace('/rest-menu')}
+                    className="flex items-center gap-2"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    식당 메뉴
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setNewRestaurant({
+                        id: '',
+                        name: '',
+                        telNo: '',
+                        kind: '',
+                        menuImgId: '',
+                        menuUrl: '',
+                        naviUrl: '',
+                      });
+                      setCreateDialogOpen(true);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    식당 등록
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={handleShareThemeDialog}
+                    className="flex items-center gap-2"
+                  >
+                    <Palette className="h-4 w-4" />
+                    테마
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setKindManageDialogOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Tag className="h-4 w-4" />
+                    식당 종류
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </header>
 
