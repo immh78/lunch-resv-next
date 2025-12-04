@@ -78,6 +78,7 @@ interface Restaurant {
   menuImgId?: string;
   menuUrl?: string;
   naviUrl?: string;
+  prepay?: boolean;
   recentMenu?: {
     date: string; // yyyyMMdd 형식
     menuName: string;
