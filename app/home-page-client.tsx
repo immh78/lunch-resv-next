@@ -1045,10 +1045,18 @@ function RestaurantDetailDialog({
             </DialogHeader>
 
               <div className="px-5 pt-4">
-                <Tabs value={currentTab} onValueChange={(value) => onTabChange(value as 'menu' | 'prepayment')}>
-                  <TabsList className="grid w-full grid-cols-2">
+                <Tabs value={currentTab} onValueChange={(value) => {
+                  // 선결제가 false인 경우 선결제 탭으로 전환 불가
+                  if (value === 'prepayment' && !restaurant?.prepay) {
+                    return;
+                  }
+                  onTabChange(value as 'menu' | 'prepayment');
+                }}>
+                  <TabsList className={cn("grid w-full", restaurant?.prepay ? "grid-cols-2" : "grid-cols-1")}>
                     <TabsTrigger value="menu">메뉴</TabsTrigger>
-                    <TabsTrigger value="prepayment">선결제</TabsTrigger>
+                    {restaurant?.prepay && (
+                      <TabsTrigger value="prepayment">선결제</TabsTrigger>
+                    )}
                   </TabsList>
 
                   <TabsContent value="menu" className="pt-4">
@@ -2487,7 +2495,12 @@ export default function Home() {
       }
 
       await loadPrepayments(user.uid, restaurant.id);
-      setCurrentTab(hasActiveReservation ? 'prepayment' : 'menu');
+      // 선결제가 false인 경우 메뉴 탭으로 열기
+      if (hasActiveReservation && restaurant.prepay) {
+        setCurrentTab('prepayment');
+      } else {
+        setCurrentTab('menu');
+      }
       setDetailOpen(true);
     },
     [loadPrepayments, user]
