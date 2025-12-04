@@ -250,7 +250,7 @@ function RestaurantList({
                   const visitCount = getVisitCountLast30Days(restaurant.id, allVisitLogs);
                   if (visitCount > 0) {
                     return (
-                      <div className="absolute top-1 right-1 flex flex-wrap gap-0.5 max-w-[20px] justify-end pointer-events-none z-10">
+                      <div className="absolute top-0 right-0.5 flex flex-wrap gap-0.5 max-w-[20px] justify-end pointer-events-none z-10">
                         {Array.from({ length: visitCount }).map((_, index) => (
                           <span key={index} className="text-red-500 text-[10px] leading-none block">•</span>
                         ))}
