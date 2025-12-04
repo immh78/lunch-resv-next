@@ -748,7 +748,10 @@ function RestaurantList({
                     if (reservationCount > 0) {
                       return (
                         <div className="absolute top-0 right-0.5 pointer-events-none z-10">
-                          <span className="text-red-500 text-[8px] leading-none font-semibold pr-0.5">
+                          <span className={cn(
+                            "text-[11px] leading-none font-semibold pr-0.5",
+                            currentTheme === 'black' ? 'text-gray-600' : 'text-gray-400'
+                          )}>
                             {reservationCount}
                           </span>
                         </div>

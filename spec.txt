@@ -1398,3 +1398,8 @@ Vercel 배포 사이트에서 아래와 같은 경고 문구가 안내되었다.
 참고 사이트 내용을 참고하여 개선하여라
 - 경고 문구 : The production deployment of this project contains a vulnerable version of Next.js. Please update immediately.
 - 참고 사이트 : https://vercel.com/changelog/cve-2025-55182
+
+# 포장 예약 페이지
+- 예약 횟수의 색깔을 변경
+ . 블랙태마 : 어두운 회색
+ . 화이트테마 : 백은 회색
