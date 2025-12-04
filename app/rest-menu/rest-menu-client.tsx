@@ -640,6 +640,7 @@ export default function RestMenuPageClient() {
     menuImgId: '',
     menuUrl: '',
     naviUrl: '',
+    prepay: false,
   });
   const [creatingRestaurant, setCreatingRestaurant] = useState(false);
 
@@ -685,6 +686,7 @@ export default function RestMenuPageClient() {
             menuImgId: restaurant?.menuImgId || '',
             menuUrl: restaurant?.menuUrl || '',
             naviUrl: restaurant?.naviUrl || '',
+            prepay: restaurant?.prepay ?? false,
           }));
           // 정렬은 visitLogs가 로드된 후에 수행
           setRestaurants(restaurantList);
@@ -948,6 +950,7 @@ export default function RestMenuPageClient() {
         menuImgId: newRestaurant.menuImgId || '',
         menuUrl: newRestaurant.menuUrl || '',
         naviUrl: newRestaurant.naviUrl || '',
+        prepay: newRestaurant.prepay ?? false,
       });
 
       toast.success('식당을 등록했습니다.');
@@ -960,6 +963,7 @@ export default function RestMenuPageClient() {
         menuImgId: '',
         menuUrl: '',
         naviUrl: '',
+        prepay: false,
       });
     } catch (error) {
       console.error('Error creating restaurant', error);
@@ -980,13 +984,14 @@ export default function RestMenuPageClient() {
       menuImgId: latest.menuImgId ?? '',
       menuUrl: latest.menuUrl ?? '',
       naviUrl: latest.naviUrl ?? '',
+      prepay: latest.prepay ?? false,
     });
     setEditDialogOpen(true);
   }, [selectedRestaurant, restaurants]);
 
   const handleRestaurantUpdate = async () => {
     if (!user || !editableRestaurant) return;
-    const { id, name, telNo, kind, menuImgId, menuUrl, naviUrl } = editableRestaurant;
+    const { id, name, telNo, kind, menuImgId, menuUrl, naviUrl, prepay } = editableRestaurant;
     if (!name.trim()) {
       toast.error('식당명을 입력해주세요.');
       return;
@@ -1000,16 +1005,17 @@ export default function RestMenuPageClient() {
         menuImgId: menuImgId || '',
         menuUrl: menuUrl || '',
         naviUrl: naviUrl || '',
+        prepay: prepay ?? false,
       });
       toast.success('식당 정보를 저장했습니다.');
       setEditDialogOpen(false);
       // 식당 목록 업데이트
       const updated = restaurants.map((r) =>
-        r.id === id ? { ...r, name: name.trim(), telNo, kind, menuImgId, menuUrl, naviUrl } : r
+        r.id === id ? { ...r, name: name.trim(), telNo, kind, menuImgId, menuUrl, naviUrl, prepay: prepay ?? false } : r
       );
       setRestaurants(updated);
       if (selectedRestaurant?.id === id) {
-        setSelectedRestaurant({ ...selectedRestaurant, name: name.trim(), telNo, kind, menuImgId, menuUrl, naviUrl });
+        setSelectedRestaurant({ ...selectedRestaurant, name: name.trim(), telNo, kind, menuImgId, menuUrl, naviUrl, prepay: prepay ?? false });
       }
     } catch (error) {
       console.error('Error saving restaurant', error);

@@ -91,6 +91,7 @@ interface Restaurant {
   menuImgId?: string;
   menuUrl?: string;
   naviUrl?: string;
+  prepay?: boolean;
 }
 
 interface RestaurantMenu {
@@ -737,7 +738,10 @@ function RestaurantList({
                   {restaurant.kind && restaurantIcons[restaurant.kind] && (() => {
                     const IconComponent = getLucideIcon(restaurantIcons[restaurant.kind]);
                     return IconComponent ? (
-                      <IconComponent className="mr-2 h-4 w-4 shrink-0" />
+                      <IconComponent className={cn(
+                        "mr-2 h-4 w-4 shrink-0",
+                        restaurant.prepay && "text-green-400"
+                      )} />
                     ) : null;
                   })()}
                   <span className="truncate min-w-0">
@@ -1774,6 +1778,19 @@ function RestaurantFormDialog({
             />
           </div>
 
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="prepay-checkbox"
+              checked={restaurant.prepay ?? false}
+              onChange={(event) => onChange({ prepay: event.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Label htmlFor="prepay-checkbox" className="text-xs font-medium text-muted-foreground cursor-pointer">
+              선결제 가능
+            </Label>
+          </div>
+
           {mode === 'edit' && onToggleHide && (
             <div className="flex items-center justify-between">
               <Button
@@ -1994,6 +2011,7 @@ export default function Home() {
     menuImgId: '',
     menuUrl: '',
     naviUrl: '',
+    prepay: false,
   });
   const [savingRestaurant, setSavingRestaurant] = useState(false);
   const [creatingRestaurant, setCreatingRestaurant] = useState(false);
@@ -2196,6 +2214,7 @@ export default function Home() {
             menuImgId: restaurantEntry.menuImgId,
             menuUrl: restaurantEntry.menuUrl,
             naviUrl: restaurantEntry.naviUrl,
+            prepay: restaurantEntry.prepay,
             reservationDate: latestDate,
             reservation: latestReservation,
             prepaymentTotal,
@@ -2991,6 +3010,7 @@ export default function Home() {
       menuImgId: latest.menuImgId ?? '',
       menuUrl: latest.menuUrl ?? '',
       naviUrl: latest.naviUrl ?? '',
+      prepay: latest.prepay ?? false,
     });
     setEditDialogOpen(true);
   };
@@ -3008,7 +3028,7 @@ export default function Home() {
 
   const handleRestaurantUpdate = async () => {
     if (!user || !editableRestaurant) return;
-    const { id, name, telNo, kind, menuImgId, menuUrl, naviUrl } = editableRestaurant;
+    const { id, name, telNo, kind, menuImgId, menuUrl, naviUrl, prepay } = editableRestaurant;
     if (!name.trim()) {
       toast.error('식당명을 입력해주세요.');
       return;
@@ -3022,6 +3042,7 @@ export default function Home() {
         menuImgId: menuImgId || '',
         menuUrl: menuUrl || '',
         naviUrl: naviUrl || '',
+        prepay: prepay ?? false,
       });
       toast.success('식당 정보를 저장했습니다.');
       setEditDialogOpen(false);
@@ -3066,6 +3087,7 @@ export default function Home() {
         menuImgId: newRestaurant.menuImgId || '',
         menuUrl: newRestaurant.menuUrl || '',
         naviUrl: newRestaurant.naviUrl || '',
+        prepay: newRestaurant.prepay ?? false,
       });
 
       toast.success('식당을 등록했습니다.');
@@ -3078,6 +3100,7 @@ export default function Home() {
         menuImgId: '',
         menuUrl: '',
         naviUrl: '',
+        prepay: false,
       });
     } catch (error) {
       console.error('Error creating restaurant', error);

@@ -1403,3 +1403,25 @@ Vercel 배포 사이트에서 아래와 같은 경고 문구가 안내되었다.
 - 예약 횟수의 색깔을 변경
  . 블랙태마 : 어두운 회색
  . 화이트테마 : 백은 회색
+
+
+
+* restaurant 테이블
+"restaurant" : {
+    (restaurant key) : {
+        "kind": string, // 식당종류
+        "menuImgId": string, // Cloudinary image id
+        "menuUrl": string, // 메뉴 페이지 url
+        "name": string, // 식당명
+        "telNo": string, // 전화번호
+        "hide" : boolean, // 감추기 여부
+        "prepay" : boolean // 선결제 여부
+    }
+}
+
+## 식당 등록/수정 팝업
+식당 위치 아래에 `선결제 가능` check box를 추가한다.
+저장시 체크 여부를 prepay로 저장한다. 
+
+# 포장 예약 페이지
+선결제가 가능한 식당은 식당 아이콘을 연두색으로 표시한다.

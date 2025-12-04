@@ -41,6 +41,7 @@ interface Restaurant {
   menuImgId?: string;
   menuUrl?: string;
   naviUrl?: string;
+  prepay?: boolean;
 }
 
 interface RestaurantMenu {
@@ -866,6 +867,19 @@ export function RestaurantFormDialog({
               onChange={(event) => onChange({ naviUrl: event.target.value })}
               placeholder="네이버 지도 검색어 또는 주소"
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="prepay-checkbox-rest-menu"
+              checked={restaurant.prepay ?? false}
+              onChange={(event) => onChange({ prepay: event.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Label htmlFor="prepay-checkbox-rest-menu" className="text-xs font-medium text-muted-foreground cursor-pointer">
+              선결제 가능
+            </Label>
           </div>
 
           <div className="flex justify-end">
