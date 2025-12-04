@@ -1390,3 +1390,11 @@ popState 이벤트를 모두 무시하고 아무 동작하지 않게 구현할 �
 # 포장 예약 페이지
 - 오늘부터 최근 3개월(90일)사이에 예약 횟수를 버튼의 우측 상단에 아주 작은 숫자(빨간색)로 나타낸다.
 - 숫자의 위치와 적용형태는 식당 메뉴 페이지의 `.`와 동일하게 처리한다.
+
+Vercel Speed Insights 적용
+
+# 보안경고 조치치
+Vercel 배포 사이트에서 아래와 같은 경고 문구가 안내되었다.
+참고 사이트 내용을 참고하여 개선하여라
+- 경고 문구 : The production deployment of this project contains a vulnerable version of Next.js. Please update immediately.
+- 참고 사이트 : https://vercel.com/changelog/cve-2025-55182
