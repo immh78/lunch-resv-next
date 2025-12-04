@@ -612,6 +612,27 @@ const getAmountColor = (total: number, prepayment: number, isReceipt: boolean): 
 
 const todayCompact = () => dayjs().format('YYYYMMDD');
 
+// 최근 90일 예약 횟수 계산 함수
+const getReservationCountLast90Days = (
+  restaurantId: string,
+  allReservations: Record<string, Record<string, ReservationData>>
+): number => {
+  const reservations = allReservations[restaurantId];
+  if (!reservations) return 0;
+  
+  const today = dayjs();
+  const ninetyDaysAgo = today.subtract(90, 'day');
+  
+  return Object.keys(reservations).filter(dateKey => {
+    if (!dateKey || dateKey.length !== 8) return false;
+    const year = dateKey.substring(0, 4);
+    const month = dateKey.substring(4, 6);
+    const day = dateKey.substring(6, 8);
+    const reservationDate = dayjs(`${year}-${month}-${day}`);
+    return reservationDate.isAfter(ninetyDaysAgo) || reservationDate.isSame(ninetyDaysAgo, 'day');
+  }).length;
+};
+
 type RestaurantListProps = {
   restaurants: RestaurantWithReservation[];
   hiddenIds: string[];
@@ -622,6 +643,7 @@ type RestaurantListProps = {
   error: string;
   currentTheme: ThemeMode;
   restaurantIcons: Record<string, string>;
+  allReservations: Record<string, Record<string, ReservationData>>;
 };
 
 function RestaurantList({
@@ -634,6 +656,7 @@ function RestaurantList({
   error,
   currentTheme,
   restaurantIcons,
+  allReservations,
 }: RestaurantListProps) {
   if (loading) {
     return (
@@ -697,7 +720,7 @@ function RestaurantList({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'w-[140px] max-w-[140px] justify-start transition-colors overflow-hidden',
+                    'w-[140px] max-w-[140px] justify-start transition-colors overflow-hidden relative',
                     currentTheme === 'white'
                       ? 'bg-[rgb(250,250,250)] hover:bg-[rgb(240,240,240)]'
                       : 'bg-neutral-900 text-neutral-100 border-neutral-700 hover:bg-neutral-800',
@@ -720,6 +743,19 @@ function RestaurantList({
                   <span className="truncate min-w-0">
                     {restaurant.name}
                   </span>
+                  {(() => {
+                    const reservationCount = getReservationCountLast90Days(restaurant.id, allReservations);
+                    if (reservationCount > 0) {
+                      return (
+                        <div className="absolute top-0 right-0.5 pointer-events-none z-10">
+                          <span className="text-red-500 text-[8px] leading-none font-semibold pr-0.5">
+                            {reservationCount}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </Button>
               </TableCell>
               <TableCell className="align-middle">
@@ -1922,6 +1958,7 @@ export default function Home() {
   const [restaurants, setRestaurants] = useState<RestaurantWithReservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [allReservations, setAllReservations] = useState<Record<string, Record<string, ReservationData>>>({});
 
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantWithReservation | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -2193,6 +2230,7 @@ export default function Home() {
       reservationRef,
       (snapshot) => {
         reservationData = snapshot.exists() ? snapshot.val() : {};
+        setAllReservations(reservationData);
         combine();
       },
       (err) => {
@@ -3185,6 +3223,7 @@ export default function Home() {
             error={error}
             currentTheme={currentTheme}
             restaurantIcons={restaurantIcons}
+            allReservations={allReservations}
           />
         </main>
 
