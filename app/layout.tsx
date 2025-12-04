@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PageViewLogger from "@/components/PageViewLogger";
 import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -56,6 +57,7 @@ export default function RootLayout({
             {children}
           </AuthProvider>
           <Toaster position="top-center" richColors />
+          <SpeedInsights />
       </body>
     </html>
   );
