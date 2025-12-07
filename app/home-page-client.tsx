@@ -2522,6 +2522,10 @@ export default function Home() {
 
   const handleSaveMenus = async () => {
     if (!user || !selectedRestaurant) return;
+    const previousReservationKey =
+      selectedRestaurant.reservation?.isReceipt === false
+        ? selectedRestaurant.reservationDate
+        : undefined;
 
     const validMenus = menuRows.filter((menu) => menu.menu.trim() && menu.cost > 0);
     if (!validMenus.length) {
@@ -2546,6 +2550,16 @@ export default function Home() {
           })),
         };
         await set(ref(database, reservationPath), data);
+
+        if (previousReservationKey && previousReservationKey !== reservationKey) {
+          await remove(
+            ref(
+              database,
+              `food-resv/reservation/${user.uid}/${restaurantId}/${previousReservationKey}`
+            )
+          );
+        }
+
         toast.success('예약 정보를 저장했습니다.');
         setSelectedRestaurant((prev) =>
           prev && prev.id === restaurantId
