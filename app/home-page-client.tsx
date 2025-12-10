@@ -349,31 +349,15 @@ const generateShareFormHTML = (
     ? iconSVGCache[restaurantIconName] 
     : '';
 
-  // 식당 아이콘 색상 계산 (선결제 금액 비율에 따라 동적 변경)
+  // 식당 아이콘 색상 계산 (선결제 금액에 따라 동적 변경)
   const getRestaurantIconColor = (): string => {
-    if (totalAmount === 0) {
-      // 예약금액이 0이면 기본 색상 (파란색)
-      return 'rgb(37, 0, 170)';
-    }
-    
-    if (prepaymentTotal === 0) {
-      // 선결제금액이 0이면 빨간색
+    // 예약금액보다 선결제금액이 같거나 크면 빨간색
+    if (prepaymentTotal >= totalAmount) {
       return 'rgb(170, 0, 0)';
     }
     
-    if (prepaymentTotal >= totalAmount) {
-      // 선결제금액이 예약금액보다 같거나 크면 파란색
-      return 'rgb(37, 0, 170)';
-    }
-    
-    // 비율에 따라 선형 보간
-    const ratio = Math.min(prepaymentTotal / totalAmount, 1);
-    // rgb(170, 0, 0)에서 rgb(37, 0, 170)로 보간
-    const r = Math.round(170 - (170 - 37) * ratio);
-    const g = 0;
-    const b = Math.round(170 * ratio);
-    
-    return `rgb(${r}, ${g}, ${b})`;
+    // 그 외엔 블랙
+    return 'black';
   };
 
   const iconColor = getRestaurantIconColor();
@@ -439,7 +423,7 @@ const generateShareFormHTML = (
         <div style="margin-top: 8px;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <div style="display: flex; align-items: bottom; color: #495057; margin-bottom: -16px; display: inline-block;">${iconSVG.creditCard}</div>
-            <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">선결제</h3>
+            <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">선결제${totalAmount > 0 && prepaymentTotal > 0 && prepaymentTotal < totalAmount ? ` (남은금액 : ${formatCurrency(totalAmount - prepaymentTotal)}원)` : ''}</h3>
           </div>
           <div style="border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden;">
             <table cellspacing="0" cellpadding="0" style="width: 100%; font-size: 11pt; border-collapse: collapse; background-color: rgb(255, 255, 255);">
