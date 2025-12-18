@@ -392,7 +392,15 @@ function RestaurantMenuDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-        <DialogContent className="flex h-[90vh] max-h-[90vh] max-w-md flex-col p-0 overflow-hidden !items-start !mt-0 [&>div]:h-full [&>div]:max-h-[90vh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden">
+        <DialogContent 
+          className="flex h-[90dvh] max-h-[90dvh] max-w-[calc(100vw-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)-1rem)] sm:max-w-md flex-col p-0 overflow-hidden !items-start !mt-0 [&>div]:h-full [&>div]:max-h-[90dvh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden"
+          style={{
+            paddingTop: `env(safe-area-inset-top, 0px)`,
+            paddingBottom: `env(safe-area-inset-bottom, 0px)`,
+            paddingLeft: `env(safe-area-inset-left, 0px)`,
+            paddingRight: `env(safe-area-inset-right, 0px)`,
+          }}
+        >
           <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
             <div className="flex items-center gap-2">
               <DialogTitle>{restaurant?.name || '식당 메뉴'}</DialogTitle>
