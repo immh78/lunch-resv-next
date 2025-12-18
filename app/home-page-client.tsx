@@ -989,7 +989,13 @@ function RestaurantDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="mx-auto flex h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] flex-col items-start justify-center px-1 pt-[5vh] [&>div]:max-w-full [&>div]:w-full [&>div]:rounded-sm">
+      <DialogContent 
+        className="mx-auto flex h-[90dvh] max-h-[90dvh] w-[calc(100vw-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)-1rem)] max-w-[calc(100vw-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)-1rem)] sm:w-[90vw] sm:max-w-[90vw] flex-col items-start justify-center px-1 pt-[max(5dvh,env(safe-area-inset-top,0px))] pb-[max(0px,env(safe-area-inset-bottom,0px))] [&>div]:max-w-full [&>div]:w-full [&>div]:rounded-sm"
+        style={{
+          paddingLeft: `max(0.25rem, env(safe-area-inset-left, 0px))`,
+          paddingRight: `max(0.25rem, env(safe-area-inset-right, 0px))`,
+        }}
+      >
         {restaurant && (
           <>
             <DialogHeader className="space-y-0 border-b border-border/50 px-5 py-4">
@@ -1646,9 +1652,15 @@ function RestaurantFormDialog({
     <>
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
         <DialogContent className={cn(
-          "flex h-[90vh] max-h-[90vh] max-w-md flex-col p-0 overflow-hidden !items-start !mt-0",
-          "[&>div]:h-full [&>div]:max-h-[90vh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden"
-        )}>
+          "flex h-[90dvh] max-h-[90dvh] max-w-[calc(100vw-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)-1rem)] sm:max-w-md flex-col p-0 overflow-hidden !items-start !mt-0",
+          "[&>div]:h-full [&>div]:max-h-[90dvh] [&>div]:flex [&>div]:flex-col [&>div]:overflow-hidden"
+        )}
+        style={{
+          paddingTop: `env(safe-area-inset-top, 0px)`,
+          paddingBottom: `env(safe-area-inset-bottom, 0px)`,
+          paddingLeft: `env(safe-area-inset-left, 0px)`,
+          paddingRight: `env(safe-area-inset-right, 0px)`,
+        }}>
           <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
             <DialogTitle>{mode === 'edit' ? restaurant.id : '식당 등록'}</DialogTitle>
           </DialogHeader>
@@ -3398,7 +3410,13 @@ export default function Home() {
 
         {/* 미리보기 다이얼로그 */}
         <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto"
+            style={{
+              paddingTop: `max(1rem, env(safe-area-inset-top, 0px))`,
+              paddingBottom: `max(1rem, env(safe-area-inset-bottom, 0px))`,
+              paddingLeft: `max(1rem, env(safe-area-inset-left, 0px))`,
+              paddingRight: `max(1rem, env(safe-area-inset-right, 0px))`,
+            }}>
             <DialogHeader>
               <DialogTitle>공유 양식 미리보기</DialogTitle>
             </DialogHeader>

@@ -36,12 +36,19 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center p-4 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:p-6",
+        "fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className
       )}
+      style={{
+        paddingTop: `max(0.5rem, env(safe-area-inset-top, 0px))`,
+        paddingRight: `max(0.5rem, env(safe-area-inset-right, 0px))`,
+        paddingBottom: `max(0.5rem, env(safe-area-inset-bottom, 0px))`,
+        paddingLeft: `max(0.5rem, env(safe-area-inset-left, 0px))`,
+        ...(props.style as React.CSSProperties),
+      }}
       {...props}
     >
-      <div className="relative w-full max-w-lg rounded-sm border border-border bg-card shadow-lg">
+      <div className="relative w-full max-w-[calc(100vw-2*env(safe-area-inset-left,0px)-2*env(safe-area-inset-right,0px)-1rem)] sm:max-w-lg rounded-sm border border-border bg-card shadow-lg">
         <DialogPrimitive.Close className="absolute right-3 top-3 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
           <X className="h-4 w-4" />
           <span className="sr-only">닫기</span>
