@@ -143,6 +143,10 @@ interface MenuHistoryItem {
   cost: number;
 }
 
+interface MenuHistoryItemWithDate extends MenuHistoryItem {
+  date: string; // YYYYMMDD
+}
+
 type DeleteTarget = 'reservation' | 'prepayment';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -1351,22 +1355,53 @@ function RestaurantDetailDialog({
 type MenuHistoryDialogProps = {
   open: boolean;
   menus: MenuHistoryItem[];
+  fullMenus: MenuHistoryItemWithDate[];
   onClose: () => void;
   onSelect: (menu: MenuHistoryItem) => void;
 };
 
-function MenuHistoryDialog({ open, menus, onClose, onSelect }: MenuHistoryDialogProps) {
+function formatDateKey(dateKey: string): string {
+  if (!dateKey || dateKey.length !== 8) return dateKey;
+  return `${dateKey.slice(0, 4)}.${dateKey.slice(4, 6)}.${dateKey.slice(6, 8)}`;
+}
+
+function MenuHistoryDialog({ open, menus, fullMenus, onClose, onSelect }: MenuHistoryDialogProps) {
+  const [viewMode, setViewMode] = useState<'summary' | 'full'>('summary');
+
+  // full view: 그룹별 렌더링 (날짜 내림차순)
+  const fullGrouped = useMemo(() => {
+    const map = new Map<string, MenuHistoryItem[]>();
+    for (const item of fullMenus) {
+      const list = map.get(item.date) ?? [];
+      list.push({ menu: item.menu, cost: item.cost });
+      map.set(item.date, list);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [fullMenus]);
+
+  const isEmpty = viewMode === 'summary' ? menus.length === 0 : fullMenus.length === 0;
+
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog open={open} onOpenChange={(next) => !next && (setViewMode('summary'), onClose())}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>메뉴 히스토리</DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle>메뉴 히스토리</DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 shrink-0 text-xs"
+              onClick={() => setViewMode((m) => (m === 'summary' ? 'full' : 'summary'))}
+            >
+              {viewMode === 'summary' ? '전체보기' : '요약보기'}
+            </Button>
+          </div>
           <DialogDescription>이전에 등록한 메뉴를 빠르게 불러올 수 있어요.</DialogDescription>
         </DialogHeader>
         <div className="max-h-80 space-y-2 overflow-y-auto">
-          {menus.length === 0 ? (
+          {isEmpty ? (
             <p className="text-sm text-muted-foreground">등록된 메뉴가 없습니다.</p>
-          ) : (
+          ) : viewMode === 'summary' ? (
             menus.map((menu) => (
               <button
                 key={`${menu.menu}-${menu.cost}`}
@@ -1379,6 +1414,30 @@ function MenuHistoryDialog({ open, menus, onClose, onSelect }: MenuHistoryDialog
                   {formatCurrency(menu.cost)}원
                 </span>
               </button>
+            ))
+          ) : (
+            fullGrouped.map(([dateKey, items]) => (
+              <div key={dateKey}>
+                <div className="flex items-center gap-2 py-1.5">
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatDateKey(dateKey)}
+                  </span>
+                  <div className="min-h-0 flex-1 border-b border-border" />
+                </div>
+                {items.map((menu, idx) => (
+                  <button
+                    key={`${dateKey}-${menu.menu}-${menu.cost}-${idx}`}
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted"
+                    onClick={() => onSelect(menu)}
+                  >
+                    <span>{menu.menu}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatCurrency(menu.cost)}원
+                    </span>
+                  </button>
+                ))}
+              </div>
             ))
           )}
         </div>
@@ -2001,6 +2060,7 @@ export default function Home() {
 
   const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
   const [menuHistoryList, setMenuHistoryList] = useState<MenuHistoryItem[]>([]);
+  const [menuHistoryFullList, setMenuHistoryFullList] = useState<MenuHistoryItemWithDate[]>([]);
   const [registeredMenuListOpen, setRegisteredMenuListOpen] = useState(false);
   const [restaurantMenus, setRestaurantMenus] = useState<Record<string, RestaurantMenu>>({});
 
@@ -2510,6 +2570,7 @@ export default function Home() {
     setSavedPrepayments([]);
     setReservationDate('');
     setMenuHistoryList([]);
+    setMenuHistoryFullList([]);
     setMenuHistoryOpen(false);
     setRestaurantMenus({});
     setRegisteredMenuListOpen(false);
@@ -2976,16 +3037,20 @@ export default function Home() {
       const reservationRef = ref(database, `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`);
       const snapshot = await get(reservationRef);
       const unique = new Map<string, MenuHistoryItem>();
+      const fullList: MenuHistoryItemWithDate[] = [];
 
       if (snapshot.exists()) {
         const reservations = snapshot.val() as Record<string, ReservationData>;
-        Object.values(reservations).forEach((reservation) => {
+        const dateKeys = Object.keys(reservations).sort((a, b) => b.localeCompare(a));
+        dateKeys.forEach((dateKey) => {
+          const reservation = reservations[dateKey];
           reservation?.menus?.forEach((menu) => {
             if (!menu.menu) return;
             const key = `${menu.menu}|${menu.cost}`;
             if (!unique.has(key)) {
               unique.set(key, { menu: menu.menu, cost: menu.cost });
             }
+            fullList.push({ menu: menu.menu, cost: menu.cost, date: dateKey });
           });
         });
       }
@@ -2994,6 +3059,7 @@ export default function Home() {
         a.menu.localeCompare(b.menu)
       );
       setMenuHistoryList(list);
+      setMenuHistoryFullList(fullList);
       setMenuHistoryOpen(true);
     } catch (error) {
       console.error('Error fetching menu history', error);
@@ -3322,6 +3388,7 @@ export default function Home() {
           <MenuHistoryDialog
             open={menuHistoryOpen}
             menus={menuHistoryList}
+            fullMenus={menuHistoryFullList}
             onClose={() => setMenuHistoryOpen(false)}
             onSelect={handleMenuHistorySelect}
           />
