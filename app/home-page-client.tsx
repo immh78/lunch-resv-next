@@ -1385,7 +1385,7 @@ function MenuHistoryDialog({ open, menus, fullMenus, onClose, onSelect }: MenuHi
     <Dialog open={open} onOpenChange={(next) => !next && (setViewMode('summary'), onClose())}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <DialogTitle>메뉴 히스토리</DialogTitle>
             <Button
               variant="ghost"
