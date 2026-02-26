@@ -67,6 +67,7 @@ import {
   Receipt,
   Save,
   Trash2,
+  Undo2,
   X,
   Pencil,
   Clock3,
@@ -886,6 +887,9 @@ type RestaurantDetailDialogProps = {
   onDeleteMenus: () => void;
   onSavePrepayments: () => void;
   onDeletePrepayments: () => void;
+  pendingDeleteTarget: DeleteTarget | null;
+  onExecutePendingDelete: () => void;
+  onClearPendingDelete: () => void;
   onClose: () => void;
   onOpenMenuHistory: () => void;
   onOpenRestaurantEditor: () => void;
@@ -923,6 +927,9 @@ function RestaurantDetailDialog({
   onDeleteMenus,
   onSavePrepayments,
   onDeletePrepayments,
+  pendingDeleteTarget,
+  onExecutePendingDelete,
+  onClearPendingDelete,
   onClose,
   onOpenMenuHistory,
   onOpenRestaurantEditor,
@@ -938,7 +945,36 @@ function RestaurantDetailDialog({
 }: RestaurantDetailDialogProps) {
   const [reservationDateOpen, setReservationDateOpen] = useState(false);
   const [prepaymentDateOpens, setPrepaymentDateOpens] = useState<Record<string, boolean>>({});
+  const [pendingAction, setPendingAction] = useState<'receipt' | null>(null);
   const reservationDateValue = useMemo(() => displayToDate(reservationDate), [reservationDate]);
+
+  const executePending = useCallback(() => {
+    if (pendingAction === 'receipt') {
+      setPendingAction(null);
+      onReceipt();
+    } else if (pendingDeleteTarget) {
+      onExecutePendingDelete();
+    }
+  }, [pendingAction, pendingDeleteTarget, onReceipt, onExecutePendingDelete]);
+
+  const clearPendingReceipt = useCallback(() => {
+    setPendingAction(null);
+    toast.success('수령이 취소되었습니다.');
+  }, []);
+
+  const hasPending = pendingAction === 'receipt' || !!pendingDeleteTarget;
+
+  useEffect(() => {
+    if (!hasPending) return;
+    const id = setTimeout(() => {
+      executePending();
+    }, 3000);
+    return () => clearTimeout(id);
+  }, [hasPending, executePending]);
+
+  useEffect(() => {
+    if (!open) setPendingAction(null);
+  }, [open]);
 
   // 저장된 메뉴 목록
   const savedMenus = useMemo(() => {
@@ -992,7 +1028,12 @@ function RestaurantDetailDialog({
   }, [open, currentTab, prepaymentRows]);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog open={open} onOpenChange={(next) => {
+      if (!next) {
+        if (pendingAction) executePending();
+        onClose();
+      }
+    }}>
       <DialogContent 
         className="mx-auto flex h-[90dvh] max-h-[90dvh] w-[calc(100vw-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)-1rem)] max-w-[calc(100vw-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)-1rem)] sm:w-[90vw] sm:max-w-[90vw] flex-col items-start justify-center px-1 pt-[max(5dvh,env(safe-area-inset-top,0px))] pb-[max(0px,env(safe-area-inset-bottom,0px))] [&>div]:max-w-full [&>div]:w-full [&>div]:rounded-sm"
         style={{
@@ -1044,6 +1085,7 @@ function RestaurantDetailDialog({
                   if (value === 'prepayment' && !restaurant?.prepay) {
                     return;
                   }
+                  if (pendingAction) executePending();
                   onTabChange(value as 'menu' | 'prepayment');
                 }}>
                   <TabsList className={cn("grid w-full", restaurant?.prepay ? "grid-cols-2" : "grid-cols-1")}>
@@ -1294,11 +1336,15 @@ function RestaurantDetailDialog({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onReceipt}
+                  onClick={pendingAction === 'receipt' ? clearPendingReceipt : () => {
+                    setPendingAction('receipt');
+                    toast.success('수령 처리되었습니다.');
+                  }}
                   disabled={isReceipt}
                   className={cn('h-9 w-9', isReceipt && 'text-gray-400')}
+                  title={pendingAction === 'receipt' ? '취소' : '수령'}
                 >
-                  <Receipt className="h-4 w-4" />
+                  {pendingAction === 'receipt' ? <Undo2 className="h-4 w-4" /> : <Receipt className="h-4 w-4" />}
                 </Button>
                 {currentTab === 'menu' ? (
                   <>
@@ -1314,11 +1360,12 @@ function RestaurantDetailDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={onDeleteMenus}
+                      onClick={pendingDeleteTarget === 'reservation' ? onClearPendingDelete : onDeleteMenus}
                       disabled={isReceipt}
-                      className={cn('h-9 w-9 text-destructive', isReceipt && 'text-gray-400')}
+                      className={cn('h-9 w-9', pendingDeleteTarget === 'reservation' ? '' : 'text-destructive', isReceipt && 'text-gray-400')}
+                      title={pendingDeleteTarget === 'reservation' ? '취소' : '삭제'}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {pendingDeleteTarget === 'reservation' ? <Undo2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
                     </Button>
                   </>
                 ) : (
@@ -1335,11 +1382,12 @@ function RestaurantDetailDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={onDeletePrepayments}
+                      onClick={pendingDeleteTarget === 'prepayment' ? onClearPendingDelete : onDeletePrepayments}
                       disabled={isReceipt}
-                      className={cn('h-9 w-9 text-destructive', isReceipt && 'text-gray-400')}
+                      className={cn('h-9 w-9', pendingDeleteTarget === 'prepayment' ? '' : 'text-destructive', isReceipt && 'text-gray-400')}
+                      title={pendingDeleteTarget === 'prepayment' ? '취소' : '삭제'}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {pendingDeleteTarget === 'prepayment' ? <Undo2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
                     </Button>
                   </>
                 )}
@@ -2057,6 +2105,7 @@ export default function Home() {
     open: false,
     target: null,
   });
+  const [pendingDeleteTarget, setPendingDeleteTarget] = useState<DeleteTarget | null>(null);
 
   const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
   const [menuHistoryList, setMenuHistoryList] = useState<MenuHistoryItem[]>([]);
@@ -2575,6 +2624,7 @@ export default function Home() {
     setRestaurantMenus({});
     setRegisteredMenuListOpen(false);
     setCurrentTab('menu');
+    setPendingDeleteTarget(null);
   };
 
   const handleSaveMenus = async () => {
@@ -2699,9 +2749,57 @@ export default function Home() {
     }
   };
 
-    const handleDeletePrepayments = () => {
-      setDeleteState({ open: true, target: 'prepayment' });
-    };
+  const handleDeletePrepayments = () => {
+    setDeleteState({ open: true, target: 'prepayment' });
+  };
+
+  const handleDeleteConfirmClick = () => {
+    const target = deleteState.target;
+    setDeleteState({ open: false, target: null });
+    if (target) {
+      setPendingDeleteTarget(target);
+      toast.success(target === 'reservation' ? '예약 정보를 삭제했습니다.' : '선결제를 삭제했습니다.');
+    }
+  };
+
+  const handleClearPendingDelete = () => {
+    setPendingDeleteTarget(null);
+    toast.success('삭제가 취소되었습니다.');
+  };
+
+  const handleExecutePendingDelete = async () => {
+    const target = pendingDeleteTarget;
+    setPendingDeleteTarget(null);
+    if (!user || !selectedRestaurant || !target) return;
+
+    const reservationKey = target === 'reservation' ? displayToCompact(reservationDate) : '';
+
+    if (target === 'reservation') {
+      if (!reservationDate || reservationKey.length !== 8) {
+        toast.error('예약일을 확인해주세요.');
+        return;
+      }
+    }
+
+    try {
+      if (target === 'reservation') {
+        await remove(
+          ref(
+            database,
+            `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationKey}`
+          )
+        );
+        handleCloseDetail();
+      } else {
+        await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
+        setSavedPrepayments([]);
+        await loadPrepayments(user.uid, selectedRestaurant.id);
+      }
+    } catch (error) {
+      console.error('Error deleting data', error);
+      toast.error('삭제 중 오류가 발생했습니다.');
+    }
+  };
   
     const handleReceipt = async () => {
       if (!user || !selectedRestaurant) return;
@@ -2722,7 +2820,6 @@ export default function Home() {
   
         await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
         setSavedPrepayments([]);
-        toast.success('수령 처리되었습니다.');
         handleCloseDetail();
       } catch (error) {
         console.error('Error processing receipt', error);
@@ -2730,44 +2827,6 @@ export default function Home() {
       }
     };
   
-    const handleConfirmDelete = async () => {
-      if (!user || !selectedRestaurant || !deleteState.target) return;
-  
-      const reservationKey =
-        deleteState.target === 'reservation' ? displayToCompact(reservationDate) : '';
-  
-      if (deleteState.target === 'reservation') {
-        if (!reservationDate || reservationKey.length !== 8) {
-          toast.error('예약일을 확인해주세요.');
-          setDeleteState({ open: false, target: null });
-          return;
-        }
-      }
-  
-      try {
-        if (deleteState.target === 'reservation') {
-          await remove(
-            ref(
-              database,
-              `food-resv/reservation/${user.uid}/${selectedRestaurant.id}/${reservationKey}`
-            )
-          );
-          toast.success('예약 정보를 삭제했습니다.');
-          handleCloseDetail();
-        } else {
-          await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
-          setSavedPrepayments([]);
-          toast.success('선결제를 삭제했습니다.');
-          await loadPrepayments(user.uid, selectedRestaurant.id);
-        }
-      } catch (error) {
-        console.error('Error deleting data', error);
-        toast.error('삭제 중 오류가 발생했습니다.');
-      } finally {
-        setDeleteState({ open: false, target: null });
-      }
-    };
-
   // 공유 HTML 생성 함수 (공통)
   // iconSVGCache: 아이콘 SVG 캐시 (이벤트 핸들러에서 미리 생성)
   const getShareHTML = (iconSVGCache?: Record<string, string>) => {
@@ -3364,6 +3423,9 @@ export default function Home() {
           onDeleteMenus={handleDeleteMenus}
           onSavePrepayments={handleSavePrepayments}
           onDeletePrepayments={handleDeletePrepayments}
+          pendingDeleteTarget={pendingDeleteTarget}
+          onExecutePendingDelete={handleExecutePendingDelete}
+          onClearPendingDelete={handleClearPendingDelete}
           onClose={handleCloseDetail}
           onOpenMenuHistory={handleMenuHistoryOpen}
           onOpenRestaurantEditor={handleOpenRestaurantEditor}
@@ -3463,7 +3525,7 @@ export default function Home() {
           open={deleteState.open}
           target={deleteState.target}
           onCancel={() => setDeleteState({ open: false, target: null })}
-          onConfirm={handleConfirmDelete}
+          onConfirm={handleDeleteConfirmClick}
         />
 
         <RestaurantKindManageDialog
