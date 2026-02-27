@@ -120,7 +120,7 @@ const Calendar: React.FC<CalendarProps> = ({
         1
       );
     });
-  }, [selectedMonthKey]);
+  }, [selectedMonthKey, normalizedSelected]);
 
   useEffect(() => {
     if (defaultMonthKey === null || !defaultMonth) return;
@@ -133,7 +133,7 @@ const Calendar: React.FC<CalendarProps> = ({
       }
       return new Date(defaultMonth.getFullYear(), defaultMonth.getMonth(), 1);
     });
-  }, [defaultMonthKey]);
+  }, [defaultMonthKey, defaultMonth]);
 
   const today = useMemo(() => normalizeDate(new Date()), []);
   const weekdayLabels = useMemo(() => rotateWeekdays(weekStartsOn), [weekStartsOn]);

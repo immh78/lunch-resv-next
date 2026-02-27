@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import { ref, onValue, set, remove, get, update } from 'firebase/database';
@@ -295,7 +296,7 @@ const getLucideIconSVG = async (iconName?: string): Promise<string> => {
         if (tempDiv.parentNode) {
           document.body.removeChild(tempDiv);
         }
-      } catch (e) {
+      } catch {
         // 이미 정리된 경우 무시
       }
     }, 100);
@@ -486,10 +487,6 @@ const generateReservationListShareHTML = (
   restaurantIcons?: Record<string, string>,
   iconSVGCache?: Record<string, string>
 ): string => {
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('ko-KR').format(value);
-  };
-
   // 유효한 식당만 필터링 (메뉴가 있는 경우만)
   const validRestaurants = restaurantMenuList.filter(
     (restaurant) => restaurant.menus && restaurant.menus.length > 0
@@ -514,10 +511,6 @@ const generateReservationListShareHTML = (
       formattedDate = `${month}.${day} (${weekday})`;
     }
   }
-
-  // 각 식당의 메뉴 개수 계산
-  const restaurantMenuCounts = validRestaurants.map((r) => r.menus.length);
-  const totalRows = restaurantMenuCounts.reduce((sum, count) => sum + count, 0);
 
   const tableHTML = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 8px; background: #f5f5f5; border-radius: 12px;">
@@ -1540,13 +1533,16 @@ function RestaurantMenuPickerDialog({
                   onClick={() => onSelect(menu)}
                 >
                   {thumbnailUrl ? (
-                    <img
+                    <Image
                       src={thumbnailUrl}
                       alt={menu.name}
+                      width={36}
+                      height={36}
                       className="h-9 w-9 rounded object-cover"
                       onError={(event) => {
                         (event.target as HTMLImageElement).style.display = 'none';
                       }}
+                      unoptimized
                     />
                   ) : (
                     <div className="h-9 w-9 rounded bg-muted" />
@@ -1582,7 +1578,6 @@ function RestaurantKindSelectDialog({
   open,
   selectedKind,
   restaurantKinds,
-  restaurantIcons,
   onClose,
   onSelect,
 }: RestaurantKindSelectDialogProps) {
@@ -1753,7 +1748,7 @@ function RestaurantFormDialog({
     }
   }, [onMenuSave]);
 
-  const menuNames = Object.entries(menus).map(([key, menu]) => menu.name).filter(Boolean);
+  const menuNames = Object.entries(menus).map(([, menu]) => menu.name).filter(Boolean);
 
   return (
     <>

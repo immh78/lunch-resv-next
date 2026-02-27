@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ref, onValue, set, get, remove, update, push } from 'firebase/database';
 import dayjs from 'dayjs';
@@ -23,12 +24,10 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,8 +57,6 @@ import {
   X,
   PlusCircle,
   Palette,
-  Camera,
-  Save,
   Pencil,
   Trash2,
   Plus,
@@ -450,10 +447,13 @@ function RestaurantMenuDialog({
                             }
                           }}
                         >
-                          <img
+                          <Image
                             src={thumbnailUrl}
                             alt={menu.name}
+                            width={60}
+                            height={60}
                             className="h-[60px] w-[60px] rounded object-cover"
+                            unoptimized
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
@@ -589,10 +589,13 @@ function ImageViewDialog({
           >
             <X className="h-4 w-4" />
           </Button>
-          <img
+          <Image
             src={imageUrl}
             alt="메뉴 이미지"
+            width={800}
+            height={600}
             className="w-full h-auto max-h-[90vh] object-contain"
+            unoptimized
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
@@ -747,6 +750,7 @@ export default function RestMenuPageClient() {
               
               // 가장 최근 것만 저장 (최근 메뉴 표시용, 키 제외)
               if (logEntriesWithKey.length > 0) {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars -- key 제외를 위해 구조분해
                 const { key, ...recentLog } = logEntriesWithKey[0];
                 logs[restaurantId] = [recentLog];
               }
@@ -1173,7 +1177,7 @@ export default function RestMenuPageClient() {
         setRestaurants(sorted);
       }
     }
-  }, [visitLogs]);
+  }, [visitLogs, restaurants]);
 
   // 검색어, 식당 목록, visit-log가 변경될 때 필터링
   useEffect(() => {
@@ -1453,79 +1457,6 @@ export default function RestMenuPageClient() {
         </Dialog>
       </div>
     </ProtectedRoute>
-  );
-}
-
-type RestaurantKindSelectDialogProps = {
-  open: boolean;
-  selectedKind: string | undefined;
-  restaurantKinds: Record<string, { icon?: string; name?: string }>;
-  restaurantIcons: Record<string, string>;
-  onClose: () => void;
-  onSelect: (kind: string) => void;
-};
-
-function RestaurantKindSelectDialog({
-  open,
-  selectedKind,
-  restaurantKinds,
-  restaurantIcons,
-  onClose,
-  onSelect,
-}: RestaurantKindSelectDialogProps) {
-  const kindEntries = Object.entries(restaurantKinds).sort(([a], [b]) => {
-    const nameA = restaurantKinds[a]?.name || a;
-    const nameB = restaurantKinds[b]?.name || b;
-    return nameA.localeCompare(nameB);
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>종류 선택</DialogTitle>
-          <DialogDescription>식당 종류를 선택하세요.</DialogDescription>
-        </DialogHeader>
-        <div className="max-h-80 space-y-2 overflow-y-auto">
-          <button
-            type="button"
-            className={cn(
-              'flex w-full items-center gap-2 rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted',
-              !selectedKind && 'border-border bg-muted'
-            )}
-            onClick={() => {
-              onSelect('');
-              onClose();
-            }}
-          >
-            <span className="text-muted-foreground">선택 안 함</span>
-          </button>
-          {kindEntries.map(([kind, data]) => {
-            const IconComponent = data?.icon ? getLucideIcon(data.icon) : null;
-            const kindName = data?.name || kind;
-            const isSelected = selectedKind === kind;
-
-            return (
-              <button
-                key={kind}
-                type="button"
-                className={cn(
-                  'flex w-full items-center gap-2 rounded-sm border border-transparent px-3 py-2 text-left text-sm transition hover:border-border hover:bg-muted',
-                  isSelected && 'border-border bg-muted'
-                )}
-                onClick={() => {
-                  onSelect(kind);
-                  onClose();
-                }}
-              >
-                {IconComponent && <IconComponent className="h-4 w-4 shrink-0" />}
-                <span>{kindName}</span>
-              </button>
-            );
-          })}
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
 

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { ref, onValue, set, update } from 'firebase/database';
+import Image from 'next/image';
+import { ref, onValue, update } from 'firebase/database';
 import { toast } from 'sonner';
 
 import { database } from '@/lib/firebase';
@@ -31,7 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getLucideIcon } from '@/lib/icon-utils';
 
-import { Camera, Save, Plus, Pencil, Trash2, Tag } from 'lucide-react';
+import { Camera, Save, Plus, Pencil, Trash2 } from 'lucide-react';
 
 interface Restaurant {
   id: string;
@@ -312,10 +313,13 @@ export function ImageUploadDialog({
             }}
           >
             {previewUrl ? (
-              <img
+              <Image
                 src={previewUrl}
                 alt="선택한 이미지 미리보기"
+                width={400}
+                height={192}
                 className="h-48 w-full rounded-sm object-cover shadow-sm"
+                unoptimized
               />
             ) : (
               <>
@@ -406,11 +410,14 @@ export function ImageUploadDialog({
                   </div>
                 )}
                 {!imageLoadError ? (
-                  <img
+                  <Image
                     key={imageUrl}
                     src={imageUrl}
                     alt="등록된 메뉴 이미지 미리보기"
+                    width={400}
+                    height={160}
                     className="h-40 w-full object-cover"
+                    unoptimized
                     onError={() => {
                       console.error('이미지 로드 실패:', initialPublicId?.trim(), 'URL:', imageUrl);
                       setImageLoadError(true);
@@ -463,7 +470,6 @@ export function MenuEditDialog({
   restaurantId,
   cloudName,
   mobilePreset,
-  thumbnailPreset,
   onClose,
   onSave,
 }: MenuEditDialogProps) {
@@ -749,7 +755,7 @@ export function RestaurantFormDialog({
     [restaurant, onChange]
   );
 
-  const menuNames = Object.entries(menus).map(([key, menu]) => menu.name).filter(Boolean);
+  const menuNames = Object.entries(menus).map(([, menu]) => menu.name).filter(Boolean);
 
   return (
     <>
@@ -975,7 +981,6 @@ function RestaurantKindSelectDialog({
   open,
   selectedKind,
   restaurantKinds,
-  restaurantIcons,
   onClose,
   onSelect,
 }: RestaurantKindSelectDialogProps) {

@@ -1486,3 +1486,121 @@ Safe Area (아이폰 노치 대응)하여 아이폰 14에서 좌/우, 상/하단
 
 - 삭제의 경우 삭제 여부를 묻고 난 다음 삭제한다고 했을때 rolback기능을 반영한다.
 - 수령, 삭제의 알림 메시지 처리는 수행이 아닌 이벤트 착수시 마로 출력하고 rollback처리시 수령, 삭제가 취소되었다고 다시 메시지를 출력한다.
+
+
+빌드 warning 조치치
+
+./app/home-page-client.tsx
+3:50  Warning: 'useRef' is defined but never used.  @typescript-eslint/no-unused-vars
+298:16  Warning: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+489:9  Warning: 'formatCurrency' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+520:9  Warning: 'totalRows' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+1543:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+1585:3  Warning: 'restaurantIcons' is defined but never used.  @typescript-eslint/no-unused-vars
+1756:49  Warning: 'key' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/rest-menu/components.tsx
+4:24  Warning: 'set' is defined but never used.  @typescript-eslint/no-unused-vars
+34:46  Warning: 'Tag' is defined but never used.  @typescript-eslint/no-unused-vars
+315:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+409:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+466:3  Warning: 'thumbnailPreset' is defined but never used.  @typescript-eslint/no-unused-vars
+752:49  Warning: 'key' is defined but never used.  @typescript-eslint/no-unused-vars
+978:3  Warning: 'restaurantIcons' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/rest-menu/rest-menu-client.tsx
+31:10  Warning: 'Label' is defined but never used.  @typescript-eslint/no-unused-vars
+61:3  Warning: 'Camera' is defined but never used.  @typescript-eslint/no-unused-vars
+62:3  Warning: 'Save' is defined but never used.  @typescript-eslint/no-unused-vars
+453:27  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+592:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+750:25  Warning: 'key' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+1176:6  Warning: React Hook useEffect has a missing dependency: 'restaurants'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+1468:10  Warning: 'RestaurantKindSelectDialog' is defined but never used.  @typescript-eslint/no-unused-vars
+1472:3  Warning: 'restaurantIcons' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/ui/calendar.tsx
+123:6  Warning: React Hook useEffect has a missing dependency: 'normalizedSelected'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+136:6  Warning: React Hook useEffect has a missing dependency: 'defaultMonth'. Either include it or remove the dependency array. If 'setCurrentMonth' needs the current value of 'defaultMonth', you can also switch to useReducer instead of useState and read 'defaultMonth' in the reducer.  react-hooks/exhaustive-deps
+
+ ⚠ Unsupported metadata viewport is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /signup. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /signup. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+
+python으로 현재 git Changes에 있는 목록에 대해서만 폴더를 포함하여 zip파일로 압축을 하고 이를 메일 첨부로 전송하는 기능 작성.
+smtp접속정보는 .env파일 참조
+SMTP서버 : NEXT_PUBLIC_NAVER_MAIL_SMTP
+ID : NEXT_PUBLIC_NAVER_MAIL_ID
+PW : NEXT_PUBLIC_NAVER_MAIL_PW
+
+
+메일 수신처 : immh78@naver.com
+메일 제목 : 프로젝트명 (발송 일시(yyyy.mm.dd hh:24))
+python 파일 명은 push.py 이다. 
+
+git Changes 목록에는 app\home-page-client.tsx가 보이는데 압축된 파일에는 포함되어 있지 않다.
+cursor ide에 git change에는 app\home-page-client.tsx가 있는데 수정된 파일 압축 목록에는 포함되지 않는 이유 분석
+
+git status를 치면 아래와 같이 출력된다.
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   app/home-page-client.tsx
+        modified:   app/layout.tsx
+        modified:   app/rest-menu/components.tsx
+        modified:   app/rest-menu/rest-menu-client.tsx
+        modified:   components/ui/calendar.tsx
+        modified:   spec.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        push.py
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+그런데 왜 압축파일에는 app/home-page-client.tsx 이 누락되는가?
+
+메일 전송 처리시 아래와 같은 오류가 발생한다. 무엇을 검토해 봐야 할까?
+
+Traceback (most recent call last):
+  File "C:\workspace\lunch-resv-next\push.py", line 149, in <module>
+    main()
+    ~~~~^^
+  File "C:\workspace\lunch-resv-next\push.py", line 141, in main
+    send_email(env, zip_path, project_name)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\workspace\lunch-resv-next\push.py", line 106, in send_email
+    with smtplib.SMTP(smtp_host, 587) as server:
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\i.mmh\AppData\Local\Python\pythoncore-3.14-64\Lib\smtplib.py", line 262, in __init__
+    (code, msg) = self.connect(host, port)
+                  ~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\i.mmh\AppData\Local\Python\pythoncore-3.14-64\Lib\smtplib.py", line 348, in connect
+    self.sock = self._get_socket(host, port, self.timeout)
+                ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\i.mmh\AppData\Local\Python\pythoncore-3.14-64\Lib\smtplib.py", line 319, in _get_socket
+    return socket.create_connection((host, port), timeout,
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+                                    self.source_address)
+                                    ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\i.mmh\AppData\Local\Python\pythoncore-3.14-64\Lib\socket.py", line 870, in create_connection
+    raise exceptions[0]
+  File "C:\Users\i.mmh\AppData\Local\Python\pythoncore-3.14-64\Lib\socket.py", line 855, in create_connection
+    sock.connect(sa)
+    ~~~~~~~~~~~~^^^^
+TimeoutError: [WinError 10060] 연결된 구성원으로부터 응답이 없어 연결하지 못했거나, 호스트로부터 응답이 없어 연결이 끊어졌습니다
+
+
+SMTP 포트는 465이며 보안연결(SSL)이 필요하다.
+
+
+push.py에서 메일 전송부분은 제거하고 압축파일 생성까지만 처리한다.
+압축파일명은 프로젝트명_YYYYMMDDHH24MISS 로 처리한다.
+프로젝트명은 변경될 수 있다. push.py가 속한 폴더명으로 처리한다.
