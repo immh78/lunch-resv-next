@@ -1030,7 +1030,7 @@ function RestaurantDetailDialog({
   return (
     <Dialog open={open} onOpenChange={(next) => {
       if (!next) {
-        if (pendingAction) executePending();
+        if (hasPending) executePending();
         onClose();
       }
     }}>
