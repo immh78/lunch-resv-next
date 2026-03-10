@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ref, onValue, set, get, remove, update, push } from 'firebase/database';
+import { ref, set, get, remove, update, push } from 'firebase/database';
 import dayjs from 'dayjs';
 import { toast } from 'sonner';
 
@@ -91,6 +91,14 @@ interface RestaurantMenu {
 }
 
 const formatCurrency = (value: number) => value.toLocaleString('ko-KR');
+
+export interface RestMenuPageInitialData {
+  restaurants: Restaurant[];
+  visitLogs: Record<string, { date: string; menuName: string }[]>;
+  allVisitLogs: Record<string, { date: string; menuName: string; key: string }[]>;
+  restaurantKinds: Record<string, { icon?: string; name?: string }>;
+  restaurantIcons: Record<string, string>;
+}
 
 // 식당명 정렬 함수: 한글이 영문보다 우선순위가 높음
 const sortRestaurantsByName = (a: Restaurant, b: Restaurant): number => {
@@ -606,12 +614,14 @@ function ImageViewDialog({
   );
 }
 
-export default function RestMenuPageClient() {
+type RestMenuPageClientProps = { initialData?: RestMenuPageInitialData };
+
+export default function RestMenuPageClient({ initialData }: RestMenuPageClientProps) {
   const { user } = useAuth();
   const router = useRouter();
 
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>(initialData?.restaurants ?? []);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState('');
 
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
@@ -639,8 +649,8 @@ export default function RestMenuPageClient() {
     return 'white';
   });
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
-  const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>({});
-  const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>({});
+  const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>(initialData?.restaurantIcons ?? {});
+  const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>(initialData?.restaurantKinds ?? {});
   const [kindManageDialogOpen, setKindManageDialogOpen] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -667,8 +677,8 @@ export default function RestMenuPageClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [allRestaurantMenus, setAllRestaurantMenus] = useState<Record<string, Record<string, RestaurantMenu>>>({});
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
-  const [visitLogs, setVisitLogs] = useState<Record<string, { date: string; menuName: string }[]>>({});
-  const [allVisitLogs, setAllVisitLogs] = useState<Record<string, { date: string; menuName: string; key: string }[]>>({});
+  const [visitLogs, setVisitLogs] = useState<Record<string, { date: string; menuName: string }[]>>(initialData?.visitLogs ?? {});
+  const [allVisitLogs, setAllVisitLogs] = useState<Record<string, { date: string; menuName: string; key: string }[]>>(initialData?.allVisitLogs ?? {});
   const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
   const [selectedRestaurantForHistory, setSelectedRestaurantForHistory] = useState<Restaurant | null>(null);
 
@@ -680,195 +690,161 @@ export default function RestMenuPageClient() {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
   }, [currentTheme]);
 
-  // 식당 목록 조회
-  useEffect(() => {
+  const loadRestaurants = useCallback(async () => {
     if (!user) return;
-
-    const restaurantsRef = ref(database, 'food-resv/restaurant');
-    const unsubscribe = onValue(
-      restaurantsRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.val() as Record<string, Partial<Restaurant>>;
-          const restaurantList: Restaurant[] = Object.entries(data).map(([id, restaurant]) => ({
-            id,
-            name: restaurant?.name || '',
-            telNo: restaurant?.telNo || '',
-            kind: restaurant?.kind || '',
-            menuImgId: restaurant?.menuImgId || '',
-            menuUrl: restaurant?.menuUrl || '',
-            naviUrl: restaurant?.naviUrl || '',
-            prepay: restaurant?.prepay ?? false,
-          }));
-          // 정렬은 visitLogs가 로드된 후에 수행
-          setRestaurants(restaurantList);
-        } else {
-          setRestaurants([]);
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching restaurants:', error);
-        setError('식당 목록을 불러오는 중 오류가 발생했습니다.');
-        setLoading(false);
+    try {
+      const restaurantsRef = ref(database, 'food-resv/restaurant');
+      const snapshot = await get(restaurantsRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val() as Record<string, Partial<Restaurant>>;
+        const restaurantList: Restaurant[] = Object.entries(data).map(([id, restaurant]) => ({
+          id,
+          name: restaurant?.name || '',
+          telNo: restaurant?.telNo || '',
+          kind: restaurant?.kind || '',
+          menuImgId: restaurant?.menuImgId || '',
+          menuUrl: restaurant?.menuUrl || '',
+          naviUrl: restaurant?.naviUrl || '',
+          prepay: restaurant?.prepay ?? false,
+        }));
+        setRestaurants(restaurantList);
+      } else {
+        setRestaurants([]);
       }
-    );
-
-    return () => unsubscribe();
+    } catch (error) {
+      console.error('Error fetching restaurants:', error);
+      setError('식당 목록을 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
 
-  // visit-log 조회
   useEffect(() => {
     if (!user) return;
+    loadRestaurants();
+  }, [user, loadRestaurants]);
 
-    const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}`);
-    const unsubscribe = onValue(
-      visitLogRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.val() as Record<string, Record<string, { date: string; menuName: string }>>;
-          const logs: Record<string, { date: string; menuName: string }[]> = {};
-          const allLogs: Record<string, { date: string; menuName: string; key: string }[]> = {};
-          
-          Object.entries(data).forEach(([restaurantId, restaurantLogs]) => {
-            if (restaurantLogs) {
-              // 키와 함께 로그 엔트리 생성
-              const logEntriesWithKey = Object.entries(restaurantLogs).map(([key, log]) => ({
-                ...log,
-                key,
-              }));
-              
-              // 날짜(yyyyMMdd) 기준으로 정렬
-              logEntriesWithKey.sort((a, b) => {
-                const dateA = a.date || '';
-                const dateB = b.date || '';
-                return dateB.localeCompare(dateA);
-              });
-              
-              // 전체 로그 저장 (키 포함)
-              allLogs[restaurantId] = logEntriesWithKey;
-              
-              // 가장 최근 것만 저장 (최근 메뉴 표시용, 키 제외)
-              if (logEntriesWithKey.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars -- key 제외를 위해 구조분해
-                const { key, ...recentLog } = logEntriesWithKey[0];
-                logs[restaurantId] = [recentLog];
-              }
+  const loadVisitLogs = useCallback(async () => {
+    if (!user) return;
+    try {
+      const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}`);
+      const snapshot = await get(visitLogRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val() as Record<string, Record<string, { date: string; menuName: string }>>;
+        const logs: Record<string, { date: string; menuName: string }[]> = {};
+        const allLogs: Record<string, { date: string; menuName: string; key: string }[]> = {};
+
+        Object.entries(data).forEach(([restaurantId, restaurantLogs]) => {
+          if (restaurantLogs) {
+            const logEntriesWithKey = Object.entries(restaurantLogs).map(([key, log]) => ({
+              ...log,
+              key,
+            }));
+            logEntriesWithKey.sort((a, b) => {
+              const dateA = a.date || '';
+              const dateB = b.date || '';
+              return dateB.localeCompare(dateA);
+            });
+            allLogs[restaurantId] = logEntriesWithKey;
+            if (logEntriesWithKey.length > 0) {
+              const first = logEntriesWithKey[0];
+              logs[restaurantId] = [{ date: first.date, menuName: first.menuName }];
             }
-          });
-          
-          setVisitLogs(logs);
-          setAllVisitLogs(allLogs);
-        } else {
-          setVisitLogs({});
-          setAllVisitLogs({});
-        }
-      },
-      (error) => {
-        console.error('Error fetching visit logs:', error);
+          }
+        });
+        setVisitLogs(logs);
+        setAllVisitLogs(allLogs);
+      } else {
+        setVisitLogs({});
+        setAllVisitLogs({});
       }
-    );
-
-    return () => unsubscribe();
+    } catch (error) {
+      console.error('Error fetching visit logs:', error);
+    }
   }, [user]);
 
-  // 식당 종류 및 아이콘 조회 (포장 예약 페이지 동일 로직)
   useEffect(() => {
     if (!user) return;
+    loadVisitLogs();
+  }, [user, loadVisitLogs]);
 
-    const kindsRef = ref(database, 'food-resv/restaurant-kind');
-
-    const unsubscribeKinds = onValue(
-      kindsRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const kindsData = (snapshot.val() ||
-            {}) as Record<string, { icon?: string; name?: string }>;
-          const icons: Record<string, string> = {};
-          Object.entries(kindsData).forEach(([kind, data]) => {
-            if (data?.icon) {
-              icons[kind] = data.icon;
-            }
-          });
-          setRestaurantKinds(kindsData);
-          setRestaurantIcons(icons);
-        } else {
-          setRestaurantKinds({});
-          setRestaurantIcons({});
-        }
-      },
-      (error) => {
-        console.error('Error fetching restaurant kinds:', error);
+  const loadRestaurantKinds = useCallback(async () => {
+    try {
+      const kindsRef = ref(database, 'food-resv/restaurant-kind');
+      const snapshot = await get(kindsRef);
+      if (snapshot.exists()) {
+        const kindsData = (snapshot.val() || {}) as Record<string, { icon?: string; name?: string }>;
+        const icons: Record<string, string> = {};
+        Object.entries(kindsData).forEach(([kind, data]) => {
+          if (data?.icon) {
+            icons[kind] = data.icon;
+          }
+        });
+        setRestaurantKinds(kindsData);
+        setRestaurantIcons(icons);
+      } else {
+        setRestaurantKinds({});
+        setRestaurantIcons({});
       }
-    );
+    } catch (error) {
+      console.error('Error fetching restaurant kinds:', error);
+    }
+  }, []);
 
-    return () => {
-      unsubscribeKinds();
-    };
-  }, [user]);
-
-
-  // 모든 식당의 메뉴 조회 (검색용)
   useEffect(() => {
+    loadRestaurantKinds();
+  }, [loadRestaurantKinds]);
+
+
+  const loadAllRestaurantMenus = useCallback(async () => {
     if (!user || restaurants.length === 0) {
       setAllRestaurantMenus({});
       return;
     }
-
-    const unsubscribes: (() => void)[] = [];
-    const menusData: Record<string, Record<string, RestaurantMenu>> = {};
-
-    restaurants.forEach((restaurant) => {
-      const menuRef = ref(database, `food-resv/restaurant/${restaurant.id}/menu`);
-      const unsubscribe = onValue(
-        menuRef,
-        (snapshot) => {
-          if (snapshot.exists()) {
-            menusData[restaurant.id] = snapshot.val() || {};
-          } else {
-            menusData[restaurant.id] = {};
-          }
-          setAllRestaurantMenus({ ...menusData });
-        },
-        (error) => {
-          console.error(`Error fetching menus for ${restaurant.id}:`, error);
-          menusData[restaurant.id] = {};
-          setAllRestaurantMenus({ ...menusData });
-        }
+    try {
+      const results = await Promise.all(
+        restaurants.map(async (restaurant) => {
+          const menuRef = ref(database, `food-resv/restaurant/${restaurant.id}/menu`);
+          const snapshot = await get(menuRef);
+          return [
+            restaurant.id,
+            snapshot.exists() ? snapshot.val() || {} : {},
+          ] as const;
+        })
       );
-      unsubscribes.push(unsubscribe);
-    });
-
-    return () => {
-      unsubscribes.forEach((unsubscribe) => unsubscribe());
-    };
+      const menusData: Record<string, Record<string, RestaurantMenu>> = {};
+      results.forEach(([id, menus]) => {
+        menusData[id] = menus;
+      });
+      setAllRestaurantMenus(menusData);
+    } catch (error) {
+      console.error('Error fetching restaurant menus:', error);
+      setAllRestaurantMenus({});
+    }
   }, [user, restaurants]);
 
-  // 메뉴 조회
   useEffect(() => {
+    loadAllRestaurantMenus();
+  }, [loadAllRestaurantMenus]);
+
+  const loadMenusForDialog = useCallback(async () => {
     if (!menuDialogOpen || !selectedRestaurant) {
       setMenus({});
       return;
     }
-
-    const menuRef = ref(database, `food-resv/restaurant/${selectedRestaurant.id}/menu`);
-    const unsubscribe = onValue(
-      menuRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setMenus(snapshot.val() || {});
-        } else {
-          setMenus({});
-        }
-      },
-      (error) => {
-        console.error('Error fetching menus:', error);
-        setMenus({});
-      }
-    );
-
-    return () => unsubscribe();
+    try {
+      const menuRef = ref(database, `food-resv/restaurant/${selectedRestaurant.id}/menu`);
+      const snapshot = await get(menuRef);
+      setMenus(snapshot.exists() ? snapshot.val() || {} : {});
+    } catch (error) {
+      console.error('Error fetching menus:', error);
+      setMenus({});
+    }
   }, [menuDialogOpen, selectedRestaurant]);
+
+  useEffect(() => {
+    loadMenusForDialog();
+  }, [loadMenusForDialog]);
 
   const handleRestaurantClick = useCallback((restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
@@ -900,6 +876,7 @@ export default function RestMenuPageClient() {
     try {
       const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
       await set(kindRef, data);
+      await loadRestaurantKinds();
     } catch (error) {
       console.error('Error saving restaurant kind:', error);
       throw error;
@@ -910,6 +887,7 @@ export default function RestMenuPageClient() {
     try {
       const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
       await remove(kindRef);
+      await loadRestaurantKinds();
     } catch (error) {
       console.error('Error deleting restaurant kind:', error);
       throw error;
@@ -965,7 +943,7 @@ export default function RestMenuPageClient() {
         naviUrl: newRestaurant.naviUrl || '',
         prepay: newRestaurant.prepay ?? false,
       });
-
+      await loadRestaurants();
       toast.success('식당을 등록했습니다.');
       setCreateDialogOpen(false);
       setNewRestaurant({
@@ -1020,9 +998,9 @@ export default function RestMenuPageClient() {
         naviUrl: naviUrl || '',
         prepay: prepay ?? false,
       });
+      await loadRestaurants();
       toast.success('식당 정보를 저장했습니다.');
       setEditDialogOpen(false);
-      // 식당 목록 업데이트
       const updated = restaurants.map((r) =>
         r.id === id ? { ...r, name: name.trim(), telNo, kind, menuImgId, menuUrl, naviUrl, prepay: prepay ?? false } : r
       );
@@ -1051,6 +1029,8 @@ export default function RestMenuPageClient() {
     try {
       const menuRef = ref(database, `food-resv/restaurant/${selectedRestaurant.id}/menu/${menuKey}`);
       await set(menuRef, menu);
+      await loadMenusForDialog();
+      await loadAllRestaurantMenus();
       toast.success('메뉴를 저장했습니다.');
       setMenuEditOpen(false);
       setSelectedMenuKey(null);
@@ -1060,7 +1040,7 @@ export default function RestMenuPageClient() {
       toast.error('메뉴 저장 중 오류가 발생했습니다.');
       throw error;
     }
-  }, [user, selectedRestaurant]);
+  }, [user, selectedRestaurant, loadMenusForDialog, loadAllRestaurantMenus]);
 
   const handleDeleteMenu = useCallback(async (menuKey: string) => {
     if (!user || !selectedRestaurant) return;
@@ -1068,12 +1048,14 @@ export default function RestMenuPageClient() {
     try {
       const menuRef = ref(database, `food-resv/restaurant/${selectedRestaurant.id}/menu/${menuKey}`);
       await remove(menuRef);
+      await loadMenusForDialog();
+      await loadAllRestaurantMenus();
       toast.success('메뉴를 삭제했습니다.');
     } catch (error) {
       console.error('Error deleting menu:', error);
       toast.error('메뉴 삭제 중 오류가 발생했습니다.');
     }
-  }, [user, selectedRestaurant]);
+  }, [user, selectedRestaurant, loadMenusForDialog, loadAllRestaurantMenus]);
 
   const handleMenuClick = useCallback((menuKey: string) => {
     const menu = menus[menuKey];
@@ -1092,10 +1074,11 @@ export default function RestMenuPageClient() {
         menuName: menu.name,
       };
       await push(visitLogRef, logEntry);
+      await loadVisitLogs();
     } catch (error) {
       console.error('Error saving visit log:', error);
     }
-  }, [user, selectedRestaurant]);
+  }, [user, selectedRestaurant, loadVisitLogs]);
 
   const handleEditMenu = useCallback((menuKey: string) => {
     handleMenuClick(menuKey);
@@ -1112,12 +1095,13 @@ export default function RestMenuPageClient() {
     try {
       const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}/${restaurantId}/${logKey}`);
       await remove(visitLogRef);
+      await loadVisitLogs();
       toast.success('메뉴 이력을 삭제했습니다.');
     } catch (error) {
       console.error('Error deleting visit log:', error);
       toast.error('메뉴 이력 삭제 중 오류가 발생했습니다.');
     }
-  }, [user]);
+  }, [user, loadVisitLogs]);
 
   // 검색 필터링
   const handleSearch = useCallback(() => {

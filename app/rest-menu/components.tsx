@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
-import { ref, onValue, update } from 'firebase/database';
+import { ref, get, update } from 'firebase/database';
 import { toast } from 'sonner';
 
 import { database } from '@/lib/firebase';
@@ -677,32 +677,24 @@ export function RestaurantFormDialog({
   const SelectedIconComponent = selectedKindIcon ? getLucideIcon(selectedKindIcon) : null;
   const hasMenuListImage = Boolean(restaurant.menuImgId?.trim());
 
-  useEffect(() => {
+  const loadMenus = useCallback(async () => {
     if (!open || mode !== 'edit' || !restaurant.id) {
-      if (!open) {
-        setMenus({});
-      }
+      if (!open) setMenus({});
       return;
     }
-
-    const menuRef = ref(database, `food-resv/restaurant/${restaurant.id}/menu`);
-    const unsubscribe = onValue(
-      menuRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setMenus(snapshot.val() || {});
-        } else {
-          setMenus({});
-        }
-      },
-      (error) => {
-        console.error('Error fetching menus:', error);
-        setMenus({});
-      }
-    );
-
-    return () => unsubscribe();
+    try {
+      const menuRef = ref(database, `food-resv/restaurant/${restaurant.id}/menu`);
+      const snapshot = await get(menuRef);
+      setMenus(snapshot.exists() ? snapshot.val() || {} : {});
+    } catch (error) {
+      console.error('Error fetching menus:', error);
+      setMenus({});
+    }
   }, [open, mode, restaurant.id]);
+
+  useEffect(() => {
+    loadMenus();
+  }, [loadMenus]);
 
   const handleMenuClick = useCallback((menuKey: string) => {
     const menu = menus[menuKey];
@@ -727,11 +719,12 @@ export function RestaurantFormDialog({
     }
   }, [menus, handleAddNewMenu]);
 
-  const handleMenuSave = useCallback((menuKey: string, menu: RestaurantMenu) => {
+  const handleMenuSave = useCallback(async (menuKey: string, menu: RestaurantMenu) => {
     if (onMenuSave) {
-      onMenuSave(menuKey, menu);
+      await onMenuSave(menuKey, menu);
+      await loadMenus();
     }
-  }, [onMenuSave]);
+  }, [onMenuSave, loadMenus]);
 
   const handleUploadSuccess = useCallback(
     async (publicId: string) => {

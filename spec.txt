@@ -1604,3 +1604,19 @@ SMTP 포트는 465이며 보안연결(SSL)이 필요하다.
 push.py에서 메일 전송부분은 제거하고 압축파일 생성까지만 처리한다.
 압축파일명은 프로젝트명_YYYYMMDDHH24MISS 로 처리한다.
 프로젝트명은 변경될 수 있다. push.py가 속한 폴더명으로 처리한다.
+
+본 웹앱은 Client side 랜더링으로 개발되어 있다.
+최적을 성능을 위해 SSR로 전환하려 한다.
+vercel을 이용하여 서비스를 배포하고 있다.
+vercel환경을 고려하여 SSR구조로 전체 조정.
+
+- 실시간 동기화 로직은 제거하고 필요시 조회하는 방식으로 조정한다.
+- SSR 구조로 전체 조정한다.
+
+Firebase 콘솔에서 서비스 계정 키(JSON)를 받은 뒤, 다음을 환경 변수로 설정하세요.
+
+FIREBASE_PROJECT_ID
+FIREBASE_CLIENT_EMAIL
+FIREBASE_PRIVATE_KEY (개행은 \n 그대로 한 줄로)
+NEXT_PUBLIC_FIREBASE_DATABASE_URL (기존과 동일)
+이렇게 하면 첫 화면은 서버에서 그린 HTML(SSR)로 내려가고, 이후 조회/변경은 기존처럼 클라이언트에서 필요 시에만 이뤄집니다.

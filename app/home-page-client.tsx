@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
-import { ref, onValue, set, remove, get, update } from 'firebase/database';
+import { ref, set, remove, get, update } from 'firebase/database';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 
@@ -138,6 +138,12 @@ interface RestaurantWithReservation extends Restaurant {
   reservationDate?: string;
   reservation?: ReservationData;
   prepaymentTotal?: number;
+}
+
+export interface HomePageInitialData {
+  restaurants: RestaurantWithReservation[];
+  allReservations: Record<string, Record<string, ReservationData>>;
+  hiddenRestaurantIds: string[];
 }
 
 interface MenuHistoryItem {
@@ -1686,36 +1692,25 @@ function RestaurantFormDialog({
   const SelectedIconComponent = selectedKindIcon ? getLucideIcon(selectedKindIcon) : null;
   const hasMenuListImage = Boolean(restaurant.menuImgId?.trim());
 
-  // 메뉴 목록 조회
-  // restaurant.id만 의존성으로 사용하여 restaurant 객체가 변경되어도 메뉴 목록이 유지되도록 함
   const restaurantId = restaurant.id;
-  useEffect(() => {
+  const loadMenus = useCallback(async () => {
     if (!open || mode !== 'edit' || !restaurantId) {
-      // 팝업이 닫힐 때만 메뉴 목록 초기화
-      if (!open) {
-        setMenus({});
-      }
+      if (!open) setMenus({});
       return;
     }
-
-    const menuRef = ref(database, `food-resv/restaurant/${restaurantId}/menu`);
-    const unsubscribe = onValue(
-      menuRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setMenus(snapshot.val() || {});
-        } else {
-          setMenus({});
-        }
-      },
-      (error) => {
-        console.error('Error fetching menus:', error);
-        setMenus({});
-      }
-    );
-
-    return () => unsubscribe();
+    try {
+      const menuRef = ref(database, `food-resv/restaurant/${restaurantId}/menu`);
+      const snapshot = await get(menuRef);
+      setMenus(snapshot.exists() ? snapshot.val() || {} : {});
+    } catch (error) {
+      console.error('Error fetching menus:', error);
+      setMenus({});
+    }
   }, [open, mode, restaurantId]);
+
+  useEffect(() => {
+    loadMenus();
+  }, [loadMenus]);
 
   const handleMenuClick = useCallback((menuKey: string) => {
     const menu = menus[menuKey];
@@ -1742,11 +1737,12 @@ function RestaurantFormDialog({
     }
   }, [menus, handleAddNewMenu]);
 
-  const handleMenuSave = useCallback((menuKey: string, menu: RestaurantMenu) => {
+  const handleMenuSave = useCallback(async (menuKey: string, menu: RestaurantMenu) => {
     if (onMenuSave) {
-      onMenuSave(menuKey, menu);
+      await onMenuSave(menuKey, menu);
+      await loadMenus();
     }
-  }, [onMenuSave]);
+  }, [onMenuSave, loadMenus]);
 
   const menuNames = Object.entries(menus).map(([, menu]) => menu.name).filter(Boolean);
 
@@ -2077,14 +2073,16 @@ function DeleteConfirmDialog({ open, target, onCancel, onConfirm }: DeleteConfir
   );
 }
 
-export default function Home() {
+type HomeProps = { initialData?: HomePageInitialData };
+
+export default function Home({ initialData }: HomeProps) {
   const { user } = useAuth();
   const router = useRouter();
 
-  const [restaurants, setRestaurants] = useState<RestaurantWithReservation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [restaurants, setRestaurants] = useState<RestaurantWithReservation[]>(initialData?.restaurants ?? []);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState('');
-  const [allReservations, setAllReservations] = useState<Record<string, Record<string, ReservationData>>>({});
+  const [allReservations, setAllReservations] = useState<Record<string, Record<string, ReservationData>>>(initialData?.allReservations ?? {});
 
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantWithReservation | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -2144,7 +2142,7 @@ export default function Home() {
   });
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
 
-  const [hiddenRestaurantIds, setHiddenRestaurantIds] = useState<string[]>([]);
+  const [hiddenRestaurantIds, setHiddenRestaurantIds] = useState<string[]>(initialData?.hiddenRestaurantIds ?? []);
   const [showHidden, setShowHidden] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadContext, setUploadContext] = useState<UploadContext | null>(null);
@@ -2170,31 +2168,25 @@ export default function Home() {
     [restaurantMenus]
   );
 
-  useEffect(() => {
-    setRegisteredMenuListOpen(false);
-    if (!selectedRestaurantId) {
+  const fetchRestaurantMenus = useCallback(async (restaurantId: string | null) => {
+    if (!restaurantId) {
       setRestaurantMenus({});
       return;
     }
+    try {
+      const menuRef = ref(database, `food-resv/restaurant/${restaurantId}/menu`);
+      const snapshot = await get(menuRef);
+      setRestaurantMenus(snapshot.exists() ? snapshot.val() || {} : {});
+    } catch (error) {
+      console.error('Error fetching restaurant menus:', error);
+      setRestaurantMenus({});
+    }
+  }, []);
 
-    const menuRef = ref(database, `food-resv/restaurant/${selectedRestaurantId}/menu`);
-    const unsubscribe = onValue(
-      menuRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setRestaurantMenus(snapshot.val() || {});
-        } else {
-          setRestaurantMenus({});
-        }
-      },
-      (error) => {
-        console.error('Error fetching restaurant menus:', error);
-        setRestaurantMenus({});
-      }
-    );
-
-    return () => unsubscribe();
-  }, [selectedRestaurantId]);
+  useEffect(() => {
+    setRegisteredMenuListOpen(false);
+    fetchRestaurantMenus(selectedRestaurantId ?? null);
+  }, [selectedRestaurantId, fetchRestaurantMenus]);
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_MOBILE || 'menu-mobile';
@@ -2246,10 +2238,10 @@ export default function Home() {
   );
 
   useEffect(() => {
-    const restaurantKindRef = ref(database, 'food-resv/restaurant-kind');
-    const unsubscribe = onValue(
-      restaurantKindRef,
-      (snapshot) => {
+    const loadRestaurantKinds = async () => {
+      try {
+        const restaurantKindRef = ref(database, 'food-resv/restaurant-kind');
+        const snapshot = await get(restaurantKindRef);
         if (snapshot.exists()) {
           const kindData = snapshot.val() as Record<string, { icon?: string; name?: string }>;
           const icons: Record<string, string> = {};
@@ -2264,32 +2256,40 @@ export default function Home() {
           setRestaurantIcons({});
           setRestaurantKinds({});
         }
-      },
-      (err) => {
+      } catch (err) {
         console.error('Error fetching restaurant kinds:', err);
       }
-    );
-
-    return () => unsubscribe();
+    };
+    loadRestaurantKinds();
   }, []);
 
-  useEffect(() => {
+  const loadMainData = useCallback(async () => {
     if (!user) return;
+    try {
+      const restaurantsRef = ref(database, 'food-resv/restaurant');
+      const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
+      const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}`);
+      const hideRef = ref(database, `food-resv/hideRestaurant/${user.uid}`);
 
-    const restaurantsRef = ref(database, 'food-resv/restaurant');
-    const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
-    const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}`);
-    const hideRef = ref(database, `food-resv/hideRestaurant/${user.uid}`);
+      const [restaurantSnap, reservationSnap, prepaymentSnap, hideSnap] = await Promise.all([
+        get(restaurantsRef),
+        get(reservationRef),
+        get(prepaymentRef),
+        get(hideRef),
+      ]);
 
-    let restaurantData: Record<string, Restaurant> = {};
-    let reservationData: Record<string, Record<string, ReservationData>> = {};
-    let prepaymentData: Record<string, PrepaymentItem[]> = {};
-    let hideData: string[] = [];
+      const restaurantData: Record<string, Restaurant> = restaurantSnap.exists() ? restaurantSnap.val() : {};
+      const reservationData: Record<string, Record<string, ReservationData>> = reservationSnap.exists() ? reservationSnap.val() : {};
+      const prepaymentData: Record<string, PrepaymentItem[]> = prepaymentSnap.exists() ? prepaymentSnap.val() : {};
+      const hideData: string[] = hideSnap.exists() ? hideSnap.val() ?? [] : [];
 
-    const combine = () => {
+      setAllReservations(reservationData);
+      setHiddenRestaurantIds(hideData);
+
       if (!restaurantData || Object.keys(restaurantData).length === 0) {
         setRestaurants([]);
         setLoading(false);
+        setError('');
         return;
       }
 
@@ -2338,65 +2338,19 @@ export default function Home() {
       });
 
       setRestaurants(list);
-      setHiddenRestaurantIds(hideData || []);
-      setLoading(false);
       setError('');
-    };
-
-    const unsubRestaurant = onValue(
-      restaurantsRef,
-      (snapshot) => {
-        restaurantData = snapshot.exists() ? snapshot.val() : {};
-        combine();
-      },
-      (err) => {
-        console.error('Error fetching restaurants:', err);
-        setError('레스토랑 데이터를 불러오는 중 오류가 발생했습니다.');
-        setLoading(false);
-      }
-    );
-
-    const unsubReservation = onValue(
-      reservationRef,
-      (snapshot) => {
-        reservationData = snapshot.exists() ? snapshot.val() : {};
-        setAllReservations(reservationData);
-        combine();
-      },
-      (err) => {
-        console.error('Error fetching reservations:', err);
-      }
-    );
-
-    const unsubPrepayment = onValue(
-      prepaymentRef,
-      (snapshot) => {
-        prepaymentData = snapshot.exists() ? snapshot.val() : {};
-        combine();
-      },
-      (err) => {
-        console.error('Error fetching prepayments:', err);
-      }
-    );
-
-    const unsubHidden = onValue(
-      hideRef,
-      (snapshot) => {
-        hideData = snapshot.exists() ? snapshot.val() ?? [] : [];
-        combine();
-      },
-      (err) => {
-        console.error('Error fetching hideRestaurants:', err);
-      }
-    );
-
-    return () => {
-      unsubRestaurant();
-      unsubReservation();
-      unsubPrepayment();
-      unsubHidden();
-    };
+    } catch (err) {
+      console.error('Error loading main data:', err);
+      setError('데이터를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadMainData();
+  }, [user, loadMainData]);
 
   const outstandingAmount = useMemo(() => {
     return restaurants.reduce((sum, restaurant) => {
@@ -2519,6 +2473,7 @@ export default function Home() {
         ? hiddenRestaurantIds.filter((id) => id !== restaurantId)
         : [...hiddenRestaurantIds, restaurantId];
       await set(ref(database, `food-resv/hideRestaurant/${user.uid}`), next);
+      await loadMainData();
       toast.success('숨김 상태가 변경되었습니다.');
     } catch (error) {
       console.error('Error toggling hide', error);
@@ -2696,6 +2651,7 @@ export default function Home() {
             };
           })
         );
+        await loadMainData();
     } catch (error) {
       console.error('Error saving reservation', error);
       toast.error('예약 저장 중 오류가 발생했습니다.');
@@ -2736,6 +2692,7 @@ export default function Home() {
         })
       );
       toast.success('선결제를 저장했습니다.');
+      await loadMainData();
     } catch (error) {
       console.error('Error saving prepayment', error);
       toast.error('선결제 저장 중 오류가 발생했습니다.');
@@ -2790,6 +2747,7 @@ export default function Home() {
         setSavedPrepayments([]);
         await loadPrepayments(user.uid, selectedRestaurant.id);
       }
+      await loadMainData();
     } catch (error) {
       console.error('Error deleting data', error);
       toast.error('삭제 중 오류가 발생했습니다.');
@@ -2815,6 +2773,7 @@ export default function Home() {
   
         await remove(ref(database, `food-resv/prepayment/${user.uid}/${selectedRestaurant.id}`));
         setSavedPrepayments([]);
+        await loadMainData();
         handleCloseDetail();
       } catch (error) {
         console.error('Error processing receipt', error);
@@ -3187,6 +3146,7 @@ export default function Home() {
         naviUrl: naviUrl || '',
         prepay: prepay ?? false,
       });
+      await loadMainData();
       toast.success('식당 정보를 저장했습니다.');
       setEditDialogOpen(false);
     } catch (error) {
@@ -3233,6 +3193,7 @@ export default function Home() {
         prepay: newRestaurant.prepay ?? false,
       });
 
+      await loadMainData();
       toast.success('식당을 등록했습니다.');
       setCreateDialogOpen(false);
       setNewRestaurant({
@@ -3284,13 +3245,14 @@ export default function Home() {
     try {
       const menuRef = ref(database, `food-resv/restaurant/${editableRestaurant.id}/menu/${menuKey}`);
       await set(menuRef, menu);
+      await fetchRestaurantMenus(editableRestaurant.id);
       toast.success('메뉴를 저장했습니다.');
     } catch (error) {
       console.error('Error saving menu:', error);
       toast.error('메뉴 저장 중 오류가 발생했습니다.');
       throw error;
     }
-  }, [user, editableRestaurant]);
+  }, [user, editableRestaurant, fetchRestaurantMenus]);
 
   return (
     <ProtectedRoute>
