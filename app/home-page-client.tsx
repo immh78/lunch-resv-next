@@ -628,6 +628,7 @@ type RestaurantListProps = {
   showHidden: boolean;
   onShowHidden: () => void;
   onSelect: (restaurant: RestaurantWithReservation) => void;
+  onReservationMenuClick?: (restaurant: RestaurantWithReservation) => void;
   loading: boolean;
   error: string;
   currentTheme: ThemeMode;
@@ -641,6 +642,7 @@ function RestaurantList({
   showHidden,
   onShowHidden,
   onSelect,
+  onReservationMenuClick,
   loading,
   error,
   currentTheme,
@@ -755,8 +757,15 @@ function RestaurantList({
               </TableCell>
               <TableCell className="align-middle">
                 <div
-                  className="flex flex-col gap-1"
-                  onClick={(event) => event.stopPropagation()}
+                  className="flex flex-col gap-1 cursor-pointer"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (onReservationMenuClick) {
+                      onReservationMenuClick(restaurant);
+                    } else {
+                      onSelect(restaurant);
+                    }
+                  }}
                 >
                     {menuText ? (
                       <span className={cn('text-xs', amountColor)}>{menuText}</span>
@@ -1405,6 +1414,8 @@ type MenuHistoryDialogProps = {
   fullMenus: MenuHistoryItemWithDate[];
   onClose: () => void;
   onSelect: (menu: MenuHistoryItem) => void;
+  /** 예약메뉴 클릭 등으로 열 때 전체보기로 오픈 */
+  defaultViewMode?: 'summary' | 'full';
 };
 
 function formatDateKey(dateKey: string): string {
@@ -1412,8 +1423,14 @@ function formatDateKey(dateKey: string): string {
   return `${dateKey.slice(0, 4)}.${dateKey.slice(4, 6)}.${dateKey.slice(6, 8)}`;
 }
 
-function MenuHistoryDialog({ open, menus, fullMenus, onClose, onSelect }: MenuHistoryDialogProps) {
-  const [viewMode, setViewMode] = useState<'summary' | 'full'>('summary');
+function MenuHistoryDialog({ open, menus, fullMenus, onClose, onSelect, defaultViewMode = 'summary' }: MenuHistoryDialogProps) {
+  const [viewMode, setViewMode] = useState<'summary' | 'full'>(defaultViewMode);
+
+  useEffect(() => {
+    if (open) {
+      setViewMode(defaultViewMode);
+    }
+  }, [open, defaultViewMode]);
 
   // full view: 그룹별 렌더링 (날짜 내림차순)
   const fullGrouped = useMemo(() => {
@@ -2101,6 +2118,7 @@ export default function Home({ initialData }: HomeProps) {
   const [pendingDeleteTarget, setPendingDeleteTarget] = useState<DeleteTarget | null>(null);
 
   const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
+  const [menuHistoryDefaultViewMode, setMenuHistoryDefaultViewMode] = useState<'summary' | 'full'>('summary');
   const [menuHistoryList, setMenuHistoryList] = useState<MenuHistoryItem[]>([]);
   const [menuHistoryFullList, setMenuHistoryFullList] = useState<MenuHistoryItemWithDate[]>([]);
   const [registeredMenuListOpen, setRegisteredMenuListOpen] = useState(false);
@@ -2522,6 +2540,48 @@ export default function Home({ initialData }: HomeProps) {
     []
   );
 
+  const openMenuHistoryForRestaurant = useCallback(
+    async (restaurant: RestaurantWithReservation, defaultViewMode: 'summary' | 'full' = 'summary') => {
+      if (!user) return;
+      setMenuHistoryList([]);
+      setMenuHistoryFullList([]);
+      setMenuHistoryDefaultViewMode(defaultViewMode);
+      setMenuHistoryOpen(true);
+      try {
+        const reservationRef = ref(database, `food-resv/reservation/${user.uid}/${restaurant.id}`);
+        const snapshot = await get(reservationRef);
+        const unique = new Map<string, MenuHistoryItem>();
+        const fullList: MenuHistoryItemWithDate[] = [];
+
+        if (snapshot.exists()) {
+          const reservations = snapshot.val() as Record<string, ReservationData>;
+          const dateKeys = Object.keys(reservations).sort((a, b) => b.localeCompare(a));
+          dateKeys.forEach((dateKey) => {
+            const reservation = reservations[dateKey];
+            reservation?.menus?.forEach((menu) => {
+              if (!menu.menu) return;
+              const key = `${menu.menu}|${menu.cost}`;
+              if (!unique.has(key)) {
+                unique.set(key, { menu: menu.menu, cost: menu.cost });
+              }
+              fullList.push({ menu: menu.menu, cost: menu.cost, date: dateKey });
+            });
+          });
+        }
+
+        const list = Array.from(unique.values()).sort((a, b) =>
+          a.menu.localeCompare(b.menu)
+        );
+        setMenuHistoryList(list);
+        setMenuHistoryFullList(fullList);
+      } catch (error) {
+        console.error('Error fetching menu history', error);
+        toast.error('메뉴 이력을 불러오는 중 오류가 발생했습니다.');
+      }
+    },
+    [user]
+  );
+
   const handleRestaurantClick = useCallback(
     async (restaurant: RestaurantWithReservation) => {
       if (!user) return;
@@ -2559,6 +2619,36 @@ export default function Home({ initialData }: HomeProps) {
       setDetailOpen(true);
     },
     [loadPrepayments, user]
+  );
+
+  const handleReservationMenuClick = useCallback(
+    async (restaurant: RestaurantWithReservation) => {
+      if (!user) return;
+      const hasActiveReservation = restaurant.reservation?.isReceipt === false;
+      setSelectedRestaurant(restaurant);
+      const existingReservationDate =
+        hasActiveReservation && restaurant.reservationDate
+          ? compactToDisplay(restaurant.reservationDate)
+          : '';
+      const fallbackReservationDate = compactToDisplay(getNextFriday());
+      setReservationDate(existingReservationDate || fallbackReservationDate);
+      if (restaurant.reservation && hasActiveReservation) {
+        setMenuRows(
+          restaurant.reservation.menus.map((menu, index) => ({
+            id: `menu-${Date.now()}-${index}`,
+            menu: menu.menu,
+            cost: menu.cost,
+            savedIndex: index,
+          }))
+        );
+      } else {
+        setMenuRows([{ id: `menu-${Date.now()}`, menu: '', cost: 0 }]);
+      }
+      await loadPrepayments(user.uid, restaurant.id);
+      setDetailOpen(false);
+      openMenuHistoryForRestaurant(restaurant, 'full');
+    },
+    [loadPrepayments, user, openMenuHistoryForRestaurant]
   );
 
   const handleCloseDetail = () => {
@@ -3043,42 +3133,11 @@ export default function Home({ initialData }: HomeProps) {
     });
   }, []);
 
-  const handleMenuHistoryOpen = useCallback(async () => {
-    if (!user || !selectedRestaurant) return;
-
-    try {
-      const reservationRef = ref(database, `food-resv/reservation/${user.uid}/${selectedRestaurant.id}`);
-      const snapshot = await get(reservationRef);
-      const unique = new Map<string, MenuHistoryItem>();
-      const fullList: MenuHistoryItemWithDate[] = [];
-
-      if (snapshot.exists()) {
-        const reservations = snapshot.val() as Record<string, ReservationData>;
-        const dateKeys = Object.keys(reservations).sort((a, b) => b.localeCompare(a));
-        dateKeys.forEach((dateKey) => {
-          const reservation = reservations[dateKey];
-          reservation?.menus?.forEach((menu) => {
-            if (!menu.menu) return;
-            const key = `${menu.menu}|${menu.cost}`;
-            if (!unique.has(key)) {
-              unique.set(key, { menu: menu.menu, cost: menu.cost });
-            }
-            fullList.push({ menu: menu.menu, cost: menu.cost, date: dateKey });
-          });
-        });
-      }
-
-      const list = Array.from(unique.values()).sort((a, b) =>
-        a.menu.localeCompare(b.menu)
-      );
-      setMenuHistoryList(list);
-      setMenuHistoryFullList(fullList);
-      setMenuHistoryOpen(true);
-    } catch (error) {
-      console.error('Error fetching menu history', error);
-      toast.error('메뉴 이력을 불러오는 중 오류가 발생했습니다.');
+  const handleMenuHistoryOpen = useCallback(() => {
+    if (selectedRestaurant) {
+      openMenuHistoryForRestaurant(selectedRestaurant, 'summary');
     }
-  }, [user, selectedRestaurant]);
+  }, [selectedRestaurant, openMenuHistoryForRestaurant]);
 
   const handleMenuHistorySelect = useCallback(
     (item: MenuHistoryItem) => {
@@ -3350,6 +3409,7 @@ export default function Home({ initialData }: HomeProps) {
             showHidden={showHidden}
             onShowHidden={() => setShowHidden(true)}
             onSelect={handleRestaurantClick}
+            onReservationMenuClick={handleReservationMenuClick}
             loading={loading}
             error={error}
             currentTheme={currentTheme}
@@ -3410,6 +3470,7 @@ export default function Home({ initialData }: HomeProps) {
             fullMenus={menuHistoryFullList}
             onClose={() => setMenuHistoryOpen(false)}
             onSelect={handleMenuHistorySelect}
+            defaultViewMode={menuHistoryDefaultViewMode}
           />
           <RestaurantMenuPickerDialog
             open={registeredMenuListOpen}
