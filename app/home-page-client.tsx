@@ -1448,7 +1448,7 @@ function MenuHistoryDialog({ open, menus, fullMenus, onClose, onSelect, defaultV
   return (
     <Dialog open={open} onOpenChange={(next) => !next && (setViewMode('summary'), onClose())}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
+        <DialogHeader className="border-b-0">
           <div className="flex items-center gap-2">
             <DialogTitle>메뉴 히스토리</DialogTitle>
             <Button
@@ -1460,7 +1460,6 @@ function MenuHistoryDialog({ open, menus, fullMenus, onClose, onSelect, defaultV
               {viewMode === 'summary' ? '전체보기' : '요약보기'}
             </Button>
           </div>
-          <DialogDescription>이전에 등록한 메뉴를 빠르게 불러올 수 있어요.</DialogDescription>
         </DialogHeader>
         <div className="max-h-80 space-y-2 overflow-y-auto">
           {isEmpty ? (
@@ -1483,6 +1482,7 @@ function MenuHistoryDialog({ open, menus, fullMenus, onClose, onSelect, defaultV
             fullGrouped.map(([dateKey, items]) => (
               <div key={dateKey}>
                 <div className="flex items-center gap-2 py-1.5">
+                  <div className="w-4 shrink-0 border-b border-border" aria-hidden />
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {formatDateKey(dateKey)}
                   </span>
