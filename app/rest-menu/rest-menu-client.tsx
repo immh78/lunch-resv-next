@@ -212,7 +212,7 @@ function RestaurantList({
   return (
     <Table>
       <TableHeader>
-        <TableRow className="border-border/40">
+        <TableRow className="border-border/40 select-none">
           <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             식당
           </TableHead>
