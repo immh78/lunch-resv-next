@@ -1187,7 +1187,7 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
               >
                 <BookOpen className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 select-none">
                 <span className="text-base font-semibold leading-tight">식당 메뉴</span>
               </div>
             </div>

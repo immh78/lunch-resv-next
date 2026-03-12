@@ -3332,7 +3332,7 @@ export default function Home({ initialData }: HomeProps) {
               >
                 <UtensilsCrossed className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 select-none">
                 <span className="text-base font-semibold leading-tight">포장 예약</span>
                 {outstandingAmount > 0 && (
                   <span className="text-sm text-muted-foreground">
