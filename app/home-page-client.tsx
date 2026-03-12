@@ -755,9 +755,9 @@ function RestaurantList({
                   })()}
                 </Button>
               </TableCell>
-              <TableCell className="align-middle">
+              <TableCell className="align-middle select-none">
                 <div
-                  className="flex flex-col gap-1 cursor-pointer"
+                  className="flex flex-col gap-1 cursor-pointer select-none"
                   onClick={(event) => {
                     event.stopPropagation();
                     if (onReservationMenuClick) {
