@@ -92,10 +92,13 @@ interface RestaurantMenu {
 
 const formatCurrency = (value: number) => value.toLocaleString('ko-KR');
 
+/** visit-log 항목 (기존 데이터는 cost 없을 수 있음) */
+export type VisitLogEntry = { date: string; menuName: string; cost?: number };
+
 export interface RestMenuPageInitialData {
   restaurants: Restaurant[];
-  visitLogs: Record<string, { date: string; menuName: string }[]>;
-  allVisitLogs: Record<string, { date: string; menuName: string; key: string }[]>;
+  visitLogs: Record<string, VisitLogEntry[]>;
+  allVisitLogs: Record<string, (VisitLogEntry & { key: string })[]>;
   restaurantKinds: Record<string, { icon?: string; name?: string }>;
   restaurantIcons: Record<string, string>;
 }
@@ -122,7 +125,7 @@ const sortRestaurantsByName = (a: Restaurant, b: Restaurant): number => {
 };
 
 // 식당 리스트 정렬 함수: 1) 최근 메뉴 방문일시 역순, 2) 식당명
-const sortRestaurantsByRecentMenu = (a: Restaurant, b: Restaurant, visitLogs: Record<string, { date: string; menuName: string }[]>): number => {
+const sortRestaurantsByRecentMenu = (a: Restaurant, b: Restaurant, visitLogs: Record<string, VisitLogEntry[]>): number => {
   const recentA = visitLogs[a.id]?.[0]?.date || '';
   const recentB = visitLogs[b.id]?.[0]?.date || '';
   
@@ -161,13 +164,13 @@ type RestaurantListProps = {
   error: string;
   currentTheme: ThemeMode;
   restaurantIcons: Record<string, string>;
-  allVisitLogs: Record<string, { date: string; menuName: string; key: string }[]>;
+  allVisitLogs: Record<string, (VisitLogEntry & { key: string })[]>;
 };
 
 // 최근 30일 방문 횟수 계산 함수
 const getVisitCountLast30Days = (
   restaurantId: string,
-  allVisitLogs: Record<string, { date: string; menuName: string; key: string }[]>
+  allVisitLogs: Record<string, (VisitLogEntry & { key: string })[]>
 ): number => {
   const logs = allVisitLogs[restaurantId] || [];
   const today = dayjs();
@@ -677,8 +680,8 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
   const [searchQuery, setSearchQuery] = useState('');
   const [allRestaurantMenus, setAllRestaurantMenus] = useState<Record<string, Record<string, RestaurantMenu>>>({});
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
-  const [visitLogs, setVisitLogs] = useState<Record<string, { date: string; menuName: string }[]>>(initialData?.visitLogs ?? {});
-  const [allVisitLogs, setAllVisitLogs] = useState<Record<string, { date: string; menuName: string; key: string }[]>>(initialData?.allVisitLogs ?? {});
+  const [visitLogs, setVisitLogs] = useState<Record<string, VisitLogEntry[]>>(initialData?.visitLogs ?? {});
+  const [allVisitLogs, setAllVisitLogs] = useState<Record<string, (VisitLogEntry & { key: string })[]>>(initialData?.allVisitLogs ?? {});
   const [menuHistoryOpen, setMenuHistoryOpen] = useState(false);
   const [selectedRestaurantForHistory, setSelectedRestaurantForHistory] = useState<Restaurant | null>(null);
 
@@ -730,9 +733,9 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
       const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}`);
       const snapshot = await get(visitLogRef);
       if (snapshot.exists()) {
-        const data = snapshot.val() as Record<string, Record<string, { date: string; menuName: string }>>;
-        const logs: Record<string, { date: string; menuName: string }[]> = {};
-        const allLogs: Record<string, { date: string; menuName: string; key: string }[]> = {};
+        const data = snapshot.val() as Record<string, Record<string, VisitLogEntry>>;
+        const logs: Record<string, VisitLogEntry[]> = {};
+        const allLogs: Record<string, (VisitLogEntry & { key: string })[]> = {};
 
         Object.entries(data).forEach(([restaurantId, restaurantLogs]) => {
           if (restaurantLogs) {
@@ -748,7 +751,13 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
             allLogs[restaurantId] = logEntriesWithKey;
             if (logEntriesWithKey.length > 0) {
               const first = logEntriesWithKey[0];
-              logs[restaurantId] = [{ date: first.date, menuName: first.menuName }];
+              logs[restaurantId] = [
+                {
+                  date: first.date,
+                  menuName: first.menuName,
+                  ...(typeof first.cost === 'number' ? { cost: first.cost } : {}),
+                },
+              ];
             }
           }
         });
@@ -1072,6 +1081,7 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
       const logEntry = {
         date: dayjs().format('YYYYMMDD'),
         menuName: menu.name,
+        cost: typeof menu.cost === 'number' ? menu.cost : 0,
       };
       await push(visitLogRef, logEntry);
       await loadVisitLogs();
@@ -1411,8 +1421,15 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
                           key={log.key || index}
                           className="flex items-center justify-between gap-2 rounded-sm border border-transparent px-3 py-2 text-sm transition hover:border-border hover:bg-muted"
                         >
-                          <span className="text-muted-foreground">{displayDate}</span>
-                          <span className="font-medium flex-1">{log.menuName}</span>
+                          <span className="text-muted-foreground shrink-0">{displayDate}</span>
+                          <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                            <span className="font-medium truncate">{log.menuName}</span>
+                            {typeof log.cost === 'number' && log.cost > 0 && (
+                              <span className="shrink-0 text-sm text-muted-foreground whitespace-nowrap">
+                                {formatCurrency(log.cost)}원
+                              </span>
+                            )}
+                          </div>
                           <Button
                             variant="ghost"
                             size="icon"

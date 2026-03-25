@@ -90,10 +90,13 @@ export async function getMainPageData(uid: string): Promise<MainPageInitialData 
   }
 }
 
+/** visit-log 항목 (기존 데이터는 cost 없을 수 있음) */
+export type VisitLogEntry = { date: string; menuName: string; cost?: number };
+
 export interface RestMenuPageInitialData {
   restaurants: ServerRestaurant[];
-  visitLogs: Record<string, { date: string; menuName: string }[]>;
-  allVisitLogs: Record<string, { date: string; menuName: string; key: string }[]>;
+  visitLogs: Record<string, VisitLogEntry[]>;
+  allVisitLogs: Record<string, (VisitLogEntry & { key: string })[]>;
   restaurantKinds: Record<string, { icon?: string; name?: string }>;
   restaurantIcons: Record<string, string>;
 }
@@ -120,16 +123,25 @@ export async function getRestMenuPageData(uid: string): Promise<RestMenuPageInit
       prepay: r.prepay ?? false,
     }));
 
-    const visitLogRaw = visitLogSnap.val() as Record<string, Record<string, { date: string; menuName: string }>> | null;
-    const visitLogs: Record<string, { date: string; menuName: string }[]> = {};
-    const allVisitLogs: Record<string, { date: string; menuName: string; key: string }[]> = {};
+    const visitLogRaw = visitLogSnap.val() as Record<string, Record<string, VisitLogEntry>> | null;
+    const visitLogs: Record<string, VisitLogEntry[]> = {};
+    const allVisitLogs: Record<string, (VisitLogEntry & { key: string })[]> = {};
     if (visitLogRaw) {
       for (const [restaurantId, logs] of Object.entries(visitLogRaw)) {
         if (!logs) continue;
         const withKey = Object.entries(logs).map(([key, log]) => ({ ...log, key }));
         withKey.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
         allVisitLogs[restaurantId] = withKey;
-        visitLogs[restaurantId] = withKey.length > 0 ? [{ date: withKey[0].date, menuName: withKey[0].menuName }] : [];
+        visitLogs[restaurantId] =
+          withKey.length > 0
+            ? [
+                {
+                  date: withKey[0].date,
+                  menuName: withKey[0].menuName,
+                  ...(typeof withKey[0].cost === 'number' ? { cost: withKey[0].cost } : {}),
+                },
+              ]
+            : [];
       }
     }
 
