@@ -11,7 +11,7 @@ import html2canvas from 'html2canvas';
 import { database } from '@/lib/firebase';
 import {
   collectUserZeropayQueueEntries,
-  zeropayDateFromDatetime,
+  resolveZeropayDateYmd,
   type ZeropayQueueEntryWithKey,
 } from '@/lib/zeropay-queue';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -925,7 +925,7 @@ type RestaurantDetailDialogProps = {
   isReceipt: boolean;
   summary: { total: number; prepayment: number; remaining: number };
   hasZeropayQueueForRestaurant: boolean;
-  zeropayImportPreview: { dateYmd: string; amount: number } | null;
+  zeropayImportPreview: { dateYmd: string; amount: number }[];
   onZeropayImportApply: () => Promise<boolean>;
   onZeropayImportMoveHistoryOnly: () => Promise<boolean>;
   importingZeropay: boolean;
@@ -1456,12 +1456,16 @@ function RestaurantDetailDialog({
           <DialogDescription asChild>
             <div className="space-y-3 pt-1 text-left text-foreground">
               <p className="text-sm">선결제한 내역을 반영하시겠습니까?</p>
-              {zeropayImportPreview && (
+              {zeropayImportPreview.length > 0 && (
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
                   <span className="font-medium text-muted-foreground">날짜</span>
                   <span className="font-medium text-muted-foreground">금액</span>
-                  <span>{compactToDisplay(zeropayImportPreview.dateYmd)}</span>
-                  <span>{formatCurrency(zeropayImportPreview.amount)}원</span>
+                  {zeropayImportPreview.map((row, i) => (
+                    <React.Fragment key={i}>
+                      <span>{compactToDisplay(row.dateYmd)}</span>
+                      <span>{formatCurrency(row.amount)}원</span>
+                    </React.Fragment>
+                  ))}
                 </div>
               )}
             </div>
@@ -2485,19 +2489,17 @@ export default function Home({ initialData }: HomeProps) {
   }, [restaurants, zeropayQueueEntries]);
 
   const zeropayImportPreview = useMemo(() => {
-    if (!selectedRestaurant) return null;
+    if (!selectedRestaurant) return [];
     const n = selectedRestaurant.name.trim();
-    const candidates = zeropayQueueEntries.filter((e) => e.parsed.restaurantName === n);
-    if (!candidates.length) return null;
-    const { record, parsed } = candidates[0];
-    let dateYmd = zeropayDateFromDatetime(record.datetime);
-    if (dateYmd.length !== 8) {
-      dateYmd = todayCompact();
-    }
-    return { dateYmd, amount: parsed.amount };
+    return zeropayQueueEntries
+      .filter((e) => e.parsed.restaurantName === n)
+      .map((c) => ({
+        dateYmd: resolveZeropayDateYmd(c.record.datetime),
+        amount: c.parsed.amount,
+      }));
   }, [selectedRestaurant, zeropayQueueEntries]);
 
-  const hasZeropayQueueForSelectedRestaurant = zeropayImportPreview !== null;
+  const hasZeropayQueueForSelectedRestaurant = zeropayImportPreview.length > 0;
 
   const handleZeropayImportApply = useCallback(async (): Promise<boolean> => {
     if (!user || !selectedRestaurant) return false;
@@ -2507,23 +2509,22 @@ export default function Home({ initialData }: HomeProps) {
       toast.error('가져올 제로페이 알림이 없습니다.');
       return false;
     }
-    const { key, record, parsed } = candidates[0];
-    let dateStr = zeropayDateFromDatetime(record.datetime);
-    if (dateStr.length !== 8) {
-      dateStr = todayCompact();
-    }
     const restaurantId = selectedRestaurant.id;
     try {
       setImportingZeropay(true);
       const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}/${restaurantId}`);
       const snap = await get(prepaymentRef);
       const existing: PrepaymentItem[] = snap.exists() ? snap.val() ?? [] : [];
-      const merged: PrepaymentItem[] = [...existing, { amount: parsed.amount, date: dateStr }];
-      await update(ref(database), {
-        [`food-resv/prepayment/${user.uid}/${restaurantId}`]: merged,
-        [`mobile-notice/queue/zeropay/${key}`]: null,
-        [`mobile-notice/history/zeropay/${key}`]: record,
-      });
+      const merged: PrepaymentItem[] = [...existing];
+      const updates: Record<string, unknown> = {};
+      for (const c of candidates) {
+        const dateStr = resolveZeropayDateYmd(c.record.datetime);
+        merged.push({ amount: c.parsed.amount, date: dateStr });
+        updates[`mobile-notice/queue/zeropay/${c.key}`] = null;
+        updates[`mobile-notice/history/zeropay/${c.key}`] = c.record;
+      }
+      updates[`food-resv/prepayment/${user.uid}/${restaurantId}`] = merged;
+      await update(ref(database), updates);
       setSavedPrepayments(merged);
       setPrepaymentRows(
         merged.map((item, index) => {
@@ -2557,13 +2558,14 @@ export default function Home({ initialData }: HomeProps) {
       toast.error('처리할 제로페이 알림이 없습니다.');
       return false;
     }
-    const { key, record } = candidates[0];
     try {
       setImportingZeropay(true);
-      await update(ref(database), {
-        [`mobile-notice/queue/zeropay/${key}`]: null,
-        [`mobile-notice/history/zeropay/${key}`]: record,
-      });
+      const updates: Record<string, unknown> = {};
+      for (const c of candidates) {
+        updates[`mobile-notice/queue/zeropay/${c.key}`] = null;
+        updates[`mobile-notice/history/zeropay/${c.key}`] = c.record;
+      }
+      await update(ref(database), updates);
       toast.success('알림을 기록으로 옮겼습니다.');
       await loadMainData();
       return true;

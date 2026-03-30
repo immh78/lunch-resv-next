@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 /** mobile-notice / queue|history / zeropay 레코드 */
 export interface ZeropayQueueRecord {
   app: string;
@@ -58,4 +60,11 @@ export function zeropayDateFromDatetime(datetime: string): string {
     return datetime.slice(0, 8);
   }
   return '';
+}
+
+/** datetime 없음·8자 미만이면 당일(YYYYMMDD) */
+export function resolveZeropayDateYmd(datetime: string | undefined | null): string {
+  const from = zeropayDateFromDatetime(String(datetime ?? '').trim());
+  if (from.length === 8) return from;
+  return dayjs().format('YYYYMMDD');
 }
