@@ -1662,3 +1662,34 @@ Firebase 콘솔에서 서비스 계정 키(JSON)를 받은 뒤, 다음을 환경
 - 최근 메뉴 클릭시 나타나는 금액은 메뉴 우측으로 나타날 수 있도록 한다.
 
 - 최근 메뉴에서는 금액은 나타나지 않는다. history 팝업에만 금액이 나타나도록 한다.
+
+{
+  "mobile-notice" : {
+    "queue" : {
+      "zeropay" : {
+        (unique key) : {
+          "app" : string,
+          "datetime" : string, //yyyyMMddHHmiss 포멧
+          "message" : string,
+          "title" : string,
+          "uid" : string
+        }
+      }      
+    }
+  }
+}
+
+# 목적 : queue에 저장된 이력을 선결제 내역으로 반영하는 기능을 구현
+# 구현내용 :
+- mobile-notice / queue / zeropay의 리스트를 가져와 uid가 현재 로그인한 uid와 일치할 경우 message의 내용을 분석한다.
+  sample) "명가충무김밥에서 7,000원 결제 완료되었습니다."
+  `에서`의 앞 글자가 식당명이다.
+  `에서 `부터 `원`사이가 결제금액이다.
+
+- 포장예약 페이지 오픈시 queue에 존재하는 식당명일 경우 아이콘을 주황색으로 표시한다.
+- RestaurantDetailDialog에서 queue에 값이 존재하는 식당일 경우 선결제 탭에 + 아이콘 좌측에 `import`아이콘을 추가한다.
+- `import`아이콘 클릭시 queue의 내용을 선결제 반영후 바로 저장한다.
+  . 날짜는 datetime에 앞 8자리(yyyyMMdd)로 날짜 반영
+  . message 분석으로 추출한 결제금액을 금액으로 추가
+  . 해당 queue는 history로 옮긴다.
+    mobile-notice / queue / zeropay / (unique key) -> mobile-notice / history / zeropay / (unique key)

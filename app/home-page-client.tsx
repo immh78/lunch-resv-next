@@ -9,6 +9,11 @@ import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 
 import { database } from '@/lib/firebase';
+import {
+  collectUserZeropayQueueEntries,
+  zeropayDateFromDatetime,
+  type ZeropayQueueEntryWithKey,
+} from '@/lib/zeropay-queue';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -80,6 +85,7 @@ import {
   Eye,
   Palette,
   Tag,
+  Import,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -634,6 +640,8 @@ type RestaurantListProps = {
   currentTheme: ThemeMode;
   restaurantIcons: Record<string, string>;
   allReservations: Record<string, Record<string, ReservationData>>;
+  /** 큐에 있고 메시지 식당명이 목록 식당명과 일치할 때 주황 아이콘 */
+  zeropayPendingRestaurantNames: Set<string>;
 };
 
 function RestaurantList({
@@ -648,6 +656,7 @@ function RestaurantList({
   currentTheme,
   restaurantIcons,
   allReservations,
+  zeropayPendingRestaurantNames,
 }: RestaurantListProps) {
   if (loading) {
     return (
@@ -728,10 +737,15 @@ function RestaurantList({
                   {restaurant.kind && restaurantIcons[restaurant.kind] && (() => {
                     const IconComponent = getLucideIcon(restaurantIcons[restaurant.kind]);
                     return IconComponent ? (
-                      <IconComponent className={cn(
-                        "mr-2 h-4 w-4 shrink-0",
-                        restaurant.prepay && "text-green-400"
-                      )} />
+                      <IconComponent
+                        className={cn(
+                          'mr-2 h-4 w-4 shrink-0',
+                          zeropayPendingRestaurantNames.has(restaurant.name.trim()) && 'text-orange-500',
+                          restaurant.prepay &&
+                            !zeropayPendingRestaurantNames.has(restaurant.name.trim()) &&
+                            'text-green-400'
+                        )}
+                      />
                     ) : null;
                   })()}
                   <span className="truncate min-w-0">
@@ -910,6 +924,9 @@ type RestaurantDetailDialogProps = {
   savingPrepayments: boolean;
   isReceipt: boolean;
   summary: { total: number; prepayment: number; remaining: number };
+  hasZeropayQueueForRestaurant: boolean;
+  onImportZeropay: () => void;
+  importingZeropay: boolean;
 };
 
 
@@ -950,6 +967,9 @@ function RestaurantDetailDialog({
   savingPrepayments,
   isReceipt,
   summary,
+  hasZeropayQueueForRestaurant,
+  onImportZeropay,
+  importingZeropay,
 }: RestaurantDetailDialogProps) {
   const [reservationDateOpen, setReservationDateOpen] = useState(false);
   const [prepaymentDateOpens, setPrepaymentDateOpens] = useState<Record<string, boolean>>({});
@@ -1227,14 +1247,28 @@ function RestaurantDetailDialog({
                     <div className="rounded-sm border border-border">
                       <div className="flex items-center justify-between border-b border-border bg-muted/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         <span>선결제</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground"
-                          onClick={onAddPrepaymentRow}
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-0.5">
+                          {hasZeropayQueueForRestaurant && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-orange-600"
+                              disabled={importingZeropay}
+                              title="제로페이 알림에서 선결제 가져오기"
+                              onClick={onImportZeropay}
+                            >
+                              <Import className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground"
+                            onClick={onAddPrepaymentRow}
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="divide-y divide-border/60">
                         {prepaymentRows.map((item) => {
@@ -2110,6 +2144,8 @@ export default function Home({ initialData }: HomeProps) {
   const [currentTab, setCurrentTab] = useState<'menu' | 'prepayment'>('menu');
   const [savingMenus, setSavingMenus] = useState(false);
   const [savingPrepayments, setSavingPrepayments] = useState(false);
+  const [zeropayQueueEntries, setZeropayQueueEntries] = useState<ZeropayQueueEntryWithKey[]>([]);
+  const [importingZeropay, setImportingZeropay] = useState(false);
 
   const [deleteState, setDeleteState] = useState<{ open: boolean; target: DeleteTarget | null }>({
     open: false,
@@ -2288,13 +2324,18 @@ export default function Home({ initialData }: HomeProps) {
       const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
       const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}`);
       const hideRef = ref(database, `food-resv/hideRestaurant/${user.uid}`);
+      const zeropayQueueRef = ref(database, 'mobile-notice/queue/zeropay');
 
-      const [restaurantSnap, reservationSnap, prepaymentSnap, hideSnap] = await Promise.all([
+      const [restaurantSnap, reservationSnap, prepaymentSnap, hideSnap, zeropaySnap] = await Promise.all([
         get(restaurantsRef),
         get(reservationRef),
         get(prepaymentRef),
         get(hideRef),
+        get(zeropayQueueRef),
       ]);
+
+      const zeropayRaw = zeropaySnap.exists() ? zeropaySnap.val() : {};
+      setZeropayQueueEntries(collectUserZeropayQueueEntries(zeropayRaw, user.uid));
 
       const restaurantData: Record<string, Restaurant> = restaurantSnap.exists() ? restaurantSnap.val() : {};
       const reservationData: Record<string, Record<string, ReservationData>> = reservationSnap.exists() ? reservationSnap.val() : {};
@@ -2369,6 +2410,71 @@ export default function Home({ initialData }: HomeProps) {
     if (!user) return;
     loadMainData();
   }, [user, loadMainData]);
+
+  const zeropayPendingRestaurantNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const r of restaurants) {
+      const n = r.name.trim();
+      if (zeropayQueueEntries.some((e) => e.parsed.restaurantName === n)) {
+        names.add(n);
+      }
+    }
+    return names;
+  }, [restaurants, zeropayQueueEntries]);
+
+  const hasZeropayQueueForSelectedRestaurant = useMemo(() => {
+    if (!selectedRestaurant) return false;
+    const n = selectedRestaurant.name.trim();
+    return zeropayQueueEntries.some((e) => e.parsed.restaurantName === n);
+  }, [selectedRestaurant, zeropayQueueEntries]);
+
+  const handleImportZeropayFromQueue = useCallback(async () => {
+    if (!user || !selectedRestaurant) return;
+    const name = selectedRestaurant.name.trim();
+    const candidates = zeropayQueueEntries.filter((e) => e.parsed.restaurantName === name);
+    if (!candidates.length) {
+      toast.error('가져올 제로페이 알림이 없습니다.');
+      return;
+    }
+    const { key, record, parsed } = candidates[0];
+    let dateStr = zeropayDateFromDatetime(record.datetime);
+    if (dateStr.length !== 8) {
+      dateStr = todayCompact();
+    }
+    const restaurantId = selectedRestaurant.id;
+    try {
+      setImportingZeropay(true);
+      const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}/${restaurantId}`);
+      const snap = await get(prepaymentRef);
+      const existing: PrepaymentItem[] = snap.exists() ? snap.val() ?? [] : [];
+      const merged: PrepaymentItem[] = [...existing, { amount: parsed.amount, date: dateStr }];
+      await update(ref(database), {
+        [`food-resv/prepayment/${user.uid}/${restaurantId}`]: merged,
+        [`mobile-notice/queue/zeropay/${key}`]: null,
+        [`mobile-notice/history/zeropay/${key}`]: record,
+      });
+      setSavedPrepayments(merged);
+      setPrepaymentRows(
+        merged.map((item, index) => {
+          const dateValue = compactToDate(item.date) ?? new Date();
+          return {
+            id: `prepayment-${Date.now()}-${index}`,
+            amount: item.amount || 0,
+            date: item.date,
+            dateValue,
+            savedIndex: index,
+          };
+        })
+      );
+      toast.success('제로페이 선결제를 반영했습니다.');
+      await loadMainData();
+    } catch (error) {
+      console.error('Error importing zeropay prepayment', error);
+      toast.error('가져오기 중 오류가 발생했습니다.');
+    } finally {
+      setImportingZeropay(false);
+    }
+  }, [user, selectedRestaurant, zeropayQueueEntries, loadMainData]);
 
   const outstandingAmount = useMemo(() => {
     return restaurants.reduce((sum, restaurant) => {
@@ -3415,6 +3521,7 @@ export default function Home({ initialData }: HomeProps) {
             currentTheme={currentTheme}
             restaurantIcons={restaurantIcons}
             allReservations={allReservations}
+            zeropayPendingRestaurantNames={zeropayPendingRestaurantNames}
           />
         </main>
 
@@ -3462,6 +3569,9 @@ export default function Home({ initialData }: HomeProps) {
               0
             ),
           }}
+          hasZeropayQueueForRestaurant={hasZeropayQueueForSelectedRestaurant}
+          onImportZeropay={handleImportZeropayFromQueue}
+          importingZeropay={importingZeropay}
         />
 
           <MenuHistoryDialog
