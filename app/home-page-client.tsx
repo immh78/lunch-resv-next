@@ -740,7 +740,7 @@ function RestaurantList({
                       <IconComponent
                         className={cn(
                           'mr-2 h-4 w-4 shrink-0',
-                          zeropayPendingRestaurantNames.has(restaurant.name.trim()) && 'text-orange-500',
+                          zeropayPendingRestaurantNames.has(restaurant.name.trim()) && 'text-orange-600',
                           restaurant.prepay &&
                             !zeropayPendingRestaurantNames.has(restaurant.name.trim()) &&
                             'text-green-400'
@@ -925,7 +925,9 @@ type RestaurantDetailDialogProps = {
   isReceipt: boolean;
   summary: { total: number; prepayment: number; remaining: number };
   hasZeropayQueueForRestaurant: boolean;
-  onImportZeropay: () => void;
+  zeropayImportPreview: { dateYmd: string; amount: number } | null;
+  onZeropayImportApply: () => Promise<boolean>;
+  onZeropayImportMoveHistoryOnly: () => Promise<boolean>;
   importingZeropay: boolean;
 };
 
@@ -968,11 +970,14 @@ function RestaurantDetailDialog({
   isReceipt,
   summary,
   hasZeropayQueueForRestaurant,
-  onImportZeropay,
+  zeropayImportPreview,
+  onZeropayImportApply,
+  onZeropayImportMoveHistoryOnly,
   importingZeropay,
 }: RestaurantDetailDialogProps) {
   const [reservationDateOpen, setReservationDateOpen] = useState(false);
   const [prepaymentDateOpens, setPrepaymentDateOpens] = useState<Record<string, boolean>>({});
+  const [zeropayConfirmOpen, setZeropayConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<'receipt' | null>(null);
   const reservationDateValue = useMemo(() => displayToDate(reservationDate), [reservationDate]);
 
@@ -1001,7 +1006,10 @@ function RestaurantDetailDialog({
   }, [hasPending, executePending]);
 
   useEffect(() => {
-    if (!open) setPendingAction(null);
+    if (!open) {
+      setPendingAction(null);
+      setZeropayConfirmOpen(false);
+    }
   }, [open]);
 
   // 저장된 메뉴 목록
@@ -1056,6 +1064,7 @@ function RestaurantDetailDialog({
   }, [open, currentTab, prepaymentRows]);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(next) => {
       if (!next) {
         if (hasPending) executePending();
@@ -1252,10 +1261,10 @@ function RestaurantDetailDialog({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-orange-600"
+                              className="h-7 w-7 text-muted-foreground"
                               disabled={importingZeropay}
                               title="제로페이 알림에서 선결제 가져오기"
-                              onClick={onImportZeropay}
+                              onClick={() => setZeropayConfirmOpen(true)}
                             >
                               <Import className="h-4 w-4" />
                             </Button>
@@ -1439,6 +1448,59 @@ function RestaurantDetailDialog({
         )}
       </DialogContent>
     </Dialog>
+
+    <Dialog open={zeropayConfirmOpen} onOpenChange={setZeropayConfirmOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>제로페이 선결제</DialogTitle>
+          <DialogDescription asChild>
+            <div className="space-y-3 pt-1 text-left text-foreground">
+              <p className="text-sm">선결제한 내역을 반영하시겠습니까?</p>
+              {zeropayImportPreview && (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                  <span className="font-medium text-muted-foreground">날짜</span>
+                  <span className="font-medium text-muted-foreground">금액</span>
+                  <span>{compactToDisplay(zeropayImportPreview.dateYmd)}</span>
+                  <span>{formatCurrency(zeropayImportPreview.amount)}원</span>
+                </div>
+              )}
+            </div>
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex w-full flex-row flex-wrap justify-end gap-2">
+          <Button
+            type="button"
+            disabled={importingZeropay}
+            onClick={async () => {
+              const ok = await onZeropayImportApply();
+              if (ok) setZeropayConfirmOpen(false);
+            }}
+          >
+            반영
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={importingZeropay}
+            onClick={async () => {
+              const ok = await onZeropayImportMoveHistoryOnly();
+              if (ok) setZeropayConfirmOpen(false);
+            }}
+          >
+            삭제
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={importingZeropay}
+            onClick={() => setZeropayConfirmOpen(false)}
+          >
+            취소
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
@@ -2422,19 +2484,28 @@ export default function Home({ initialData }: HomeProps) {
     return names;
   }, [restaurants, zeropayQueueEntries]);
 
-  const hasZeropayQueueForSelectedRestaurant = useMemo(() => {
-    if (!selectedRestaurant) return false;
+  const zeropayImportPreview = useMemo(() => {
+    if (!selectedRestaurant) return null;
     const n = selectedRestaurant.name.trim();
-    return zeropayQueueEntries.some((e) => e.parsed.restaurantName === n);
+    const candidates = zeropayQueueEntries.filter((e) => e.parsed.restaurantName === n);
+    if (!candidates.length) return null;
+    const { record, parsed } = candidates[0];
+    let dateYmd = zeropayDateFromDatetime(record.datetime);
+    if (dateYmd.length !== 8) {
+      dateYmd = todayCompact();
+    }
+    return { dateYmd, amount: parsed.amount };
   }, [selectedRestaurant, zeropayQueueEntries]);
 
-  const handleImportZeropayFromQueue = useCallback(async () => {
-    if (!user || !selectedRestaurant) return;
+  const hasZeropayQueueForSelectedRestaurant = zeropayImportPreview !== null;
+
+  const handleZeropayImportApply = useCallback(async (): Promise<boolean> => {
+    if (!user || !selectedRestaurant) return false;
     const name = selectedRestaurant.name.trim();
     const candidates = zeropayQueueEntries.filter((e) => e.parsed.restaurantName === name);
     if (!candidates.length) {
       toast.error('가져올 제로페이 알림이 없습니다.');
-      return;
+      return false;
     }
     const { key, record, parsed } = candidates[0];
     let dateStr = zeropayDateFromDatetime(record.datetime);
@@ -2468,9 +2539,38 @@ export default function Home({ initialData }: HomeProps) {
       );
       toast.success('제로페이 선결제를 반영했습니다.');
       await loadMainData();
+      return true;
     } catch (error) {
       console.error('Error importing zeropay prepayment', error);
       toast.error('가져오기 중 오류가 발생했습니다.');
+      return false;
+    } finally {
+      setImportingZeropay(false);
+    }
+  }, [user, selectedRestaurant, zeropayQueueEntries, loadMainData]);
+
+  const handleZeropayImportMoveHistoryOnly = useCallback(async (): Promise<boolean> => {
+    if (!user || !selectedRestaurant) return false;
+    const name = selectedRestaurant.name.trim();
+    const candidates = zeropayQueueEntries.filter((e) => e.parsed.restaurantName === name);
+    if (!candidates.length) {
+      toast.error('처리할 제로페이 알림이 없습니다.');
+      return false;
+    }
+    const { key, record } = candidates[0];
+    try {
+      setImportingZeropay(true);
+      await update(ref(database), {
+        [`mobile-notice/queue/zeropay/${key}`]: null,
+        [`mobile-notice/history/zeropay/${key}`]: record,
+      });
+      toast.success('알림을 기록으로 옮겼습니다.');
+      await loadMainData();
+      return true;
+    } catch (error) {
+      console.error('Error moving zeropay queue to history', error);
+      toast.error('처리 중 오류가 발생했습니다.');
+      return false;
     } finally {
       setImportingZeropay(false);
     }
@@ -3570,7 +3670,9 @@ export default function Home({ initialData }: HomeProps) {
             ),
           }}
           hasZeropayQueueForRestaurant={hasZeropayQueueForSelectedRestaurant}
-          onImportZeropay={handleImportZeropayFromQueue}
+          zeropayImportPreview={zeropayImportPreview}
+          onZeropayImportApply={handleZeropayImportApply}
+          onZeropayImportMoveHistoryOnly={handleZeropayImportMoveHistoryOnly}
           importingZeropay={importingZeropay}
         />
 
