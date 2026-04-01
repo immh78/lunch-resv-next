@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
@@ -11,6 +11,8 @@ import html2canvas from 'html2canvas';
 import { database } from '@/lib/firebase';
 import {
   collectUserZeropayQueueEntries,
+  FOOD_RESV_NOTICE_HISTORY_PATH,
+  FOOD_RESV_NOTICE_QUEUE_PATH,
   resolveZeropayDateYmd,
   type ZeropayQueueEntryWithKey,
 } from '@/lib/zeropay-queue';
@@ -2272,6 +2274,9 @@ export default function Home({ initialData }: HomeProps) {
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [iconSVGCache, setIconSVGCache] = useState<Record<string, string>>({});
   const [kindManageDialogOpen, setKindManageDialogOpen] = useState(false);
+  /** 동시에 여러 번 fetch될 때 마지막 응답만 반영 (깜박임·역순 적용 방지) */
+  const mainDataFetchSeqRef = useRef(0);
+  const [refreshingMainData, setRefreshingMainData] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', currentTheme === 'black');
@@ -2384,99 +2389,113 @@ export default function Home({ initialData }: HomeProps) {
     loadRestaurantKinds();
   }, []);
 
-  const loadMainData = useCallback(async () => {
-    if (!user) return;
-    try {
-      const restaurantsRef = ref(database, 'food-resv/restaurant');
-      const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
-      const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}`);
-      const hideRef = ref(database, `food-resv/hideRestaurant/${user.uid}`);
-      const zeropayQueueRef = ref(database, 'mobile-notice/queue/zeropay');
+  const loadMainData = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!user) return;
+      const silent = options?.silent ?? false;
+      const seq = ++mainDataFetchSeqRef.current;
+      try {
+        const restaurantsRef = ref(database, 'food-resv/restaurant');
+        const reservationRef = ref(database, `food-resv/reservation/${user.uid}`);
+        const prepaymentRef = ref(database, `food-resv/prepayment/${user.uid}`);
+        const hideRef = ref(database, `food-resv/hideRestaurant/${user.uid}`);
+        const zeropayQueueRef = ref(database, FOOD_RESV_NOTICE_QUEUE_PATH);
 
-      const [restaurantSnap, reservationSnap, prepaymentSnap, hideSnap, zeropaySnap] = await Promise.all([
-        get(restaurantsRef),
-        get(reservationRef),
-        get(prepaymentRef),
-        get(hideRef),
-        get(zeropayQueueRef),
-      ]);
+        const [restaurantSnap, reservationSnap, prepaymentSnap, hideSnap, zeropaySnap] = await Promise.all([
+          get(restaurantsRef),
+          get(reservationRef),
+          get(prepaymentRef),
+          get(hideRef),
+          get(zeropayQueueRef),
+        ]);
 
-      const zeropayRaw = zeropaySnap.exists() ? zeropaySnap.val() : {};
-      setZeropayQueueEntries(collectUserZeropayQueueEntries(zeropayRaw, user.uid));
+        if (seq !== mainDataFetchSeqRef.current) return;
 
-      const restaurantData: Record<string, Restaurant> = restaurantSnap.exists() ? restaurantSnap.val() : {};
-      const reservationData: Record<string, Record<string, ReservationData>> = reservationSnap.exists() ? reservationSnap.val() : {};
-      const prepaymentData: Record<string, PrepaymentItem[]> = prepaymentSnap.exists() ? prepaymentSnap.val() : {};
-      const hideData: string[] = hideSnap.exists() ? hideSnap.val() ?? [] : [];
+        const zeropayRaw = zeropaySnap.exists() ? zeropaySnap.val() : {};
+        setZeropayQueueEntries(collectUserZeropayQueueEntries(zeropayRaw, user.uid));
 
-      setAllReservations(reservationData);
-      setHiddenRestaurantIds(hideData);
+        const restaurantData: Record<string, Restaurant> = restaurantSnap.exists() ? restaurantSnap.val() : {};
+        const reservationData: Record<string, Record<string, ReservationData>> = reservationSnap.exists()
+          ? reservationSnap.val()
+          : {};
+        const prepaymentData: Record<string, PrepaymentItem[]> = prepaymentSnap.exists() ? prepaymentSnap.val() : {};
+        const hideData: string[] = hideSnap.exists() ? hideSnap.val() ?? [] : [];
 
-      if (!restaurantData || Object.keys(restaurantData).length === 0) {
-        setRestaurants([]);
-        setLoading(false);
-        setError('');
-        return;
-      }
+        setAllReservations(reservationData);
+        setHiddenRestaurantIds(hideData);
 
-      const list: RestaurantWithReservation[] = Object.entries(restaurantData).map(
-        ([id, restaurantEntry]) => {
-          const reservations = reservationData[id];
-          let latestDate: string | undefined;
-          let latestReservation: ReservationData | undefined;
-
-          if (reservations) {
-            const dates = Object.keys(reservations);
-            if (dates.length > 0) {
-              dates.sort((a, b) => b.localeCompare(a));
-              latestDate = dates[0];
-              latestReservation = reservations[latestDate];
-            }
-          }
-
-          const prepayments = prepaymentData[id] ?? [];
-          const prepaymentTotal = prepayments.reduce(
-            (sum, item) => sum + (item.amount || 0),
-            0
-          );
-
-          return {
-            id,
-            name: restaurantEntry.name,
-            telNo: restaurantEntry.telNo,
-            kind: restaurantEntry.kind,
-            menuImgId: restaurantEntry.menuImgId,
-            menuUrl: restaurantEntry.menuUrl,
-            naviUrl: restaurantEntry.naviUrl,
-            prepay: restaurantEntry.prepay,
-            reservationDate: latestDate,
-            reservation: latestReservation,
-            prepaymentTotal,
-          };
+        if (!restaurantData || Object.keys(restaurantData).length === 0) {
+          if (seq !== mainDataFetchSeqRef.current) return;
+          setRestaurants([]);
+          setError('');
+          if (!silent) setLoading(false);
+          return;
         }
-      );
 
-      list.sort((a, b) => {
-        if (!a.reservationDate && !b.reservationDate) return 0;
-        if (!a.reservationDate) return 1;
-        if (!b.reservationDate) return -1;
-        return b.reservationDate.localeCompare(a.reservationDate);
-      });
+        const list: RestaurantWithReservation[] = Object.entries(restaurantData).map(
+          ([id, restaurantEntry]) => {
+            const reservations = reservationData[id];
+            let latestDate: string | undefined;
+            let latestReservation: ReservationData | undefined;
 
-      setRestaurants(list);
-      setError('');
-    } catch (err) {
-      console.error('Error loading main data:', err);
-      setError('데이터를 불러오는 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+            if (reservations) {
+              const dates = Object.keys(reservations);
+              if (dates.length > 0) {
+                dates.sort((a, b) => b.localeCompare(a));
+                latestDate = dates[0];
+                latestReservation = reservations[latestDate];
+              }
+            }
+
+            const prepayments = prepaymentData[id] ?? [];
+            const prepaymentTotal = prepayments.reduce(
+              (sum, item) => sum + (item.amount || 0),
+              0
+            );
+
+            return {
+              id,
+              name: restaurantEntry.name,
+              telNo: restaurantEntry.telNo,
+              kind: restaurantEntry.kind,
+              menuImgId: restaurantEntry.menuImgId,
+              menuUrl: restaurantEntry.menuUrl,
+              naviUrl: restaurantEntry.naviUrl,
+              prepay: restaurantEntry.prepay,
+              reservationDate: latestDate,
+              reservation: latestReservation,
+              prepaymentTotal,
+            };
+          }
+        );
+
+        list.sort((a, b) => {
+          if (!a.reservationDate && !b.reservationDate) return 0;
+          if (!a.reservationDate) return 1;
+          if (!b.reservationDate) return -1;
+          return b.reservationDate.localeCompare(a.reservationDate);
+        });
+
+        if (seq !== mainDataFetchSeqRef.current) return;
+        setRestaurants(list);
+        setError('');
+      } catch (err) {
+        if (seq !== mainDataFetchSeqRef.current) return;
+        console.error('Error loading main data:', err);
+        setError('데이터를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (seq === mainDataFetchSeqRef.current && !silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [user]
+  );
 
   useEffect(() => {
     if (!user) return;
-    loadMainData();
-  }, [user, loadMainData]);
+    loadMainData({ silent: Boolean(initialData) });
+  }, [user, loadMainData, initialData]);
 
   const zeropayPendingRestaurantNames = useMemo(() => {
     const names = new Set<string>();
@@ -2521,8 +2540,8 @@ export default function Home({ initialData }: HomeProps) {
       for (const c of candidates) {
         const dateStr = resolveZeropayDateYmd(c.record.datetime);
         merged.push({ amount: c.parsed.amount, date: dateStr });
-        updates[`mobile-notice/queue/zeropay/${c.key}`] = null;
-        updates[`mobile-notice/history/zeropay/${c.key}`] = c.record;
+        updates[`${FOOD_RESV_NOTICE_QUEUE_PATH}/${c.key}`] = null;
+        updates[`${FOOD_RESV_NOTICE_HISTORY_PATH}/${c.key}`] = c.record;
       }
       updates[`food-resv/prepayment/${user.uid}/${restaurantId}`] = merged;
       await update(ref(database), updates);
@@ -2563,8 +2582,8 @@ export default function Home({ initialData }: HomeProps) {
       setImportingZeropay(true);
       const updates: Record<string, unknown> = {};
       for (const c of candidates) {
-        updates[`mobile-notice/queue/zeropay/${c.key}`] = null;
-        updates[`mobile-notice/history/zeropay/${c.key}`] = c.record;
+        updates[`${FOOD_RESV_NOTICE_QUEUE_PATH}/${c.key}`] = null;
+        updates[`${FOOD_RESV_NOTICE_HISTORY_PATH}/${c.key}`] = c.record;
       }
       await update(ref(database), updates);
       toast.success('알림을 기록으로 옮겼습니다.');
@@ -3489,8 +3508,12 @@ export default function Home({ initialData }: HomeProps) {
 
   const handleRefreshMainData = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
-    await loadMainData();
+    setRefreshingMainData(true);
+    try {
+      await loadMainData({ silent: true });
+    } finally {
+      setRefreshingMainData(false);
+    }
   }, [user, loadMainData]);
 
   const handleKindSave = async (kind: string, data: { icon?: string; name?: string }) => {
@@ -3561,9 +3584,12 @@ export default function Home({ initialData }: HomeProps) {
                 variant="ghost"
                 size="icon"
                 onClick={handleRefreshMainData}
+                disabled={refreshingMainData}
                 title="포장 예약 데이터 새로고침"
               >
-                <RefreshCw className="h-5 w-5" />
+                <RefreshCw
+                  className={cn('h-5 w-5', refreshingMainData && 'animate-spin')}
+                />
               </Button>
               <Button
                 variant="ghost"

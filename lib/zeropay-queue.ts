@@ -1,6 +1,12 @@
 import dayjs from 'dayjs';
 
-/** mobile-notice / queue|history / zeropay 레코드 */
+/** 선결제 import용 알림 대기 큐 (Realtime DB 경로) */
+export const FOOD_RESV_NOTICE_QUEUE_PATH = 'mobile-notice/queue/food-resv';
+
+/** 처리 완료 알림 보관 (Realtime DB 경로) */
+export const FOOD_RESV_NOTICE_HISTORY_PATH = 'mobile-notice/history/food-resv';
+
+/** mobile-notice / queue|history / food-resv 레코드 형식 */
 export interface ZeropayQueueRecord {
   app: string;
   datetime: string;
