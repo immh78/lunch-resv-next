@@ -65,6 +65,7 @@ import type { LucideIcon } from 'lucide-react';
 
 import {
   UtensilsCrossed,
+  RefreshCw,
   MoreVertical,
   Phone,
   Navigation,
@@ -3486,6 +3487,12 @@ export default function Home({ initialData }: HomeProps) {
     setThemeDialogOpen(true);
   };
 
+  const handleRefreshMainData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    await loadMainData();
+  }, [user, loadMainData]);
+
   const handleKindSave = async (kind: string, data: { icon?: string; name?: string }) => {
     try {
       const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
@@ -3550,6 +3557,14 @@ export default function Home({ initialData }: HomeProps) {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRefreshMainData}
+                title="포장 예약 데이터 새로고침"
+              >
+                <RefreshCw className="h-5 w-5" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
