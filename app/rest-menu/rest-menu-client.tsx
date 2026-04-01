@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ref, set, get, remove, update, push } from 'firebase/database';
@@ -153,6 +153,31 @@ const sortRestaurantsByRecentMenu = (a: Restaurant, b: Restaurant, visitLogs: Re
   // 날짜가 같거나 둘 다 없으면 식당명으로 정렬
   return sortRestaurantsByName(a, b);
 };
+
+/** 결제 알림 큐에 식당명이 있는 행을 목록 최상단으로 */
+const sortRestaurantsWithQueueFirst = (
+  a: Restaurant,
+  b: Restaurant,
+  visitLogs: Record<string, VisitLogEntry[]>,
+  queueRestaurantNames: Set<string>
+): number => {
+  const aIn = queueRestaurantNames.has(a.name.trim());
+  const bIn = queueRestaurantNames.has(b.name.trim());
+  if (aIn !== bIn) return aIn ? -1 : 1;
+  return sortRestaurantsByRecentMenu(a, b, visitLogs);
+};
+
+/** 큐에서 식당명이 일치하는 항목 중 datetime 기준 최신 1건 */
+function getFirstQueueEntryForRestaurant(
+  restaurantName: string,
+  entries: ZeropayQueueEntryWithKey[]
+): ZeropayQueueEntryWithKey | undefined {
+  const n = restaurantName.trim();
+  const candidates = entries
+    .filter((e) => e.parsed.restaurantName === n)
+    .sort((a, b) => (b.record.datetime || '').localeCompare(a.record.datetime || ''));
+  return candidates[0];
+}
 
 const getCloudinaryImageUrl = (publicId: string, isThumbnail = false): string => {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'da5h7wjxc';
@@ -395,7 +420,8 @@ type RestaurantMenuDialogProps = {
   onAddMenu?: () => void;
   onMenuClick?: (menuKey: string) => void;
   onEditMenu?: (menuKey: string) => void;
-  onMenuSelect?: (menuKey: string, menu: RestaurantMenu) => void;
+  /** `false`를 반환하면 메뉴 다이얼로그를 닫지 않음(예: 금액 불일치 확인 대기) */
+  onMenuSelect?: (menuKey: string, menu: RestaurantMenu) => boolean | Promise<boolean>;
   hasZeropayQueueForRestaurant: boolean;
   zeropayImportPreview: { dateYmd: string; amount: number }[];
   /** 메뉴명 확인 시 메뉴 등록 + 해당 큐 1건 history 이동 */
@@ -425,6 +451,7 @@ function RestaurantMenuDialog({
   const [deleteMenuKey, setDeleteMenuKey] = useState<string | null>(null);
   const [menuImportFromQueueOpen, setMenuImportFromQueueOpen] = useState(false);
   const [importMenuNameInput, setImportMenuNameInput] = useState('');
+  const importMenuNameInputRef = useRef<HTMLInputElement>(null);
 
   const zeropayAmountsLabel = useMemo(
     () =>
@@ -440,6 +467,14 @@ function RestaurantMenuDialog({
       setImportMenuNameInput('');
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!menuImportFromQueueOpen) return;
+    const id = window.requestAnimationFrame(() => {
+      importMenuNameInputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [menuImportFromQueueOpen]);
 
   return (
     <>
@@ -541,10 +576,10 @@ function RestaurantMenuDialog({
                       )}
                       <div 
                         className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => {
+                        onClick={async () => {
                           if (onMenuSelect) {
-                            onMenuSelect(key, menu);
-                            onClose();
+                            const shouldClose = await Promise.resolve(onMenuSelect(key, menu));
+                            if (shouldClose !== false) onClose();
                           } else if (onMenuClick) {
                             onMenuClick(key);
                           }
@@ -639,6 +674,7 @@ function RestaurantMenuDialog({
             )}
             <div className="px-3">
               <Input
+                ref={importMenuNameInputRef}
                 value={importMenuNameInput}
                 onChange={(e) => setImportMenuNameInput(e.target.value)}
                 placeholder="메뉴명"
@@ -790,6 +826,13 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
   const [zeropayQueueEntries, setZeropayQueueEntries] = useState<ZeropayQueueEntryWithKey[]>([]);
   const [refreshingNoticeQueue, setRefreshingNoticeQueue] = useState(false);
   const [importingMenuZeropay, setImportingMenuZeropay] = useState(false);
+  const [menuSelectQueueMismatch, setMenuSelectQueueMismatch] = useState<{
+    restaurantId: string;
+    menuKey: string;
+    menu: RestaurantMenu;
+    entry: ZeropayQueueEntryWithKey;
+  } | null>(null);
+  const [menuSelectQueueActionBusy, setMenuSelectQueueActionBusy] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState<Restaurant>({
@@ -1117,6 +1160,54 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
     ]
   );
 
+  const completeMenuSelectWithQueue = useCallback(
+    async (
+      restaurantId: string,
+      menuKey: string,
+      menu: RestaurantMenu,
+      entry: ZeropayQueueEntryWithKey,
+      options: { applyMessageCost: boolean }
+    ) => {
+      if (!user) return;
+      const messageCost = entry.parsed.amount;
+      const logCost = options.applyMessageCost
+        ? messageCost
+        : typeof menu.cost === 'number'
+          ? menu.cost
+          : 0;
+
+      const updates: Record<string, unknown> = {
+        [`${FOOD_RESV_NOTICE_QUEUE_PATH}/${entry.key}`]: null,
+        [`${FOOD_RESV_NOTICE_HISTORY_PATH}/${entry.key}`]: entry.record,
+      };
+      if (options.applyMessageCost) {
+        updates[`food-resv/restaurant/${restaurantId}/menu/${menuKey}`] = {
+          ...menu,
+          cost: messageCost,
+        };
+      }
+
+      try {
+        await update(ref(database), updates);
+        const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}/${restaurantId}`);
+        await push(visitLogRef, {
+          date: dayjs().format('YYYYMMDD'),
+          menuName: menu.name,
+          cost: logCost,
+        });
+        await loadVisitLogs();
+        await loadMenusForDialog();
+        await loadAllRestaurantMenus();
+        await refetchNoticeQueueOnly();
+      } catch (error) {
+        console.error('Error completing menu select with queue:', error);
+        toast.error('처리 중 오류가 발생했습니다.');
+        throw error;
+      }
+    },
+    [user, loadVisitLogs, loadMenusForDialog, loadAllRestaurantMenus, refetchNoticeQueueOnly]
+  );
+
   const handleRestaurantClick = useCallback((restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
     setMenuDialogOpen(true);
@@ -1335,22 +1426,83 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
     setMenuEditOpen(true);
   }, [menus]);
 
-  const handleMenuSelect = useCallback(async (menuKey: string, menu: RestaurantMenu) => {
-    if (!user || !selectedRestaurant) return;
+  const handleMenuSelect = useCallback(
+    async (menuKey: string, menu: RestaurantMenu): Promise<boolean> => {
+      if (!user || !selectedRestaurant) return true;
 
-    try {
-      const visitLogRef = ref(database, `food-resv/visit-log/${user.uid}/${selectedRestaurant.id}`);
-      const logEntry = {
-        date: dayjs().format('YYYYMMDD'),
-        menuName: menu.name,
-        cost: typeof menu.cost === 'number' ? menu.cost : 0,
-      };
-      await push(visitLogRef, logEntry);
-      await loadVisitLogs();
-    } catch (error) {
-      console.error('Error saving visit log:', error);
-    }
-  }, [user, selectedRestaurant, loadVisitLogs]);
+      const entry = getFirstQueueEntryForRestaurant(
+        selectedRestaurant.name,
+        zeropayQueueEntries
+      );
+      if (!entry) {
+        try {
+          const visitLogRef = ref(
+            database,
+            `food-resv/visit-log/${user.uid}/${selectedRestaurant.id}`
+          );
+          await push(visitLogRef, {
+            date: dayjs().format('YYYYMMDD'),
+            menuName: menu.name,
+            cost: typeof menu.cost === 'number' ? menu.cost : 0,
+          });
+          await loadVisitLogs();
+        } catch (error) {
+          console.error('Error saving visit log:', error);
+        }
+        return true;
+      }
+
+      const menuCost = typeof menu.cost === 'number' ? menu.cost : 0;
+      if (menuCost === entry.parsed.amount) {
+        try {
+          await completeMenuSelectWithQueue(
+            selectedRestaurant.id,
+            menuKey,
+            menu,
+            entry,
+            { applyMessageCost: false }
+          );
+        } catch {
+          return false;
+        }
+        return true;
+      }
+
+      setMenuSelectQueueMismatch({
+        restaurantId: selectedRestaurant.id,
+        menuKey,
+        menu,
+        entry,
+      });
+      return false;
+    },
+    [user, selectedRestaurant, zeropayQueueEntries, loadVisitLogs, completeMenuSelectWithQueue]
+  );
+
+  const handleMenuSelectQueueMismatchConfirm = useCallback(
+    async (applyMessageCost: boolean) => {
+      const pending = menuSelectQueueMismatch;
+      if (!pending || !user) return;
+      setMenuSelectQueueActionBusy(true);
+      try {
+        await completeMenuSelectWithQueue(
+          pending.restaurantId,
+          pending.menuKey,
+          pending.menu,
+          pending.entry,
+          { applyMessageCost }
+        );
+        setMenuSelectQueueMismatch(null);
+        setMenuDialogOpen(false);
+        setSelectedRestaurant(null);
+      } catch {
+        // toast는 completeMenuSelectWithQueue에서 표시
+      } finally {
+        setMenuSelectQueueActionBusy(false);
+      }
+    },
+    [menuSelectQueueMismatch, user, completeMenuSelectWithQueue]
+  );
 
   const handleEditMenu = useCallback((menuKey: string) => {
     handleMenuClick(menuKey);
@@ -1395,7 +1547,9 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
 
     if (!searchQuery.trim()) {
       const restaurantsWithRecentMenu = addRecentMenu(restaurants);
-      restaurantsWithRecentMenu.sort((a, b) => sortRestaurantsByRecentMenu(a, b, visitLogs));
+      restaurantsWithRecentMenu.sort((a, b) =>
+        sortRestaurantsWithQueueFirst(a, b, visitLogs, zeropayPendingRestaurantNames)
+      );
       setFilteredRestaurants(restaurantsWithRecentMenu);
       return;
     }
@@ -1417,23 +1571,25 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
       return false;
     });
 
-    filtered.sort((a, b) => sortRestaurantsByRecentMenu(a, b, visitLogs));
+    filtered.sort((a, b) =>
+      sortRestaurantsWithQueueFirst(a, b, visitLogs, zeropayPendingRestaurantNames)
+    );
     const filteredWithRecentMenu = addRecentMenu(filtered);
     setFilteredRestaurants(filteredWithRecentMenu);
-  }, [searchQuery, restaurants, allRestaurantMenus, visitLogs]);
+  }, [searchQuery, restaurants, allRestaurantMenus, visitLogs, zeropayPendingRestaurantNames]);
 
-  // visitLogs가 로드된 후 식당 목록 정렬 (초기 로드 시)
+  // visitLogs·큐 반영 후 식당 목록 정렬 (초기 로드 시)
   useEffect(() => {
     if (restaurants.length > 0 && Object.keys(visitLogs).length >= 0) {
-      // visitLogs가 로드되었거나 빈 객체인 경우 정렬
-      const sorted = [...restaurants].sort((a, b) => sortRestaurantsByRecentMenu(a, b, visitLogs));
-      // 정렬 결과가 다를 때만 업데이트 (무한 루프 방지)
+      const sorted = [...restaurants].sort((a, b) =>
+        sortRestaurantsWithQueueFirst(a, b, visitLogs, zeropayPendingRestaurantNames)
+      );
       const needsUpdate = sorted.some((restaurant, index) => restaurant.id !== restaurants[index]?.id);
       if (needsUpdate) {
         setRestaurants(sorted);
       }
     }
-  }, [visitLogs, restaurants]);
+  }, [visitLogs, restaurants, zeropayPendingRestaurantNames]);
 
   // 검색어, 식당 목록, visit-log가 변경될 때 필터링
   useEffect(() => {
@@ -1590,6 +1746,51 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
           onRegisterMenuFromQueue={handleRegisterMenuFromQueue}
           importingMenuZeropay={importingMenuZeropay}
         />
+
+        <AlertDialog
+          open={!!menuSelectQueueMismatch}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen && !menuSelectQueueActionBusy) {
+              setMenuSelectQueueMismatch(null);
+            }
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>알림 금액과 메뉴 금액이 다릅니다</AlertDialogTitle>
+              <AlertDialogDescription>
+                {menuSelectQueueMismatch ? (
+                  <>
+                    메뉴{' '}
+                    {formatCurrency(
+                      typeof menuSelectQueueMismatch.menu.cost === 'number'
+                        ? menuSelectQueueMismatch.menu.cost
+                        : 0
+                    )}
+                    원 · 알림 {formatCurrency(menuSelectQueueMismatch.entry.parsed.amount)}원. 알림에서
+                    추출한 금액을 메뉴에 반영할까요?
+                  </>
+                ) : null}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                disabled={menuSelectQueueActionBusy}
+                onClick={() => void handleMenuSelectQueueMismatchConfirm(true)}
+              >
+                반영
+              </Button>
+              <Button
+                variant="outline"
+                disabled={menuSelectQueueActionBusy}
+                onClick={() => void handleMenuSelectQueueMismatchConfirm(false)}
+              >
+                반영 안함
+              </Button>
+              <AlertDialogCancel disabled={menuSelectQueueActionBusy}>취소</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <ImageViewDialog
           open={imageViewOpen}
