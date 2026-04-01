@@ -10,7 +10,9 @@ import { toast } from 'sonner';
 import { database } from '@/lib/firebase';
 import {
   collectUserZeropayQueueEntries,
+  FOOD_RESV_NOTICE_HISTORY_PATH,
   FOOD_RESV_NOTICE_QUEUE_PATH,
+  resolveZeropayDateYmd,
   type ZeropayQueueEntryWithKey,
 } from '@/lib/zeropay-queue';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -29,6 +31,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -69,6 +72,8 @@ import {
   BookOpen,
   Tag,
   RefreshCw,
+  Import,
+  Save,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -391,6 +396,11 @@ type RestaurantMenuDialogProps = {
   onMenuClick?: (menuKey: string) => void;
   onEditMenu?: (menuKey: string) => void;
   onMenuSelect?: (menuKey: string, menu: RestaurantMenu) => void;
+  hasZeropayQueueForRestaurant: boolean;
+  zeropayImportPreview: { dateYmd: string; amount: number }[];
+  /** 메뉴명 확인 시 메뉴 등록 + 해당 큐 1건 history 이동 */
+  onRegisterMenuFromQueue: (menuName: string) => Promise<boolean>;
+  importingMenuZeropay: boolean;
 };
 
 function RestaurantMenuDialog({
@@ -406,9 +416,30 @@ function RestaurantMenuDialog({
   onMenuClick,
   onEditMenu,
   onMenuSelect,
+  hasZeropayQueueForRestaurant,
+  zeropayImportPreview,
+  onRegisterMenuFromQueue,
+  importingMenuZeropay,
 }: RestaurantMenuDialogProps) {
   const menuEntries = Object.entries(menus);
   const [deleteMenuKey, setDeleteMenuKey] = useState<string | null>(null);
+  const [menuImportFromQueueOpen, setMenuImportFromQueueOpen] = useState(false);
+  const [importMenuNameInput, setImportMenuNameInput] = useState('');
+
+  const zeropayAmountsLabel = useMemo(
+    () =>
+      zeropayImportPreview.map((row) => `${formatCurrency(row.amount)}원`).join(' · '),
+    [zeropayImportPreview]
+  );
+
+  const firstImportHint = zeropayImportPreview[0];
+
+  useEffect(() => {
+    if (!open) {
+      setMenuImportFromQueueOpen(false);
+      setImportMenuNameInput('');
+    }
+  }, [open]);
 
   return (
     <>
@@ -423,23 +454,45 @@ function RestaurantMenuDialog({
           }}
         >
           <DialogHeader className="border-b border-border/50 px-5 py-4 shrink-0 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <DialogTitle>{restaurant?.name || '식당 메뉴'}</DialogTitle>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <DialogTitle className="min-w-0 shrink">{restaurant?.name || '식당 메뉴'}</DialogTitle>
               {onEditRestaurant && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground"
+                  className="h-8 w-8 shrink-0 text-muted-foreground"
                   onClick={onEditRestaurant}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
               )}
+              {hasZeropayQueueForRestaurant && (
+                <div className="flex min-w-0 max-w-[min(100%,220px)] items-center gap-0.5 sm:max-w-[280px]">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground"
+                    disabled={importingMenuZeropay}
+                    title="알림에서 메뉴 가져오기"
+                    onClick={() => {
+                      setImportMenuNameInput('');
+                      setMenuImportFromQueueOpen(true);
+                    }}
+                  >
+                    <Import className="h-4 w-4" />
+                  </Button>
+                  {zeropayAmountsLabel ? (
+                    <span className="min-w-0 truncate text-[11px] leading-tight text-muted-foreground">
+                      {zeropayAmountsLabel}
+                    </span>
+                  ) : null}
+                </div>
+              )}
               {(restaurant?.menuImgId || restaurant?.menuUrl) && onOpenMenuResource && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground"
+                  className="h-8 w-8 shrink-0 text-muted-foreground"
                   onClick={onOpenMenuResource}
                 >
                   <BookOpen className="h-4 w-4" />
@@ -562,6 +615,72 @@ function RestaurantMenuDialog({
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={menuImportFromQueueOpen}
+        onOpenChange={(next) => {
+          setMenuImportFromQueueOpen(next);
+          if (!next) setImportMenuNameInput('');
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="border-0 px-5 pb-2 pt-4">
+            <DialogTitle>메뉴 등록</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            {firstImportHint && (
+              <div className="mx-3 rounded-sm border border-border bg-muted/50 px-5 py-2.5 text-sm">
+                <div className="text-muted-foreground">
+                  금액{' '}
+                  <span className="font-medium text-foreground">
+                    {formatCurrency(firstImportHint.amount)}원
+                  </span>
+                </div>
+              </div>
+            )}
+            <div className="px-3">
+              <Input
+                value={importMenuNameInput}
+                onChange={(e) => setImportMenuNameInput(e.target.value)}
+                placeholder="메뉴명"
+                disabled={importingMenuZeropay}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void (async () => {
+                      const ok = await onRegisterMenuFromQueue(importMenuNameInput);
+                      if (ok) {
+                        setMenuImportFromQueueOpen(false);
+                        setImportMenuNameInput('');
+                      }
+                    })();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter className="border-0 flex w-full flex-row justify-end px-5 pb-4 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              disabled={importingMenuZeropay}
+              title="저장"
+              aria-label="저장"
+              onClick={async () => {
+                const ok = await onRegisterMenuFromQueue(importMenuNameInput);
+                if (ok) {
+                  setMenuImportFromQueueOpen(false);
+                  setImportMenuNameInput('');
+                }
+              }}
+            >
+              <Save className="h-4 w-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={deleteMenuKey !== null} onOpenChange={(open) => !open && setDeleteMenuKey(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -670,6 +789,7 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
   const [kindManageDialogOpen, setKindManageDialogOpen] = useState(false);
   const [zeropayQueueEntries, setZeropayQueueEntries] = useState<ZeropayQueueEntryWithKey[]>([]);
   const [refreshingNoticeQueue, setRefreshingNoticeQueue] = useState(false);
+  const [importingMenuZeropay, setImportingMenuZeropay] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState<Restaurant>({
@@ -760,6 +880,31 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
     }
     return names;
   }, [restaurants, zeropayQueueEntries]);
+
+  const refetchNoticeQueueOnly = useCallback(async () => {
+    if (!user) return;
+    try {
+      const snap = await get(ref(database, FOOD_RESV_NOTICE_QUEUE_PATH));
+      const raw = snap.exists() ? snap.val() : {};
+      setZeropayQueueEntries(collectUserZeropayQueueEntries(raw, user.uid));
+    } catch (e) {
+      console.error('Error refetching notice queue', e);
+    }
+  }, [user]);
+
+  const menuZeropayImportPreview = useMemo(() => {
+    if (!selectedRestaurant) return [];
+    const n = selectedRestaurant.name.trim();
+    return zeropayQueueEntries
+      .filter((e) => e.parsed.restaurantName === n)
+      .sort((a, b) => (b.record.datetime || '').localeCompare(a.record.datetime || ''))
+      .map((c) => ({
+        dateYmd: resolveZeropayDateYmd(c.record.datetime),
+        amount: c.parsed.amount,
+      }));
+  }, [selectedRestaurant, zeropayQueueEntries]);
+
+  const hasMenuZeropayQueue = menuZeropayImportPreview.length > 0;
 
   const loadVisitLogs = useCallback(async () => {
     if (!user) return;
@@ -912,6 +1057,65 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
   useEffect(() => {
     loadMenusForDialog();
   }, [loadMenusForDialog]);
+
+  const handleRegisterMenuFromQueue = useCallback(
+    async (menuName: string): Promise<boolean> => {
+      if (!user || !selectedRestaurant) return false;
+      const trimmed = menuName.trim();
+      if (!trimmed) {
+        toast.error('메뉴명을 입력해주세요.');
+        return false;
+      }
+      const n = selectedRestaurant.name.trim();
+      const candidates = zeropayQueueEntries
+        .filter((e) => e.parsed.restaurantName === n)
+        .sort((a, b) => (b.record.datetime || '').localeCompare(a.record.datetime || ''));
+      const entry = candidates[0];
+      if (!entry) {
+        toast.error('가져올 알림이 없습니다.');
+        return false;
+      }
+      const restaurantId = selectedRestaurant.id;
+      try {
+        setImportingMenuZeropay(true);
+        const menuCollectionRef = ref(database, `food-resv/restaurant/${restaurantId}/menu`);
+        const newMenuRef = push(menuCollectionRef);
+        const menuKey = newMenuRef.key;
+        if (!menuKey) throw new Error('메뉴 키를 만들 수 없습니다.');
+        const menuPayload: RestaurantMenu = {
+          name: trimmed,
+          cost: entry.parsed.amount,
+          img: '',
+          thumbnail: '',
+          remark: '',
+        };
+        await update(ref(database), {
+          [`food-resv/restaurant/${restaurantId}/menu/${menuKey}`]: menuPayload,
+          [`${FOOD_RESV_NOTICE_QUEUE_PATH}/${entry.key}`]: null,
+          [`${FOOD_RESV_NOTICE_HISTORY_PATH}/${entry.key}`]: entry.record,
+        });
+        await loadMenusForDialog();
+        await loadAllRestaurantMenus();
+        await refetchNoticeQueueOnly();
+        toast.success('메뉴를 등록했습니다.');
+        return true;
+      } catch (error) {
+        console.error('Error registering menu from queue', error);
+        toast.error('메뉴 등록 중 오류가 발생했습니다.');
+        return false;
+      } finally {
+        setImportingMenuZeropay(false);
+      }
+    },
+    [
+      user,
+      selectedRestaurant,
+      zeropayQueueEntries,
+      loadMenusForDialog,
+      loadAllRestaurantMenus,
+      refetchNoticeQueueOnly,
+    ]
+  );
 
   const handleRestaurantClick = useCallback((restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
@@ -1381,6 +1585,10 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
           onMenuClick={handleMenuClick}
           onEditMenu={handleEditMenu}
           onMenuSelect={handleMenuSelect}
+          hasZeropayQueueForRestaurant={hasMenuZeropayQueue}
+          zeropayImportPreview={menuZeropayImportPreview}
+          onRegisterMenuFromQueue={handleRegisterMenuFromQueue}
+          importingMenuZeropay={importingMenuZeropay}
         />
 
         <ImageViewDialog
