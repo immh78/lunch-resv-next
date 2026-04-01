@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ref, set, get, remove, update, push } from 'firebase/database';
@@ -8,6 +8,11 @@ import dayjs from 'dayjs';
 import { toast } from 'sonner';
 
 import { database } from '@/lib/firebase';
+import {
+  collectUserZeropayQueueEntries,
+  FOOD_RESV_NOTICE_QUEUE_PATH,
+  type ZeropayQueueEntryWithKey,
+} from '@/lib/zeropay-queue';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -63,6 +68,7 @@ import {
   Search,
   BookOpen,
   Tag,
+  RefreshCw,
 } from 'lucide-react';
 
 type ThemeMode = 'white' | 'black';
@@ -165,6 +171,7 @@ type RestaurantListProps = {
   currentTheme: ThemeMode;
   restaurantIcons: Record<string, string>;
   allVisitLogs: Record<string, (VisitLogEntry & { key: string })[]>;
+  zeropayPendingRestaurantNames: Set<string>;
 };
 
 // 최근 30일 방문 횟수 계산 함수
@@ -195,6 +202,7 @@ function RestaurantList({
   currentTheme,
   restaurantIcons,
   allVisitLogs,
+  zeropayPendingRestaurantNames,
 }: RestaurantListProps) {
   if (loading) {
     return (
@@ -251,7 +259,12 @@ function RestaurantList({
                 {restaurant.kind && restaurantIcons[restaurant.kind] && (() => {
                   const IconComponent = getLucideIcon(restaurantIcons[restaurant.kind]);
                   return IconComponent ? (
-                    <IconComponent className="mr-2 h-4 w-4 shrink-0" />
+                    <IconComponent
+                      className={cn(
+                        'mr-2 h-4 w-4 shrink-0',
+                        zeropayPendingRestaurantNames.has(restaurant.name.trim()) && 'text-orange-500'
+                      )}
+                    />
                   ) : null;
                 })()}
                 <span className="truncate">{restaurant.name}</span>
@@ -655,6 +668,8 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
   const [restaurantIcons, setRestaurantIcons] = useState<Record<string, string>>(initialData?.restaurantIcons ?? {});
   const [restaurantKinds, setRestaurantKinds] = useState<Record<string, { icon?: string; name?: string }>>(initialData?.restaurantKinds ?? {});
   const [kindManageDialogOpen, setKindManageDialogOpen] = useState(false);
+  const [zeropayQueueEntries, setZeropayQueueEntries] = useState<ZeropayQueueEntryWithKey[]>([]);
+  const [refreshingNoticeQueue, setRefreshingNoticeQueue] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState<Restaurant>({
@@ -695,9 +710,16 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
 
   const loadRestaurants = useCallback(async () => {
     if (!user) return;
+    setLoading(true);
     try {
       const restaurantsRef = ref(database, 'food-resv/restaurant');
-      const snapshot = await get(restaurantsRef);
+      const zeropayQueueRef = ref(database, FOOD_RESV_NOTICE_QUEUE_PATH);
+      const [snapshot, zeropaySnap] = await Promise.all([
+        get(restaurantsRef),
+        get(zeropayQueueRef),
+      ]);
+      const zeropayRaw = zeropaySnap.exists() ? zeropaySnap.val() : {};
+      setZeropayQueueEntries(collectUserZeropayQueueEntries(zeropayRaw, user.uid));
       if (snapshot.exists()) {
         const data = snapshot.val() as Record<string, Partial<Restaurant>>;
         const restaurantList: Restaurant[] = Object.entries(data).map(([id, restaurant]) => ({
@@ -714,6 +736,7 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
       } else {
         setRestaurants([]);
       }
+      setError('');
     } catch (error) {
       console.error('Error fetching restaurants:', error);
       setError('식당 목록을 불러오는 중 오류가 발생했습니다.');
@@ -726,6 +749,17 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
     if (!user) return;
     loadRestaurants();
   }, [user, loadRestaurants]);
+
+  const zeropayPendingRestaurantNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const r of restaurants) {
+      const n = r.name.trim();
+      if (zeropayQueueEntries.some((e) => e.parsed.restaurantName === n)) {
+        names.add(n);
+      }
+    }
+    return names;
+  }, [restaurants, zeropayQueueEntries]);
 
   const loadVisitLogs = useCallback(async () => {
     if (!user) return;
@@ -776,6 +810,30 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
     if (!user) return;
     loadVisitLogs();
   }, [user, loadVisitLogs]);
+
+  /** 스펙: 깜빡임 방지 — 알림 큐만 갱신. 아이콘은 포장 예약과 같이 회전, 최소 1.5초 */
+  const handleRefreshRestMenu = useCallback(async () => {
+    if (!user) return;
+    setRefreshingNoticeQueue(true);
+    try {
+      await Promise.all([
+        (async () => {
+          try {
+            const zeropayQueueRef = ref(database, FOOD_RESV_NOTICE_QUEUE_PATH);
+            const zeropaySnap = await get(zeropayQueueRef);
+            const zeropayRaw = zeropaySnap.exists() ? zeropaySnap.val() : {};
+            setZeropayQueueEntries(collectUserZeropayQueueEntries(zeropayRaw, user.uid));
+          } catch (error) {
+            console.error('Error fetching notice queue:', error);
+            toast.error('알림 큐를 불러오지 못했습니다.');
+          }
+        })(),
+        new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    } finally {
+      setRefreshingNoticeQueue(false);
+    }
+  }, [user]);
 
   const loadRestaurantKinds = useCallback(async () => {
     try {
@@ -1201,7 +1259,19 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
                 <span className="text-base font-semibold leading-tight">식당 메뉴</span>
               </div>
             </div>
-            <DropdownMenu>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRefreshRestMenu}
+                disabled={refreshingNoticeQueue}
+                title="결제 알림 큐 새로고침"
+              >
+                <RefreshCw
+                  className={cn('h-5 w-5', refreshingNoticeQueue && 'animate-spin')}
+                />
+              </Button>
+              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <MoreVertical className="h-5 w-5" />
@@ -1249,6 +1319,7 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           </div>
         </header>
 
@@ -1290,6 +1361,7 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
             currentTheme={currentTheme}
             restaurantIcons={restaurantIcons}
             allVisitLogs={allVisitLogs}
+            zeropayPendingRestaurantNames={zeropayPendingRestaurantNames}
           />
         </main>
 

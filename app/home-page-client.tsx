@@ -3510,7 +3510,10 @@ export default function Home({ initialData }: HomeProps) {
     if (!user) return;
     setRefreshingMainData(true);
     try {
-      await loadMainData({ silent: true });
+      await Promise.all([
+        loadMainData({ silent: true }),
+        new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+      ]);
     } finally {
       setRefreshingMainData(false);
     }
