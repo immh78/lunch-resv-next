@@ -348,13 +348,23 @@ function RestaurantList({
             <TableCell className="align-middle">
               <div className="flex items-center justify-end gap-2">
                 <a
-                  href={`tel:${restaurant.telNo}`}
-                  onClick={(event) => event.stopPropagation()}
+                  href={restaurant.telNo?.trim() ? `tel:${restaurant.telNo}` : undefined}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (!restaurant.telNo?.trim()) {
+                      event.preventDefault();
+                    }
+                  }}
+                  aria-disabled={!restaurant.telNo?.trim()}
                   className={cn(
                     'rounded-full p-1 transition',
-                    currentTheme === 'white'
-                      ? 'text-black hover:text-black/80'
-                      : 'text-muted-foreground hover:text-foreground'
+                    restaurant.telNo?.trim()
+                      ? currentTheme === 'white'
+                        ? 'text-black hover:text-black/80'
+                        : 'text-muted-foreground hover:text-foreground'
+                      : currentTheme === 'white'
+                        ? 'text-gray-400 pointer-events-none'
+                        : 'text-gray-600 pointer-events-none'
                   )}
                 >
                   <Phone className="h-4 w-4" />
