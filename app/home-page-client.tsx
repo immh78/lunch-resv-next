@@ -2373,31 +2373,32 @@ export default function Home({ initialData }: HomeProps) {
     [handleUploadDialogClose, uploadContext, editableRestaurant]
   );
 
-  useEffect(() => {
-    const loadRestaurantKinds = async () => {
-      try {
-        const restaurantKindRef = ref(database, 'food-resv/restaurant-kind');
-        const snapshot = await get(restaurantKindRef);
-        if (snapshot.exists()) {
-          const kindData = snapshot.val() as Record<string, { icon?: string; name?: string }>;
-          const icons: Record<string, string> = {};
-          Object.entries(kindData).forEach(([kind, data]) => {
-            if (data?.icon) {
-              icons[kind] = data.icon;
-            }
-          });
-          setRestaurantIcons(icons);
-          setRestaurantKinds(kindData);
-        } else {
-          setRestaurantIcons({});
-          setRestaurantKinds({});
-        }
-      } catch (err) {
-        console.error('Error fetching restaurant kinds:', err);
+  const loadRestaurantKinds = useCallback(async () => {
+    try {
+      const restaurantKindRef = ref(database, 'food-resv/restaurant-kind');
+      const snapshot = await get(restaurantKindRef);
+      if (snapshot.exists()) {
+        const kindData = snapshot.val() as Record<string, { icon?: string; name?: string }>;
+        const icons: Record<string, string> = {};
+        Object.entries(kindData).forEach(([kind, data]) => {
+          if (data?.icon) {
+            icons[kind] = data.icon;
+          }
+        });
+        setRestaurantIcons(icons);
+        setRestaurantKinds(kindData);
+      } else {
+        setRestaurantIcons({});
+        setRestaurantKinds({});
       }
-    };
-    loadRestaurantKinds();
+    } catch (err) {
+      console.error('Error fetching restaurant kinds:', err);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadRestaurantKinds();
+  }, [loadRestaurantKinds]);
 
   const loadMainData = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -3533,6 +3534,7 @@ export default function Home({ initialData }: HomeProps) {
     try {
       const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
       await set(kindRef, data);
+      await loadRestaurantKinds();
     } catch (error) {
       console.error('Error saving restaurant kind:', error);
       throw error;
@@ -3543,6 +3545,7 @@ export default function Home({ initialData }: HomeProps) {
     try {
       const kindRef = ref(database, `food-resv/restaurant-kind/${kind}`);
       await remove(kindRef);
+      await loadRestaurantKinds();
     } catch (error) {
       console.error('Error deleting restaurant kind:', error);
       throw error;
