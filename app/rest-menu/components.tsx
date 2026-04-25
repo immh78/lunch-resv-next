@@ -996,7 +996,8 @@ function RestaurantKindSelectDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <>
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>종류 선택</DialogTitle>
@@ -1042,6 +1043,7 @@ function RestaurantKindSelectDialog({
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 
@@ -1054,7 +1056,7 @@ type MenuListDialogProps = {
   onAddNewMenu: () => void;
   onEditMenu?: (menuKey: string) => void;
   onMenuSelect?: (menuKey: string, menu: RestaurantMenu) => void;
-  onDeleteMenu?: (menuKey: string) => void;
+  onDeleteMenu?: (menuKey: string) => void | Promise<void>;
 };
 
 export function MenuListDialog({
@@ -1069,6 +1071,8 @@ export function MenuListDialog({
   onDeleteMenu,
 }: MenuListDialogProps) {
   const menuEntries = Object.entries(menus);
+  const [deleteMenuKey, setDeleteMenuKey] = useState<string | null>(null);
+  const [deletingMenu, setDeletingMenu] = useState(false);
 
   const handleMenuNameClick = (menuKey: string, menu: RestaurantMenu) => {
     if (onMenuSelect) {
@@ -1084,8 +1088,20 @@ export function MenuListDialog({
     }
   };
 
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteMenuKey || !onDeleteMenu) return;
+    setDeletingMenu(true);
+    try {
+      await onDeleteMenu(deleteMenuKey);
+      setDeleteMenuKey(null);
+    } finally {
+      setDeletingMenu(false);
+    }
+  }, [deleteMenuKey, onDeleteMenu]);
+
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <>
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader className="space-y-0">
           <div className="flex items-center gap-2">
@@ -1139,13 +1155,13 @@ export function MenuListDialog({
                       className="h-8 w-8"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteMenu(key);
+                        setDeleteMenuKey(key);
                       }}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   )}
-                  {!onDeleteMenu && onMenuClick && (
+                  {!onDeleteMenu && !onEditMenu && onMenuClick && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1155,7 +1171,7 @@ export function MenuListDialog({
                         onMenuClick(key);
                       }}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
@@ -1164,7 +1180,37 @@ export function MenuListDialog({
           )}
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+      <AlertDialog
+        open={deleteMenuKey !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletingMenu) {
+            setDeleteMenuKey(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>메뉴 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteMenuKey && menus[deleteMenuKey]?.name
+                ? `정말로 "${menus[deleteMenuKey].name}" 메뉴를 삭제하시겠습니까?`
+                : '정말로 이 메뉴를 삭제하시겠습니까?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingMenu}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void handleDeleteConfirm()}
+              disabled={deletingMenu}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingMenu ? <Spinner size="sm" /> : '삭제'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

@@ -1787,6 +1787,7 @@ type RestaurantFormDialogProps = {
   restaurantKinds: Record<string, { icon?: string; name?: string }>;
   restaurantIcons: Record<string, string>;
   onMenuSave?: (menuKey: string, menu: RestaurantMenu) => void;
+  onMenuDelete?: (menuKey: string) => Promise<void>;
   cloudName?: string;
   mobilePreset?: string;
   thumbnailPreset?: string;
@@ -1806,6 +1807,7 @@ function RestaurantFormDialog({
   restaurantKinds,
   restaurantIcons,
   onMenuSave,
+  onMenuDelete,
   cloudName,
   mobilePreset,
   thumbnailPreset,
@@ -1873,6 +1875,12 @@ function RestaurantFormDialog({
       await loadMenus();
     }
   }, [onMenuSave, loadMenus]);
+
+  const handleMenuDelete = useCallback(async (menuKey: string) => {
+    if (!onMenuDelete) return;
+    await onMenuDelete(menuKey);
+    await loadMenus();
+  }, [onMenuDelete, loadMenus]);
 
   const menuNames = Object.entries(menus).map(([, menu]) => menu.name).filter(Boolean);
 
@@ -2092,6 +2100,7 @@ function RestaurantFormDialog({
             setMenuListOpen(false);
             handleMenuClick(menuKey);
           }}
+          onDeleteMenu={(menuKey) => void handleMenuDelete(menuKey)}
         />
         <MenuEditDialog
           open={menuEditOpen}
@@ -3567,6 +3576,21 @@ export default function Home({ initialData }: HomeProps) {
     }
   }, [user, editableRestaurant, fetchRestaurantMenus]);
 
+  const handleMenuDelete = useCallback(async (menuKey: string) => {
+    if (!user || !editableRestaurant) return;
+
+    try {
+      const menuRef = ref(database, `food-resv/restaurant/${editableRestaurant.id}/menu/${menuKey}`);
+      await remove(menuRef);
+      await fetchRestaurantMenus(editableRestaurant.id);
+      toast.success('메뉴를 삭제했습니다.');
+    } catch (error) {
+      console.error('Error deleting menu:', error);
+      toast.error('메뉴 삭제 중 오류가 발생했습니다.');
+      throw error;
+    }
+  }, [user, editableRestaurant, fetchRestaurantMenus]);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-foreground">
@@ -3768,6 +3792,7 @@ export default function Home({ initialData }: HomeProps) {
               restaurantKinds={restaurantKinds}
               restaurantIcons={restaurantIcons}
               onMenuSave={handleMenuSave}
+              onMenuDelete={handleMenuDelete}
               cloudName={cloudName}
               mobilePreset={uploadPreset}
               thumbnailPreset={thumbnailPreset}
