@@ -645,6 +645,7 @@ type RestaurantFormDialogProps = {
   uploadPreset?: string;
   thumbnailPreset?: string;
   onMenuSave?: (menuKey: string, menu: RestaurantMenu) => void;
+  onMenuDelete?: (menuKey: string) => Promise<void>;
   onOpenUpload?: () => void;
 };
 
@@ -662,6 +663,7 @@ export function RestaurantFormDialog({
   uploadPreset,
   thumbnailPreset,
   onMenuSave,
+  onMenuDelete,
   onOpenUpload,
 }: RestaurantFormDialogProps) {
   const [kindSelectOpen, setKindSelectOpen] = useState(false);
@@ -725,6 +727,15 @@ export function RestaurantFormDialog({
       await loadMenus();
     }
   }, [onMenuSave, loadMenus]);
+
+  const handleMenuDelete = useCallback(
+    async (menuKey: string) => {
+      if (!onMenuDelete) return;
+      await onMenuDelete(menuKey);
+      await loadMenus();
+    },
+    [onMenuDelete, loadMenus]
+  );
 
   const handleUploadSuccess = useCallback(
     async (publicId: string) => {
@@ -928,6 +939,7 @@ export function RestaurantFormDialog({
             setMenuListOpen(false);
             handleMenuClick(menuKey);
           }}
+          onDeleteMenu={(menuKey) => void handleMenuDelete(menuKey)}
         />
         <MenuEditDialog
           open={menuEditOpen}

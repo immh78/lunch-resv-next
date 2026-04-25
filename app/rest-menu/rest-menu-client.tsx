@@ -1854,6 +1854,7 @@ export default function RestMenuPageClient({ initialData }: RestMenuPageClientPr
             uploadPreset={uploadPreset}
             thumbnailPreset={thumbnailPreset}
             onMenuSave={handleMenuSave}
+            onMenuDelete={handleDeleteMenu}
           />
         )}
 
