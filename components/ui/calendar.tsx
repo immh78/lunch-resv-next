@@ -105,35 +105,32 @@ const Calendar: React.FC<CalendarProps> = ({
       ? defaultMonthYear * 12 + defaultMonthMonth
       : null;
 
+  // selectedMonthKey / defaultMonthKey 만 의존해야 함.
+  // normalizeDate(selected)는 매 렌더마다 새 Date 참조라 normalizedSelected를 deps에 넣으면
+  // 이펙트가 매번 돌아가 이전·다음 달 이동 직후 currentMonth가 선택일 월로 되돌아감.
   useEffect(() => {
-    if (selectedMonthKey === null || !normalizedSelected) return;
+    if (selectedMonthKey === null) return;
+    const monthIndex = selectedMonthKey % 12;
+    const year = (selectedMonthKey - monthIndex) / 12;
     setCurrentMonth((prev) => {
-      if (
-        prev.getFullYear() === normalizedSelected.getFullYear() &&
-        prev.getMonth() === normalizedSelected.getMonth()
-      ) {
+      if (prev.getFullYear() === year && prev.getMonth() === monthIndex) {
         return prev;
       }
-      return new Date(
-        normalizedSelected.getFullYear(),
-        normalizedSelected.getMonth(),
-        1
-      );
+      return new Date(year, monthIndex, 1);
     });
-  }, [selectedMonthKey, normalizedSelected]);
+  }, [selectedMonthKey]);
 
   useEffect(() => {
-    if (defaultMonthKey === null || !defaultMonth) return;
+    if (defaultMonthKey === null) return;
+    const monthIndex = defaultMonthKey % 12;
+    const year = (defaultMonthKey - monthIndex) / 12;
     setCurrentMonth((prev) => {
-      if (
-        prev.getFullYear() === defaultMonth.getFullYear() &&
-        prev.getMonth() === defaultMonth.getMonth()
-      ) {
+      if (prev.getFullYear() === year && prev.getMonth() === monthIndex) {
         return prev;
       }
-      return new Date(defaultMonth.getFullYear(), defaultMonth.getMonth(), 1);
+      return new Date(year, monthIndex, 1);
     });
-  }, [defaultMonthKey, defaultMonth]);
+  }, [defaultMonthKey]);
 
   const today = useMemo(() => normalizeDate(new Date()), []);
   const weekdayLabels = useMemo(() => rotateWeekdays(weekStartsOn), [weekStartsOn]);
